@@ -1,15 +1,15 @@
-# CMPUT 301 W25 - Team [Team Name]
+# CMPUT 301 W25 - Team BugOff
 
 ## Team Members
 
-| Name        | CCID   | GitHub Username |
-| ----------- | ------ | --------------- |
-| [Full Name] | [CCID] | [@username]     |
-| [Full Name] | [CCID] | [@username]     |
-| [Full Name] | [CCID] | [@username]     |
-| [Full Name] | [CCID] | [@username]     |
-| [Full Name] | [CCID] | [@username]     |
-| [Full Name] | [CCID] | [@username]     |
+| Name                   |  CCID    | GitHub Username |
+| ---------------------- | -------- | --------------- |
+| Gunkirat Singh         | gunkirat |    gunkirat15   |
+| Harshmanpreet Singh    | harshman |    harshman7    |
+| Kabirvansh Chadha      | kvchadha |    kabirvansh   |
+| Bhavjot Singh          | bhavjot2 | thebhavjotsingh |
+| Jashanveer Singh Arora | jashanv3 |   JashanveerS   |
+| Guneet Kaur            | guneet4  |    guneettt     |
 
 ## Project Description
 
