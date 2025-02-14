@@ -31,5 +31,5 @@
 
 - Wiki : https://github.com/cmput301-w25/project-bugoff/wiki/BugOff's-Wiki
 - Scrum Board : https://github.com/orgs/cmput301-w25/projects/84
-- [UI Mockups]
+- UI Mockups : https://github.com/cmput301-w25/project-bugoff/blob/main/User-Interface/UImockup.pdf
 - [UML]
