@@ -17,4 +17,5 @@ public class MainActivity extends AppCompatActivity {
         startActivity(new Intent(this, SignInActivity.class)); // Open login screen
         finish(); // Close main activity
     }
+
 }
