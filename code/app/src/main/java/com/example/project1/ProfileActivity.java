@@ -6,12 +6,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-public class ProfileActivity extends AppCompatActivity {
+public class ProfileActivity extends ActivityBase {
 
     private ImageView profileImage;
     private TextView profileName, profileEmail;
@@ -19,10 +17,11 @@ public class ProfileActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.profile_page);
-        mAuth = FirebaseAuth.getInstance();
+
+        // Include Profile Content inside the base layout
+        getLayoutInflater().inflate(R.layout.profile_page, findViewById(R.id.content_frame), true);
 
         // Initialize UI elements
         profileImage = findViewById(R.id.profile_image);
@@ -35,6 +34,7 @@ public class ProfileActivity extends AppCompatActivity {
             finish();
         });
 
+        mAuth = FirebaseAuth.getInstance();
 
         // Load user details
         FirebaseUser user = mAuth.getCurrentUser();
