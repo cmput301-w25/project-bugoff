@@ -115,7 +115,7 @@
             android:clickable="true"/>
 
         <ImageView
-            android:id="@+id/profile"
+            android:id="@+id/profile_button"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_margin="8dp"
