@@ -20,16 +20,15 @@ public class ActivityBase extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main); // Base layout
+        setContentView(R.layout.activity_main); // Set the base layout
+
 
         profileButton = findViewById(R.id.profile_button);
-        profileButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(ActivityBase.this, ProfileActivity.class);
-                startActivity(intent);
-            }
+        profileButton.setOnClickListener(v -> {
+            startActivity(new Intent(this, ProfileActivity.class));
+            // Remove finish() if you want to return here later
         });
+
 
 
         List<Mood> moodList = new ArrayList<>();
