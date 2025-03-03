@@ -10,12 +10,13 @@
     <FrameLayout
         android:id="@+id/content_frame"
         android:layout_width="match_parent"
-        android:layout_height="73dp">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="73dp"
             android:background="@android:color/white"
             android:elevation="4dp"
             android:padding="10dp"
@@ -44,27 +45,16 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_marginEnd="8dp"
-                    android:clickable="true"
                     android:src="@drawable/ic_globe" />
 
                 <ImageView
                     android:id="@+id/iconSettings"
                     android:layout_width="28dp"
                     android:layout_height="match_parent"
-                    android:src="@drawable/ic_settings"
-                    android:clickable="true"
-                    android:layout_marginEnd="8dp"/>
+                    android:src="@drawable/ic_settings" />
             </LinearLayout>
         </androidx.appcompat.widget.Toolbar>
     </FrameLayout>
-
-    <!-- RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp" />
 
     <!-- Footer (5 Icons Evenly Spaced with Padding and Margin) -->
     <LinearLayout
@@ -84,8 +74,7 @@
             android:layout_height="24dp"
             android:layout_margin="8dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_home"
-            android:clickable="true"/>
+            android:src="@drawable/ic_home" />
 
         <ImageView
             android:id="@+id/search"
@@ -93,8 +82,7 @@
             android:layout_height="24dp"
             android:layout_margin="8dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_search"
-            android:clickable="true"/>
+            android:src="@drawable/ic_search" />
 
         <ImageView
             android:id="@+id/add"
@@ -102,8 +90,7 @@
             android:layout_height="24dp"
             android:layout_margin="8dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_add"
-            android:clickable="true"/>
+            android:src="@drawable/ic_add" />
 
         <ImageView
             android:id="@+id/heart"
@@ -111,8 +98,7 @@
             android:layout_height="24dp"
             android:layout_margin="8dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_heart"
-            android:clickable="true"/>
+            android:src="@drawable/ic_heart" />
 
         <ImageView
             android:id="@+id/profile_button"
@@ -120,8 +106,7 @@
             android:layout_height="24dp"
             android:layout_margin="8dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_profile"
-            android:clickable="true"/>
+            android:src="@drawable/ic_profile" />
     </LinearLayout>
 
 </LinearLayout>
