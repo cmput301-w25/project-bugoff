@@ -83,7 +83,7 @@ public class SignInActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                     if (documentSnapshot.exists()) {
                         String name = documentSnapshot.getString("name");
-                        Intent intent = new Intent(SignInActivity.this, ProfileActivity.class);
+                        Intent intent = new Intent(SignInActivity.this, HomePageActivity.class);
                         startActivity(intent);
                         finish();
                     }

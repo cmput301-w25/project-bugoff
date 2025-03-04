@@ -16,6 +16,8 @@
             android:name=".SignInActivity"
             android:exported="true" />
         <activity android:name=".SignUpActivity" />
+        <activity android:name=".ActivityBase" />
+        <activity android:name=".HomePageActivity" />
         <activity android:name=".ProfileActivity" />
         <activity
             android:name=".MainActivity"
