@@ -1,14 +1,18 @@
 package com.example.project1;
 
+import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -23,7 +27,6 @@ public class SignInActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,6 +46,9 @@ public class SignInActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.signIn_btn);
 
         loginButton.setOnClickListener(v -> loginUser());
+
+        TextView forgotPasswordText = findViewById(R.id.forgot_password);
+        forgotPasswordText.setOnClickListener(v -> showForgotPasswordDialog());
     }
 
     private void loginUser() {
@@ -87,4 +93,38 @@ public class SignInActivity extends AppCompatActivity {
                     Toast.makeText(SignInActivity.this, "Error fetching data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
+
+    private void showForgotPasswordDialog() {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_forgot_password);
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+
+        EditText emailEditText = dialog.findViewById(R.id.emailEditText);
+        Button sendButton = dialog.findViewById(R.id.sendButton);
+        Button cancelButton = dialog.findViewById(R.id.cancelButton);
+
+        sendButton.setOnClickListener(v -> {
+            String email = emailEditText.getText().toString().trim();
+            if (email.isEmpty()) {
+                Toast.makeText(SignInActivity.this, "Please enter your email", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            mAuth.sendPasswordResetEmail(email)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(SignInActivity.this, "Password reset email sent", Toast.LENGTH_LONG).show();
+                            dialog.dismiss();
+                        } else {
+                            Toast.makeText(SignInActivity.this, "Error: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+        });
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
 }
+
