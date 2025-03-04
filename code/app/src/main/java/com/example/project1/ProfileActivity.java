@@ -21,7 +21,7 @@ public class ProfileActivity extends ActivityBase {
         super.onCreate(savedInstanceState);
 
         // Include Profile Content inside the base layout
-        getLayoutInflater().inflate(R.layout.profile, findViewById(R.id.content_frame), true);
+        getLayoutInflater().inflate(R.layout.profile_page, findViewById(R.id.content_frame), true);
 
         // Initialize UI elements
         profileImage = findViewById(R.id.profile_image);
