@@ -21,14 +21,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HomePageActivity extends ActivityBase {
-
     private RecyclerView recyclerView;
     private MoodAdapter moodAdapter;
     private List<Mood> moodList;
     private FirebaseAuth mAuth;
     private FirebaseDatabase database;
     private DatabaseReference databaseReference;
-    private ImageView profileButton;
+    private ImageView profileButton, homeButton, addMoodButton, searchButton, notificationButton;
     protected FrameLayout contentFrame;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +48,7 @@ public class HomePageActivity extends ActivityBase {
         mAuth = FirebaseAuth.getInstance();
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
-//            databaseReference = FirebaseDatabase.getInstance().getReference("moods").child(user.getUid());
+//          databaseReference = FirebaseDatabase.getInstance().getReference("moods").child(user.getUid());
             loadMoods();
         }
 
