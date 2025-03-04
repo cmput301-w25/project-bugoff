@@ -58,7 +58,8 @@
                     android:id="@+id/user_location"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:drawableLeft="@drawable/mood_loaction_icon"
+                    android:drawableLeft="@drawable/mood_location_icon"
+                    android:drawablePadding="8dp"
                     android:text=" Edmonton,Canada"
                     android:textColor="@android:color/darker_gray"
                     android:textSize="12sp" />
@@ -78,6 +79,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:drawableLeft="@drawable/mood_gather_icon"
+                    android:drawablePadding="8dp"
                     android:text="Alone"
                     android:textColor="@android:color/darker_gray"
                     android:textSize="12sp" />

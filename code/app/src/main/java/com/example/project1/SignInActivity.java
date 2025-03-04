@@ -1,5 +1,7 @@
 package com.example.project1;
 
+import static androidx.core.content.ContextCompat.getSystemService;
+
 import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -19,6 +21,11 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Objects;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.content.Context;
+import android.widget.Toast;
+
 
 public class SignInActivity extends AppCompatActivity {
 
@@ -54,6 +61,11 @@ public class SignInActivity extends AppCompatActivity {
     private void loginUser() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
+
+        if (!isNetworkAvailable()) {
+            Toast.makeText(SignInActivity.this, "No internet connection", Toast.LENGTH_LONG).show();
+            return;
+        }
 
         if (email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Email and password are required", Toast.LENGTH_SHORT).show();
@@ -125,6 +137,11 @@ public class SignInActivity extends AppCompatActivity {
         cancelButton.setOnClickListener(v -> dialog.dismiss());
 
         dialog.show();
+    }
+    private boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
     }
 }
 

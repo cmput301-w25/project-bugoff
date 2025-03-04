@@ -18,7 +18,7 @@
             android:id="@+id/profile_image"
             android:layout_width="100dp"
             android:layout_height="100dp"
-            android:layout_marginTop="116dp"
+            android:layout_marginTop="48dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_profile"
             app:layout_constraintEnd_toEndOf="parent"
@@ -53,19 +53,20 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/profile_image" />
 
+        <!-- Stats Section -->
         <TextView
             android:id="@+id/profile_bio"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:gravity="center"
             android:padding="12dp"
-            android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
+            android:text="Every emotion tells a story—write yours here. 📜💫"
             android:textSize="14sp"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/profile_name" />
 
-        <!-- Stats Section -->
         <LinearLayout
             android:id="@+id/profile_stats"
             android:layout_width="match_parent"
@@ -148,43 +149,45 @@
         </LinearLayout>
 
         <!-- Edit Profile Button -->
+
+        <!-- Mood List Section -->
+
         <Button
             android:id="@+id/edit_profile_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:backgroundTint="@color/blue"
             android:text="Edit Profile"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.498"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/profile_stats" />
 
-        <!-- Mood List Section -->
-
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/moods_recycler_view"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_width="380dp"
+            android:layout_height="442dp"
             android:layout_marginTop="16dp"
             android:overScrollMode="never"
+            android:scrollbars="vertical"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintHorizontal_bias="1.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/edit_profile_btn"
             app:layout_constraintVertical_bias="1.0" />
 
         <Button
             android:id="@+id/logout_btn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="98dp"
+            android:layout_height="49dp"
             android:layout_marginStart="282dp"
-            android:layout_marginTop="116dp"
+            android:layout_marginTop="60dp"
             android:layout_marginEnd="20dp"
             android:text="Logout"
-            android:textColor="#EB2E2E"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.687"
+            app:layout_constraintHorizontal_bias="0.571"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
