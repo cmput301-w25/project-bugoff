@@ -20,6 +20,8 @@
         <activity android:name=".HomePageActivity" />
         <activity android:name=".ProfileActivity" />
         <activity android:name=".SearchActivity"/>
+        <activity android:name=".OtherProfileActivity"/>
+
 
         <activity
             android:name=".MainActivity"

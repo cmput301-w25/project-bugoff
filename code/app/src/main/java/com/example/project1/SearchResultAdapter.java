@@ -64,7 +64,15 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
         User user = userList.get(position);
         holder.displayNameText.setText(user.getDisplayName());
         holder.usernameText.setText(user.getUsername());
+
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(context, OtherProfileActivity.class);
+            intent.putExtra("USER_ID", user.getId());  // ✅ Ensure the correct user ID is passed
+            context.startActivity(intent);
+        });
     }
+
+
 
     @Override
     public int getItemCount() {

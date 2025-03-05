@@ -1,6 +1,5 @@
 // ProfileActivity.java
 package com.example.project1;
-
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -42,7 +41,7 @@ import com.google.firebase.storage.StorageReference;
 
 public class ProfileActivity extends ActivityBase {
 
-    private ImageView profileImage;
+    private ImageView profileImage, homeButton;
     private TextView profileName, profileEmail, profileBio;
     private Button editProfileButton, logoutButton;
     private FirebaseAuth mAuth;
@@ -94,6 +93,12 @@ public class ProfileActivity extends ActivityBase {
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
 
+        homeButton = findViewById(R.id.home);
+
+        homeButton.setOnClickListener(v -> {
+            startActivity(new Intent(this, HomePageActivity.class));
+        });
+
         // Load user details
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
@@ -101,23 +106,32 @@ public class ProfileActivity extends ActivityBase {
             profileEmail.setText(user.getEmail());
             profileImage.setImageResource(R.drawable.ic_profile);
 
-            // Fetch profile picture from Firestore
             FirebaseFirestore.getInstance().collection("users").document(user.getUid())
-                    .get()
-                    .addOnSuccessListener(documentSnapshot -> {
-                        if (documentSnapshot.exists()) {
+                    .addSnapshotListener((documentSnapshot, error) -> {
+                        if (error != null) {
+                            Log.e("Firestore", "Error fetching profile updates", error);
+                            return;
+                        }
+
+                        if (documentSnapshot != null && documentSnapshot.exists()) {
+                            // Update profile picture
                             String profilePicUrl = documentSnapshot.getString("profilePictureUrl");
                             if (profilePicUrl != null && !profilePicUrl.isEmpty()) {
-                                // Load stored profile picture
                                 Glide.with(this).load(profilePicUrl).into(profileImage);
                             }
-                        }
-                        if (documentSnapshot.exists()) {
+
+                            // Update bio
                             String bio = documentSnapshot.getString("bio");
                             if (bio == null || bio.isEmpty()) {
                                 bio = "Every emotion tells a story—write yours here. 📜💫";
                             }
                             profileBio.setText(bio);
+
+                            // Update name (if stored in Firestore)
+                            String name = documentSnapshot.getString("name");
+                            if (name != null && !name.isEmpty()) {
+                                profileName.setText(name);
+                            }
                         }
                     });
             loadMoods();
@@ -226,22 +240,32 @@ public class ProfileActivity extends ActivityBase {
 
             storageRef.putFile(imageUri)
                     .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        // Update UI instantly
+                        Glide.with(this).load(uri).into(profileImage);
+
                         // Update Firebase Authentication profile
                         user.updateProfile(new UserProfileChangeRequest.Builder()
                                 .setPhotoUri(uri)
                                 .build());
 
-                        // Store the download URL in Firestore under "users" collection
+                        // Store the download URL in Firestore
                         FirebaseFirestore.getInstance()
                                 .collection("users")
-                                .document(user.getUid()) // Store in user's document
-                                .update("profilePictureUrl", uri.toString()) // Update profile picture field
-                                .addOnSuccessListener(aVoid -> Log.d("Firestore", "Profile picture updated successfully"))
-                                .addOnFailureListener(e -> Log.e("Firestore", "Error updating profile picture", e));
+                                .document(user.getUid())
+                                .update("profilePictureUrl", uri.toString())
+                                .addOnSuccessListener(aVoid ->
+                                        Log.d("Firestore", "Profile picture updated successfully")
+                                )
+                                .addOnFailureListener(e ->
+                                        Log.e("Firestore", "Error updating profile picture", e)
+                                );
                     }))
-                    .addOnFailureListener(e -> Log.e("Storage", "Error uploading image", e));
+                    .addOnFailureListener(e ->
+                            Log.e("Storage", "Error uploading image", e)
+                    );
         }
     }
+
 
     private void saveUserProfile(String name, String bio, String gender) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -254,11 +278,16 @@ public class ProfileActivity extends ActivityBase {
 
             FirebaseFirestore.getInstance().collection("users").document(userId)
                     .set(userProfile, SetOptions.merge())
-                    .addOnSuccessListener(aVoid -> Toast.makeText(this, "Profile Updated!", Toast.LENGTH_SHORT).show())
-                    .addOnFailureListener(e -> Toast.makeText(this, "Update Failed!", Toast.LENGTH_SHORT).show());
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Profile Updated!", Toast.LENGTH_SHORT).show();
+
+                        // Update UI instantly
+                        profileName.setText(name);
+                        profileBio.setText(bio);
+                    })
+                    .addOnFailureListener(e ->
+                            Toast.makeText(this, "Update Failed!", Toast.LENGTH_SHORT).show()
+                    );
         }
     }
-
-
-
 }
