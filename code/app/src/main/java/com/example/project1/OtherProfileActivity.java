@@ -1,5 +1,6 @@
 package com.example.project1;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -35,6 +36,13 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
         getLayoutInflater().inflate(R.layout.activity_other_profile, contentFrame, true);
 
         db = FirebaseFirestore.getInstance();
+        // ✅ Manually initialize bottom navigation buttons
+        findViewById(R.id.home).setOnClickListener(v -> startActivity(new Intent(this, HomePageActivity.class)));
+        findViewById(R.id.search).setOnClickListener(v -> startActivity(new Intent(this, SearchActivity.class))); // Redundant, but keeps it consistent
+        //findViewById(R.id.add).setOnClickListener(v -> startActivity(new Intent(this, AddPostActivity.class)));
+        //findViewById(R.id.heart).setOnClickListener(v -> startActivity(new Intent(this, NotificationsActivity.class)));
+        findViewById(R.id.profile_button).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
+
 
         initUI();
 

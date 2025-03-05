@@ -3,19 +3,13 @@ package com.example.project1;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.TextView;
-import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,19 +20,19 @@ public class HomePageActivity extends ActivityBase {
     private MoodAdapter moodAdapter;
     private List<Mood> moodList;
     private FirebaseAuth mAuth;
-    private FirebaseDatabase database;
-    private DatabaseReference databaseReference;
-    private ImageView profileButton;
+    private ImageView profileButton, homeButton, searchButton, addButton, heartButton;
     protected FrameLayout contentFrame;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_base); // Set the base layout
+        setContentView(R.layout.activity_base); // ✅ Ensure we load the base layout
 
-        // Inflate the home page layout into the content frame
-        FrameLayout contentFrame = findViewById(R.id.content_frame);
+        // ✅ Inflate the home page layout inside the base layout
+        contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.activity_home_page, contentFrame, true);
 
+        // ✅ Initialize RecyclerView for moods
         recyclerView = findViewById(R.id.moods_recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -46,26 +40,42 @@ public class HomePageActivity extends ActivityBase {
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
 
+        // ✅ Load moods if the user is logged in
         mAuth = FirebaseAuth.getInstance();
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
-//            databaseReference = FirebaseDatabase.getInstance().getReference("moods").child(user.getUid());
             loadMoods();
         }
 
-        contentFrame = findViewById(R.id.content_frame);
+        // ✅ Initialize Bottom Navigation Buttons
         profileButton = findViewById(R.id.profile_button);
-        profileButton.setOnClickListener(v -> {
-            startActivity(new Intent(this, ProfileActivity.class));
-        });
+        homeButton = findViewById(R.id.home);
+        searchButton = findViewById(R.id.search);
+        addButton = findViewById(R.id.add);
+        heartButton = findViewById(R.id.heart);
+
+        // ✅ Set Up Navigation Click Listeners
+        profileButton.setOnClickListener(v -> navigateTo(ProfileActivity.class));
+        homeButton.setOnClickListener(v -> navigateTo(HomePageActivity.class));
+        searchButton.setOnClickListener(v -> navigateTo(SearchActivity.class));
+        //addButton.setOnClickListener(v -> navigateTo(AddPostActivity.class));
+        //heartButton.setOnClickListener(v -> navigateTo(NotificationsActivity.class));
+    }
+
+    private void navigateTo(Class<?> targetActivity) {
+        if (!this.getClass().equals(targetActivity)) {
+            Intent intent = new Intent(this, targetActivity);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+        }
     }
 
     private void loadMoods() {
-        // Adding two sample Mood objects to the moodList
+        // ✅ Sample moods (Replace this with actual Firebase data fetching)
         moodList.add(new Mood("Sample User", "User_id", "Edmonton, Canada", "4:39 AM, 2025-02-11", "Alone", "Feeling Angry", "Hunger", "Couldn't Find Food!", R.drawable.angry_photo));
         moodList.add(new Mood("Sample User", "User_id", "Edmonton, Canada", "4:39 AM, 2025-02-11", "Alone", "Feeling Angry", "Hunger", "Couldn't Find Food!", null));
 
-        // Notify the adapter that the data has changed
+        // ✅ Notify adapter that data has changed
         moodAdapter.notifyDataSetChanged();
     }
 }

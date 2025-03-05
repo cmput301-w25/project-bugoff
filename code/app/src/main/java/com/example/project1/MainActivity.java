@@ -35,13 +35,13 @@ public class MainActivity extends AppCompatActivity {
 
 
         if (currentUser != null) {
-            // User is already logged in, go directly to HomeActivity
-            startActivity(new Intent(this, HomePageActivity.class));
-            finish();
+            // ✅ Load ActivityBase, ensuring navbar works from launch
+            startActivity(new Intent(MainActivity.this, HomePageActivity.class));
         } else {
-            // User is not logged in, show login screen
-            startActivity(new Intent(this, SignInActivity.class));
-            finish();
+            // ✅ If user is not logged in, go to SignInActivity
+            startActivity(new Intent(MainActivity.this, SignInActivity.class));
         }
+
+        finish(); // Close MainActivity so it does not stay in the back stack
     }
 }
