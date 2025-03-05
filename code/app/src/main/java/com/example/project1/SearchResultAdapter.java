@@ -1,12 +1,16 @@
 package com.example.project1;
+
+
 import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.List;
 
 public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapter.ResultViewHolder> {
@@ -33,11 +37,17 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
                     User clickedUser = userList.get(position);
-                    Intent intent = new Intent(context, ProfileActivity.class);
-                    intent.putExtra("USER_ID", clickedUser.getId());
-                    context.startActivity(intent);
+                    openUserProfile(clickedUser);
                 }
             });
+        }
+
+        private void openUserProfile(User user) {
+            Intent intent = new Intent(context, ProfileActivity.class);
+            intent.putExtra("USER_ID", user.getId());
+            intent.putExtra("name", user.getDisplayName());
+            intent.putExtra("username", user.getUsername());
+            context.startActivity(intent);
         }
     }
 
