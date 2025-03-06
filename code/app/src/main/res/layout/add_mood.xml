@@ -3,92 +3,83 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:gravity="center">  <!-- Centers all child elements -->
 
-    <!-- Header -->
-
-    <!-- Profile Section -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center_vertical"
-        android:layout_marginStart="16dp">
+        android:layout_width="333dp"
+        android:layout_height="353dp"
+        android:gravity="center"
+        android:orientation="vertical"> <!-- Ensures all child elements are centered -->
 
         <ImageView
             android:id="@+id/profileImage"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:layout_gravity="center_vertical"
-            android:src="@drawable/default_profile" />
+            android:layout_width="75dp"
+            android:layout_height="75dp"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/ic_profile" />
 
         <Spinner
             android:id="@+id/moodSpinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:prompt="@string/select_mood"
-            android:hint="Click to Select a Mood" />
+            android:hint="Click to Select a Mood"
+            android:prompt="@string/select_mood" />
 
         <EditText
             android:id="@+id/triggerInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Add Trigger..."
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:hint="Add Trigger..." />
 
         <EditText
             android:id="@+id/reasonInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Add Reason..."
-            android:layout_marginTop="8dp" />
-    </LinearLayout>
+            android:layout_marginTop="8dp"
+            android:hint="Add Reason..." />
 
-    <!-- Timestamp and Icons -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center_vertical">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center_horizontal"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="14dp"
+                android:src="@drawable/import_image" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="14dp"
+                android:src="@drawable/location_icon" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/tag_icon" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/timestampText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center_horizontal"
             android:text="4:24 PM - December 12, 2024"
-            android:textSize="12sp"
-            android:textColor="#757575" />
+            android:textColor="#757575"
+            android:textSize="12sp" />
 
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:src="@android:drawable/ic_menu_gallery"
-            android:layout_marginStart="8dp" />
-
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:src="@android:drawable/ic_menu_mylocation"
-            android:layout_marginStart="8dp" />
-
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:src="@android:drawable/ic_menu_group"
-            android:layout_marginStart="8dp" />
+        <Button
+            android:id="@+id/addMoodButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#BBDEFB"
+            android:text="Add Mood" />
     </LinearLayout>
-
-    <!-- Add Mood Button -->
-    <Button
-        android:id="@+id/addMoodButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Add Mood"
-        android:backgroundTint="#BBDEFB"
-        android:layout_gravity="end"
-        android:layout_marginTop="16dp" />
-
-    <!-- Bottom Navigation -->
 </LinearLayout>
