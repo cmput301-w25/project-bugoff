@@ -42,19 +42,21 @@ import com.google.firebase.storage.StorageReference;
 
 public class ProfileActivity extends ActivityBase {
 
-    private ImageView profileImage, homeButton;
+    private ImageView profileImage;
     private TextView profileName, profileEmail, profileBio;
-    private Button editProfileButton, logoutButton;
+    private Button editProfileButton;
     private FirebaseAuth mAuth;
     private RecyclerView recyclerView;
     private MoodAdapter moodAdapter;
     private List<Mood> moodList;
     private ActivityResultLauncher<Intent> selectImageLauncher;
+    private AlertDialog editProfileDialog;
 
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        initializeNavigation();
         selectImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -75,17 +77,6 @@ public class ProfileActivity extends ActivityBase {
         profileBio = findViewById(R.id.profile_bio);
         profileEmail = findViewById(R.id.profile_email);
         editProfileButton = findViewById(R.id.edit_profile_btn);
-        logoutButton = findViewById(R.id.logout_btn);
-        logoutButton.setOnClickListener(v -> {
-            if (isNetworkAvailable()) {
-                Toast.makeText(ProfileActivity.this, "Cannot log out while offline", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            FirebaseAuth.getInstance().signOut();
-            startActivity(new Intent(ProfileActivity.this, SignInActivity.class));
-            finish();
-        });
-
 
         mAuth = FirebaseAuth.getInstance();
         recyclerView = findViewById(R.id.moods_recycler_view);
@@ -93,12 +84,6 @@ public class ProfileActivity extends ActivityBase {
         moodList = new ArrayList<>();
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
-
-        homeButton = findViewById(R.id.home);
-
-        homeButton.setOnClickListener(v -> {
-            startActivity(new Intent(this, HomePageActivity.class));
-        });
 
         // Load user details
         FirebaseUser user = mAuth.getCurrentUser();
@@ -166,7 +151,7 @@ public class ProfileActivity extends ActivityBase {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomDialog);
         View view = getLayoutInflater().inflate(R.layout.dialog_edit_profile, null);
         builder.setView(view);
-        AlertDialog dialog = builder.create();
+        editProfileDialog = builder.create();
 
         ImageView profilePic = view.findViewById(R.id.edit_profile_image);
         EditText editName = view.findViewById(R.id.edit_name);
@@ -190,6 +175,10 @@ public class ProfileActivity extends ActivityBase {
                             }
                             editBio.setText(bio);
                         }
+                        String profilePicUrl = documentSnapshot.getString("profilePictureUrl");
+                        if (profilePicUrl != null && !profilePicUrl.isEmpty()) {
+                            Glide.with(this).load(profilePicUrl).into(profilePic);
+                        }
                     });
             Glide.with(this).load(user.getPhotoUrl()).into(profilePic);
         }
@@ -210,12 +199,12 @@ public class ProfileActivity extends ActivityBase {
             // Save to Firestore
             saveUserProfile(newName, newBio, selectedGender);
 
-            dialog.dismiss();
+            editProfileDialog.dismiss();
         });
 
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnCancel.setOnClickListener(v -> editProfileDialog.dismiss());
 
-        dialog.show();
+        editProfileDialog.show();
     }
     private void selectImageFromGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -254,9 +243,15 @@ public class ProfileActivity extends ActivityBase {
                                 .collection("users")
                                 .document(user.getUid())
                                 .update("profilePictureUrl", uri.toString())
-                                .addOnSuccessListener(aVoid ->
-                                        Log.d("Firestore", "Profile picture updated successfully")
-                                )
+                                .addOnSuccessListener(aVoid -> {
+                                    Log.d("Firestore", "Profile picture updated successfully");
+
+                                    // Update the edit profile dialog image if it is open
+                                    if (editProfileDialog != null && editProfileDialog.isShowing()) {
+                                        ImageView profilePic = editProfileDialog.findViewById(R.id.edit_profile_image);
+                                        Glide.with(this).load(uri).into(profilePic);
+                                    }
+                                })
                                 .addOnFailureListener(e ->
                                         Log.e("Firestore", "Error updating profile picture", e)
                                 );

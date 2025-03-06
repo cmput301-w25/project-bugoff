@@ -33,6 +33,7 @@ public class HomePageActivity extends ActivityBase {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base); // Set the base layout
+        initializeNavigation();
 
         // Inflate the home page layout into the content frame
         FrameLayout contentFrame = findViewById(R.id.content_frame);
@@ -51,12 +52,6 @@ public class HomePageActivity extends ActivityBase {
 //          databaseReference = FirebaseDatabase.getInstance().getReference("moods").child(user.getUid());
             loadMoods();
         }
-
-        contentFrame = findViewById(R.id.content_frame);
-        profileButton = findViewById(R.id.profile_button);
-        profileButton.setOnClickListener(v -> {
-            startActivity(new Intent(this, ProfileActivity.class));
-        });
     }
 
     private void loadMoods() {
