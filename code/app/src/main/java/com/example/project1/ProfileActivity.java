@@ -189,6 +189,7 @@ public class ProfileActivity extends ActivityBase {
                             }
                             editBio.setText(bio);
                         }
+
                     });
             Glide.with(this).load(user.getPhotoUrl()).into(profilePic);
         }

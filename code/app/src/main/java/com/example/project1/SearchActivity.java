@@ -90,10 +90,12 @@ public class SearchActivity extends ActivityBase {
 
         // Query Firestore for user documents where the "username" field starts with the query
         db.collection("users")
-                .whereGreaterThanOrEqualTo("username", query.toLowerCase())
-                .whereLessThanOrEqualTo("username", query.toLowerCase() + "\uf8ff")
+                .orderBy("name")
+                .startAt(query)
+                .endAt(query + "\uf8ff")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
+                    userList.clear();
                     if (queryDocumentSnapshots.isEmpty()) {
                         Toast.makeText(SearchActivity.this, "No users found.", Toast.LENGTH_SHORT).show();
                     } else {
@@ -101,8 +103,7 @@ public class SearchActivity extends ActivityBase {
                             String id = doc.getId();
                             String username = doc.getString("username");
                             String displayName = doc.getString("name");
-                            User user = new User(id, username, displayName);
-                            userList.add(user);
+                            userList.add(new User(id, username, displayName));
                         }
                         adapter.notifyDataSetChanged();
                     }

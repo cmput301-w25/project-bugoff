@@ -7,4 +7,5 @@
     <color name="red_heart_background">#FFDDDD</color>
     <color name="red_heart_text">#FF5B5B</color>
     <color name="green_heat_text">#77B255</color>
+    <color name="darker_gray">#333333</color>
 </resources>

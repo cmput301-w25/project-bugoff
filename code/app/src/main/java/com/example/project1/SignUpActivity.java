@@ -131,7 +131,7 @@ public class SignUpActivity extends AppCompatActivity {
     
     private void saveUserToFirestore(String userId, String name, String email) {
         Map<String, Object> user = new HashMap<>();
-        user.put("name", name);
+        user.put("name", name.toLowerCase());
         user.put("email", email);
 
         db.collection("users").document(userId)
