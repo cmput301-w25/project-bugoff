@@ -14,9 +14,13 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.WriteBatch;
 
-public class OtherProfileActivity extends ActivityBase {  // ✅ Extends ActivityBase to include header & footer
+import java.util.HashMap;
+
+public class OtherProfileActivity extends ActivityBase {
 
     private ImageView profileImage;
     private TextView profileName, profileEmail, profileBio;
@@ -26,40 +30,37 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
     private FirebaseAuth auth;
     private String currentUserId;
 
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ✅ Load the base layout that includes the header and footer
+        // Load the base layout with header and footer
         setContentView(R.layout.activity_base);
 
-        // ✅ Inflate the profile layout inside the content frame
+        // Inflate the profile layout inside the content frame
         FrameLayout contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.activity_other_profile, contentFrame, true);
 
+        // Initialize Firebase instances
         db = FirebaseFirestore.getInstance();
-        // ✅ Manually initialize bottom navigation buttons
-        findViewById(R.id.home).setOnClickListener(v -> startActivity(new Intent(this, HomePageActivity.class)));
-        findViewById(R.id.search).setOnClickListener(v -> startActivity(new Intent(this, SearchActivity.class))); // Redundant, but keeps it consistent
-        //findViewById(R.id.add).setOnClickListener(v -> startActivity(new Intent(this, AddPostActivity.class)));
-        //findViewById(R.id.heart).setOnClickListener(v -> startActivity(new Intent(this, NotificationsActivity.class)));
-        findViewById(R.id.profile_button).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
         auth = FirebaseAuth.getInstance();
         currentUserId = auth.getCurrentUser().getUid();
 
-
+        // Set up bottom navigation
+        findViewById(R.id.home).setOnClickListener(v -> startActivity(new Intent(this, HomePageActivity.class)));
+        findViewById(R.id.search).setOnClickListener(v -> startActivity(new Intent(this, SearchActivity.class)));
+        findViewById(R.id.profile_button).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
 
         initUI();
 
-        // ✅ Get the searched user ID from Intent
+        // Get the searched user ID from Intent
         searchedUserId = getIntent().getStringExtra("USER_ID");
 
         if (searchedUserId != null && !searchedUserId.isEmpty()) {
             loadUserData(searchedUserId);
         } else {
             Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
-            finish();  // ✅ Close activity if no user ID is found
+            finish();
         }
     }
 
@@ -71,12 +72,13 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
         followButton = findViewById(R.id.follow_btn);
         backButton = findViewById(R.id.back_button);
 
+        // Set click listeners
         backButton.setOnClickListener(v -> finish());
         followButton.setOnClickListener(v -> followUser());
-        backButton.setOnClickListener(v -> finish());
     }
 
     private void loadUserData(String userId) {
+        // Fetch user profile data
         db.collection("users").document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -89,6 +91,22 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
                         if (imageUrl != null && !imageUrl.isEmpty()) {
                             Glide.with(this).load(imageUrl).into(profileImage);
                         }
+
+                        // Check if current user is already following this user
+                        db.collection("users").document(searchedUserId)
+                                .collection("followers")
+                                .document(currentUserId)
+                                .get()
+                                .addOnSuccessListener(followSnapshot -> {
+                                    if (followSnapshot.exists()) {
+                                        followButton.setText("Following");
+                                        followButton.setEnabled(false);
+                                    } else {
+                                        followButton.setText("Follow");
+                                        followButton.setEnabled(true);
+                                    }
+                                })
+                                .addOnFailureListener(e -> Log.e("OtherProfileActivity", "Error checking follow status", e));
                     } else {
                         Toast.makeText(this, "User profile not found.", Toast.LENGTH_SHORT).show();
                     }
@@ -97,39 +115,39 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
     }
 
     private void followUser() {
+        // Validate user IDs
         if (currentUserId == null || searchedUserId == null || currentUserId.equals(searchedUserId)) {
             Toast.makeText(this, "Invalid operation.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        // Create a batch write for atomic updates
+        WriteBatch batch = db.batch();
 
-        // References for subcollections
-        db.collection("users").document(searchedUserId)
-                .collection("followers").document(currentUserId)
-                .set(new Follower(currentUserId)) // Store follower's ID
+        // Reference to the follower's document in searched user's followers subcollection
+        DocumentReference followerRef = db.collection("users")
+                .document(searchedUserId)
+                .collection("followers")
+                .document(currentUserId);
+        batch.set(followerRef, new HashMap<String, Object>());
+
+        // Reference to the following document in current user's following subcollection
+        DocumentReference followingRef = db.collection("users")
+                .document(currentUserId)
+                .collection("following")
+                .document(searchedUserId);
+        batch.set(followingRef, new HashMap<String, Object>());
+
+        // Commit the batch write
+        batch.commit()
                 .addOnSuccessListener(aVoid -> {
-                    db.collection("users").document(currentUserId)
-                            .collection("following").document(searchedUserId)
-                            .set(new Following(searchedUserId)) // Store following ID
-                            .addOnSuccessListener(aVoid2 -> {
-                                followButton.setText("Following");
-                                followButton.setEnabled(false); // Disable button after following
-                                Toast.makeText(this, "Followed successfully!", Toast.LENGTH_SHORT).show();
-                            })
-                            .addOnFailureListener(e -> Log.e("Follow Error", "Error following user", e));
+                    followButton.setText("Following");
+                    followButton.setEnabled(false);
+                    Toast.makeText(this, "Followed successfully!", Toast.LENGTH_SHORT).show();
                 })
-                .addOnFailureListener(e -> Log.e("Follow Error", "Error adding follower", e));
-    }
-
-    // Data model classes
-    public static class Follower {
-        String userId;
-        Follower(String userId) { this.userId = userId; }
-    }
-
-    public static class Following {
-        String userId;
-        Following(String userId) { this.userId = userId; }
+                .addOnFailureListener(e -> {
+                    Log.e("FollowUser", "Error following user", e);
+                    Toast.makeText(this, "Failed to follow.", Toast.LENGTH_SHORT).show();
+                });
     }
 }

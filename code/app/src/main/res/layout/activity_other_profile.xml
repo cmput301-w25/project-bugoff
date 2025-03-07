@@ -9,11 +9,16 @@
         tools:context=".OtherProfileActivity">
 
         <!-- Profile Picture -->
+
+        <!-- Name -->
+
+        <!-- Email -->
+
         <ImageView
             android:id="@+id/other_profile_image"
             android:layout_width="100dp"
             android:layout_height="100dp"
-            android:layout_marginTop="48dp"
+            android:layout_marginTop="60dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_profile"
             app:layout_constraintEnd_toEndOf="parent"
@@ -21,9 +26,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Name -->
-
-        <!-- Email -->
         <TextView
             android:id="@+id/other_profile_name"
             android:layout_width="wrap_content"
@@ -180,10 +182,10 @@
             android:id="@+id/back_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="76dp"
             android:text="Back"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.879"
+            app:layout_constraintHorizontal_bias="0.883"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
