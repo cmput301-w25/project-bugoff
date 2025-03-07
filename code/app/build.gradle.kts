@@ -51,4 +51,6 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore:25.1.1")
     implementation("com.google.firebase:firebase-auth:21.0.8")
     implementation("com.google.firebase:firebase-database:20.0.5")
+    implementation ("com.google.android.gms:play-services-auth:20.7.0") // Google Sign-In
+    implementation ("com.google.android.gms:play-services-base:18.2.0")
 }

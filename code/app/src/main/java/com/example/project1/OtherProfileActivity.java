@@ -23,6 +23,9 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
     private Button followButton, backButton;
     private String searchedUserId;
     private FirebaseFirestore db;
+    private FirebaseAuth auth;
+    private String currentUserId;
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -42,6 +45,9 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
         //findViewById(R.id.add).setOnClickListener(v -> startActivity(new Intent(this, AddPostActivity.class)));
         //findViewById(R.id.heart).setOnClickListener(v -> startActivity(new Intent(this, NotificationsActivity.class)));
         findViewById(R.id.profile_button).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
+        auth = FirebaseAuth.getInstance();
+        currentUserId = auth.getCurrentUser().getUid();
+
 
 
         initUI();
@@ -66,7 +72,8 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
         backButton = findViewById(R.id.back_button);
 
         backButton.setOnClickListener(v -> finish());
-        //followButton.setOnClickListener(v -> followUser());
+        followButton.setOnClickListener(v -> followUser());
+        backButton.setOnClickListener(v -> finish());
     }
 
     private void loadUserData(String userId) {
@@ -89,5 +96,40 @@ public class OtherProfileActivity extends ActivityBase {  // ✅ Extends Activit
                 .addOnFailureListener(e -> Log.e("OtherProfileActivity", "Error fetching user data", e));
     }
 
+    private void followUser() {
+        if (currentUserId == null || searchedUserId == null || currentUserId.equals(searchedUserId)) {
+            Toast.makeText(this, "Invalid operation.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        // References for subcollections
+        db.collection("users").document(searchedUserId)
+                .collection("followers").document(currentUserId)
+                .set(new Follower(currentUserId)) // Store follower's ID
+                .addOnSuccessListener(aVoid -> {
+                    db.collection("users").document(currentUserId)
+                            .collection("following").document(searchedUserId)
+                            .set(new Following(searchedUserId)) // Store following ID
+                            .addOnSuccessListener(aVoid2 -> {
+                                followButton.setText("Following");
+                                followButton.setEnabled(false); // Disable button after following
+                                Toast.makeText(this, "Followed successfully!", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> Log.e("Follow Error", "Error following user", e));
+                })
+                .addOnFailureListener(e -> Log.e("Follow Error", "Error adding follower", e));
+    }
+
+    // Data model classes
+    public static class Follower {
+        String userId;
+        Follower(String userId) { this.userId = userId; }
+    }
+
+    public static class Following {
+        String userId;
+        Following(String userId) { this.userId = userId; }
+    }
 }
