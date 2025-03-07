@@ -1,13 +1,13 @@
 package com.example.project1;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -15,6 +15,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
@@ -70,8 +71,8 @@ public class AddMood extends ActivityBase {
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
 
-        // Initialize Places API (replace "YOUR_API_KEY" with your Google API key)
-        Places.initialize(getApplicationContext(), "YOUR_API_KEY");
+        // Initialize Places API with your actual API key
+        Places.initialize(getApplicationContext(), "YOUR_ACTUAL_API_KEY"); // Replace with your Google API key
         PlacesClient placesClient = Places.createClient(this);
 
         // Initialize UI elements
@@ -130,7 +131,8 @@ public class AddMood extends ActivityBase {
             try {
                 photoFile = createImageFile();
             } catch (IOException ex) {
-                // Handle error (e.g., show toast)
+                Toast.makeText(this, "Error creating image file", Toast.LENGTH_SHORT).show();
+                Log.e("AddMood", "IOException in createImageFile", ex);
             }
             if (photoFile != null) {
                 Uri photoURI = FileProvider.getUriForFile(this,
@@ -160,12 +162,21 @@ public class AddMood extends ActivityBase {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                selectedPlace = Autocomplete.getPlaceFromIntent(data);
-                locationIcon.setColorFilter(Color.BLUE);
-            } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
+            if (resultCode == RESULT_OK && data != null) {
+                try {
+                    selectedPlace = Autocomplete.getPlaceFromIntent(data);
+                    locationIcon.setColorFilter(Color.BLUE);
+                    Toast.makeText(this, "Place selected: " + selectedPlace.getName(), Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Log.e("AddMood", "Error getting place", e);
+                    Toast.makeText(this, "Error selecting place", Toast.LENGTH_SHORT).show();
+                }
+            } else if (resultCode == AutocompleteActivity.RESULT_ERROR && data != null) {
                 Status status = Autocomplete.getStatusFromIntent(data);
-                // Handle error (e.g., show toast)
+                Log.e("AddMood", "Autocomplete error: " + status.getStatusMessage());
+                Toast.makeText(this, "Location error: " + status.getStatusMessage(), Toast.LENGTH_SHORT).show();
+            } else if (resultCode == RESULT_CANCELED) {
+                // User canceled, do nothing
             }
         } else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             selectedImageUri = Uri.fromFile(new File(currentPhotoPath));
@@ -184,6 +195,12 @@ public class AddMood extends ActivityBase {
     }
 
     private void saveMoodToFirebase() {
+        // Check if user is authenticated
+        if (auth.getCurrentUser() == null) {
+            Toast.makeText(this, "You need to be logged in to add a mood", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String mood = moodSpinner.getSelectedItem().toString();
         String trigger = triggerInput.getText().toString().trim();
         String reason = reasonInput.getText().toString().trim();
@@ -198,20 +215,28 @@ public class AddMood extends ActivityBase {
 
         if (selectedPlace != null) {
             moodData.put("locationName", selectedPlace.getName());
-            moodData.put("locationLat", selectedPlace.getLatLng().latitude);
-            moodData.put("locationLng", selectedPlace.getLatLng().longitude);
+            if (selectedPlace.getLatLng() != null) {
+                moodData.put("locationLat", selectedPlace.getLatLng().latitude);
+                moodData.put("locationLng", selectedPlace.getLatLng().longitude);
+            }
         }
 
         if (selectedImageUri != null) {
             String imageName = "image_" + System.currentTimeMillis() + ".jpg";
             StorageReference imageRef = storageRef.child("images/" + userId + "/" + imageName);
             imageRef.putFile(selectedImageUri)
-                    .addOnSuccessListener(taskSnapshot -> imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        moodData.put("imageUrl", uri.toString());
-                        addMoodToFirestore(moodData);
-                    }))
+                    .addOnSuccessListener(taskSnapshot -> imageRef.getDownloadUrl()
+                            .addOnSuccessListener(uri -> {
+                                moodData.put("imageUrl", uri.toString());
+                                addMoodToFirestore(moodData);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("AddMood", "Error getting download URL", e);
+                                Toast.makeText(this, "Failed to get image URL: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }))
                     .addOnFailureListener(e -> {
-                        // Handle failure (e.g., show toast)
+                        Log.e("AddMood", "Error uploading image", e);
+                        Toast.makeText(this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });
         } else {
             addMoodToFirestore(moodData);
@@ -222,6 +247,7 @@ public class AddMood extends ActivityBase {
         db.collection("users").document(auth.getCurrentUser().getUid()).collection("moods")
                 .add(moodData)
                 .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(this, "Mood added successfully", Toast.LENGTH_SHORT).show();
                     triggerInput.setText("");
                     reasonInput.setText("");
                     selectedImageView.setVisibility(View.GONE);
@@ -231,7 +257,8 @@ public class AddMood extends ActivityBase {
                     selectedPlace = null;
                 })
                 .addOnFailureListener(e -> {
-                    // Handle failure (e.g., show toast)
+                    Log.e("AddMood", "Error adding mood", e);
+                    Toast.makeText(this, "Failed to add mood: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 }
