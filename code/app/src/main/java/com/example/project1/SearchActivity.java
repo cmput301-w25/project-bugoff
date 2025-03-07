@@ -51,7 +51,7 @@ public class SearchActivity extends ActivityBase {
         findViewById(R.id.home).setOnClickListener(v -> startActivity(new Intent(this, HomePageActivity.class)));
         findViewById(R.id.search).setOnClickListener(v -> startActivity(new Intent(this, SearchActivity.class))); // Redundant, but keeps it consistent
         //findViewById(R.id.add).setOnClickListener(v -> startActivity(new Intent(this, AddPostActivity.class)));
-        //findViewById(R.id.heart).setOnClickListener(v -> startActivity(new Intent(this, NotificationsActivity.class)));
+        findViewById(R.id.heart).setOnClickListener(v -> startActivity(new Intent(this, NotificationsActivity.class)));
         findViewById(R.id.profile_button).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
 
 

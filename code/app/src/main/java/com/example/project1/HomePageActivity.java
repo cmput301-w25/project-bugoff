@@ -59,7 +59,7 @@ public class HomePageActivity extends ActivityBase {
         homeButton.setOnClickListener(v -> navigateTo(HomePageActivity.class));
         searchButton.setOnClickListener(v -> navigateTo(SearchActivity.class));
         //addButton.setOnClickListener(v -> navigateTo(AddPostActivity.class));
-        //heartButton.setOnClickListener(v -> navigateTo(NotificationsActivity.class));
+        heartButton.setOnClickListener(v -> navigateTo(NotificationsActivity.class));
     }
 
     private void navigateTo(Class<?> targetActivity) {

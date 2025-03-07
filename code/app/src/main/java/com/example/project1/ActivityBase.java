@@ -26,7 +26,7 @@ public class ActivityBase extends AppCompatActivity {
         findViewById(R.id.home).setOnClickListener(v -> openActivity(HomePageActivity.class));
         findViewById(R.id.search).setOnClickListener(v -> openActivity(SearchActivity.class));
         //findViewById(R.id.add).setOnClickListener(v -> openActivity(AddPostActivity.class));
-        //findViewById(R.id.heart).setOnClickListener(v -> openActivity(NotificationsActivity.class));
+        findViewById(R.id.heart).setOnClickListener(v -> openActivity(NotificationsActivity.class));
         findViewById(R.id.profile_button).setOnClickListener(v -> openActivity(ProfileActivity.class));
     }
 

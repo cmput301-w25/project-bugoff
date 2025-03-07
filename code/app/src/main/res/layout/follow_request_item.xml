@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="12dp"
+    android:background="@android:color/white">
+
+    <!-- User Profile Image -->
+    <ImageView
+        android:id="@+id/profile_image"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="12dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_profile"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- User Name & Username -->
+    <TextView
+        android:id="@+id/user_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Name of the user"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toEndOf="@id/profile_image"
+        app:layout_constraintTop_toTopOf="@id/profile_image" />
+
+    <TextView
+        android:id="@+id/user_ID"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@username"
+        android:textSize="14sp"
+        android:textStyle="italic"
+        android:textColor="@android:color/darker_gray"
+        app:layout_constraintStart_toStartOf="@id/user_name"
+        app:layout_constraintTop_toBottomOf="@id/user_name" />
+
+    <!-- Follow Request Text -->
+    <TextView
+        android:id="@+id/follow_request_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Requested to follow your Mood Event"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="@id/user_name"
+        app:layout_constraintTop_toBottomOf="@id/user_ID" />
+
+    <!-- Timestamp -->
+    <TextView
+        android:id="@+id/request_timestamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="YYYY-MM-DD at HH:MM AM"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray"
+        app:layout_constraintStart_toStartOf="@id/user_name"
+        app:layout_constraintTop_toBottomOf="@id/follow_request_text" />
+
+    <!-- Allow Button -->
+    <Button
+        android:id="@+id/allow_button"
+        android:layout_width="80dp"
+        android:layout_height="32dp"
+        android:text="Allow"
+        android:textSize="12sp"
+        android:backgroundTint="@android:color/holo_blue_light"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.9"/>
+</androidx.constraintlayout.widget.ConstraintLayout>

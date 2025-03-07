@@ -10,7 +10,9 @@ public class Mood {
     private String moodTrigger;
     private String moodReason;
     private Integer moodImage;
+    private boolean isFollowRequest;
 
+    // Constructor for Mood Posts
     public Mood(String userName, String userId, String userLocation, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, Integer moodImage) {
         this.userName = userName;
         this.userId = userId;
@@ -21,6 +23,16 @@ public class Mood {
         this.moodTrigger = moodTrigger;
         this.moodReason = moodReason;
         this.moodImage = moodImage;
+        this.isFollowRequest = false;  // Default to false
+    }
+
+    // Constructor for Follow Requests
+    public Mood(String userName, String userId, String userTime, String moodStatus) {
+        this.userName = userName;
+        this.userId = userId;
+        this.userTime = userTime;
+        this.moodStatus = moodStatus;
+        this.isFollowRequest = true;  // Mark as follow request
     }
 
     public String getUserName() {
@@ -57,5 +69,9 @@ public class Mood {
 
     public Integer getMoodImage() {
         return moodImage;
+    }
+
+    public boolean isFollowRequest() {
+        return isFollowRequest;
     }
 }
