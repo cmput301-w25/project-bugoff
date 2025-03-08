@@ -7,4 +7,12 @@
         <item name="android:backgroundDimAmount">0.5</item> <!-- Dim background -->
         <item name="android:windowElevation">10dp</item>
     </style>
+    <style name="FilterDialogTheme">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
+    <style name="CircularImageView" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
 </resources>
