@@ -25,12 +25,17 @@
             android:id="@+id/moodSpinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
             android:hint="Click to Select a Mood"
             android:prompt="@string/select_mood" />
 
         <EditText
             android:id="@+id/triggerInput"
             android:layout_width="match_parent"
+            android:background="@drawable/input_field"
+            android:padding="15dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:hint="Add Trigger..." />
@@ -39,6 +44,10 @@
             android:id="@+id/reasonInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/input_field"
+            android:padding="15dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray"
             android:layout_marginTop="8dp"
             android:hint="Add Reason..." />
 
@@ -111,7 +120,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:backgroundTint="#82BEED"
+            android:backgroundTint="#439DEB"
             android:text="Add Mood" />
     </LinearLayout>
 </LinearLayout>
