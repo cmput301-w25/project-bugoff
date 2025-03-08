@@ -23,12 +23,11 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
+import android.widget.HorizontalScrollView; // no longer used for chips but kept if still in XML
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
@@ -80,9 +79,7 @@ public class AddMood extends ActivityBase {
     private Uri selectedImageUri;
     private String currentPhotoPath;
 
-    // Views for displaying tagged users as chips
-    private HorizontalScrollView taggedUsersScrollView;
-    private LinearLayout taggedUsersContainer;
+    private TextView selectedLocationText;
 
     // For the live character counter on the Reason field.
     private TextView reasonCharCountText;
@@ -93,7 +90,7 @@ public class AddMood extends ActivityBase {
     private static final int REQUEST_IMAGE_PICK = 3;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
-    // Global list for tagged users
+    // Global list for tagged users (this list is maintained internally)
     private List<User> taggedUsers = new ArrayList<>();
 
     // For current location
@@ -119,13 +116,34 @@ public class AddMood extends ActivityBase {
         public LatLng getLatLng() { return latLng; }
     }
 
+    private void updateSelectedLocationDisplay() {
+        String displayText = "";
+        if (selectedLocation != null && !taggedUsers.isEmpty()) {
+            displayText = "Location: " + selectedLocation.getName() + " | Tagged: " + taggedUsers.size();
+        } else if (selectedLocation != null) {
+            displayText = "Location: " + selectedLocation.getName();
+        } else if (!taggedUsers.isEmpty()) {
+            displayText = "Tagged: " + taggedUsers.size();
+        }
+
+        if (!displayText.isEmpty()) {
+            selectedLocationText.setText(displayText);
+            selectedLocationText.setTextColor(Color.parseColor("#439DEB"));
+            selectedLocationText.setVisibility(View.VISIBLE);
+        } else {
+            selectedLocationText.setVisibility(View.GONE);
+        }
+    }
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Inflate your provided add_mood.xml (the layout you shared)
+        // Inflate your provided add_mood.xml layout into the content frame
         getLayoutInflater().inflate(R.layout.add_mood, findViewById(R.id.content_frame), true);
 
-        // Initialize Firebase
+        // Initialize Firebase components
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
@@ -135,10 +153,10 @@ public class AddMood extends ActivityBase {
         Places.initialize(getApplicationContext(), "YOUR_API_KEY");
         PlacesClient placesClient = Places.createClient(this);
 
-        // Initialize fused location client
+        // Initialize FusedLocationProviderClient for current location
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        // Initialize UI elements (IDs from your provided XML)
+        // Initialize UI elements from your provided XML
         moodSpinner = findViewById(R.id.moodSpinner);
         triggerInput = findViewById(R.id.triggerInput);
         reasonInput = findViewById(R.id.reasonInput);
@@ -148,12 +166,12 @@ public class AddMood extends ActivityBase {
         importImageIcon = findViewById(R.id.importImageIcon);
         tagIcon = findViewById(R.id.tagIcon);
         selectedImageView = findViewById(R.id.selectedImageView);
-        taggedUsersScrollView = findViewById(R.id.taggedUsersScrollView);
-        taggedUsersContainer = findViewById(R.id.taggedUsersContainer);
         profileImage = findViewById(R.id.profileImage);
-        reasonCharCountText = findViewById(R.id.reasonCharCountText); // Make sure this TextView is added in your XML below Reason input
+        reasonCharCountText = findViewById(R.id.reasonCharCountText);
+        selectedLocationText = findViewById(R.id.selectedLocationText);
 
-        // Load logged in user's profile image (it is rounded via XML)
+
+        // Load logged in user's profile image (rounded via XML)
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser != null && currentUser.getPhotoUrl() != null) {
             Glide.with(this)
@@ -164,13 +182,11 @@ public class AddMood extends ActivityBase {
             profileImage.setImageResource(R.drawable.ic_profile);
         }
 
-        // Setup Spinner: use an array with the placeholder as the first item.
+        // Setup Spinner: Use an array with "Select an Emotion" as the first item.
         String[] moodOptions = {"Select an Emotion", "Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Surprised", "Shameful"};
-        // Use default Android layouts for spinner items.
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moodOptions);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         moodSpinner.setAdapter(spinnerAdapter);
-        // Always start with the placeholder.
         moodSpinner.setSelection(0);
 
         // Set current timestamp.
@@ -206,19 +222,16 @@ public class AddMood extends ActivityBase {
                 showSnackbar("Please select an emotion.");
                 return;
             }
-            if (reasonInput.getText().toString().trim().isEmpty()) {
-                showSnackbar("Please enter a reason (max 20 characters).");
-                return;
-            }
             saveMoodToFirebase();
         });
     }
 
-    // Helper method to show error messages as a bottom Snackbar.
+    // Helper method to show errors as a bottom Snackbar.
     private void showSnackbar(String message) {
         View parentView = findViewById(R.id.content_frame);
-        Snackbar snackbar= Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT).setDuration(1500).setBackgroundTint(Color.RED).setTextColor(Color.WHITE);
+        Snackbar snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT).setBackgroundTint(Color.RED).setTextColor(Color.WHITE);
         View snackbarView = snackbar.getView();
+        // Move the Snackbar up by 150 pixels.
         snackbarView.setTranslationY(-150);
         snackbar.show();
     }
@@ -226,7 +239,7 @@ public class AddMood extends ActivityBase {
     // --- LOCATION POPUP ---
     private void showLocationPopup() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // Inflate your custom location popup layout (create dialog_location_selection.xml as needed)
+        // Inflate your custom location popup layout (dialog_location_selection.xml)
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_location_selection, null);
         builder.setView(dialogView);
         final AlertDialog dialog = builder.create();
@@ -246,31 +259,39 @@ public class AddMood extends ActivityBase {
                 showSnackbar("Location permission required");
                 return;
             }
-            fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
-                if (location != null) {
-                    Geocoder geocoder = new Geocoder(AddMood.this, Locale.getDefault());
-                    try {
-                        List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-                        if (addresses != null && !addresses.isEmpty()) {
-                            Address address = addresses.get(0);
-                            String locName = (address.getFeatureName() != null && !address.getFeatureName().isEmpty())
-                                    ? address.getFeatureName() : address.getLocality();
-                            if (locName == null || locName.isEmpty()) {
-                                locName = "Current Location";
+            fusedLocationClient.getCurrentLocation(
+                            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                            null)
+                    .addOnSuccessListener(location -> {
+                        if (location != null) {
+                            Geocoder geocoder = new Geocoder(AddMood.this, Locale.getDefault());
+                            try {
+                                List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                                if (addresses != null && !addresses.isEmpty()) {
+                                    Address address = addresses.get(0);
+                                    String locName = (address.getFeatureName() != null && !address.getFeatureName().isEmpty())
+                                            ? address.getFeatureName() : address.getLocality();
+                                    if (locName == null || locName.isEmpty()) {
+                                        locName = "Current Location";
+                                    }
+                                    selectedLocation = new DummyLocation(locName, location.getLatitude(), location.getLongitude());
+                                    locationIcon.setColorFilter(Color.BLUE);
+                                    updateSelectedLocationDisplay();  // Update the display here.
+                                    showSnackbar("Location selected: " + selectedLocation.getName());
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                showSnackbar("Error retrieving address");
                             }
-                            selectedLocation = new DummyLocation(locName, location.getLatitude(), location.getLongitude());
-                            locationIcon.setColorFilter(Color.BLUE);
+                        } else {
+                            showSnackbar("Unable to get current location");
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        showSnackbar("Error retrieving address");
-                    }
-                } else {
-                    showSnackbar("Unable to get current location");
-                }
-            });
+                    });
             dialog.dismiss();
         });
+
+
+
 
         btnSearchLocation.setOnClickListener(v -> {
             List<Place.Field> fields = java.util.Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG);
@@ -283,6 +304,7 @@ public class AddMood extends ActivityBase {
         btnRemoveLocation.setOnClickListener(v -> {
             selectedLocation = null;
             locationIcon.clearColorFilter();
+            updateSelectedLocationDisplay();  // Clear the display.
             dialog.dismiss();
         });
 
@@ -293,20 +315,22 @@ public class AddMood extends ActivityBase {
 
     // --- IMAGE SELECTION METHODS ---
     private void showImagePickerDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Select Image");
-        String[] options = {"Take Photo", "Choose from Gallery"};
-        builder.setItems(options, (dialog, which) -> {
-            if (which == 0) {
-                dispatchTakePictureIntent();
-            } else {
-                openGallery();
-            }
-        });
-        builder.show();
+        openGallery();
     }
 
+    private static final int CAMERA_PERMISSION_REQUEST_CODE = 2001;
+
     private void dispatchTakePictureIntent() {
+        // Check for camera permission.
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA},
+                    CAMERA_PERMISSION_REQUEST_CODE);
+            return;
+        }
+
+        // If permission granted, proceed to initialize the camera.
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             File photoFile = null;
@@ -321,6 +345,20 @@ public class AddMood extends ActivityBase {
                         photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted: initialize camera.
+                dispatchTakePictureIntent();
+            } else {
+                // Permission denied: show a snackbar.
+                showSnackbar("Camera permission denied");
             }
         }
     }
@@ -348,6 +386,7 @@ public class AddMood extends ActivityBase {
                 Place place = Autocomplete.getPlaceFromIntent(data);
                 selectedLocation = new DummyLocation(place.getName(), place.getLatLng().latitude, place.getLatLng().longitude);
                 locationIcon.setColorFilter(Color.BLUE);
+                updateSelectedLocationDisplay();  // Update the display.
             } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
                 Status status = Autocomplete.getStatusFromIntent(data);
                 Log.e("AddMood", "Error retrieving location: " + status);
@@ -374,7 +413,7 @@ public class AddMood extends ActivityBase {
     // --- SETUP IMAGE REMOVAL ---
     private void setupImageRemoval() {
         selectedImageView.setOnClickListener(v -> {
-            new android.app.AlertDialog.Builder(AddMood.this)
+            new AlertDialog.Builder(AddMood.this)
                     .setTitle("Remove Image")
                     .setMessage("Do you want to remove the selected image?")
                     .setPositiveButton("Yes", (dialog, which) -> {
@@ -395,7 +434,6 @@ public class AddMood extends ActivityBase {
             return;
         }
         String mood = moodSpinner.getSelectedItem().toString();
-        // The first item is the placeholder.
         String trigger = triggerInput.getText().toString().trim();
         String reason = reasonInput.getText().toString().trim();
         String timestamp = timestampText.getText().toString();
@@ -470,7 +508,7 @@ public class AddMood extends ActivityBase {
         db.collection("users").document(user.getUid()).collection("moods")
                 .add(moodData)
                 .addOnSuccessListener(documentReference -> {
-                    // Clear UI on success.
+                    // Clear UI upon success.
                     triggerInput.setText("");
                     reasonInput.setText("");
                     selectedImageView.setVisibility(View.GONE);
@@ -479,7 +517,6 @@ public class AddMood extends ActivityBase {
                     locationIcon.clearColorFilter();
                     selectedLocation = null;
                     taggedUsers.clear();
-                    updateTaggedUsersUI();
                     tagIcon.clearColorFilter();
                     showSnackbar("Mood added successfully");
                 })
@@ -490,6 +527,8 @@ public class AddMood extends ActivityBase {
     }
 
     // --- TAGGING FUNCTIONALITY ---
+    // The tagging popup still allows the user to add or remove tags,
+    // but the main UI will not display removable chips.
     private void showTagUsersDialog() {
         final ArrayList<User> tempTaggedUsers = new ArrayList<>(taggedUsers);
         final List<User> currentData = new ArrayList<>();
@@ -542,12 +581,13 @@ public class AddMood extends ActivityBase {
         applyButton.setOnClickListener(v -> {
             taggedUsers.clear();
             taggedUsers.addAll(tempTaggedUsers);
-            updateTaggedUsersUI();
             if (!taggedUsers.isEmpty()) {
                 tagIcon.setColorFilter(Color.BLUE);
             } else {
                 tagIcon.clearColorFilter();
             }
+            // Update the selected location display to include the tag count.
+            updateSelectedLocationDisplay();
             dialog.dismiss();
         });
 
@@ -556,29 +596,7 @@ public class AddMood extends ActivityBase {
         dialog.show();
     }
 
-    private void updateTaggedUsersUI() {
-        taggedUsersContainer.removeAllViews();
-        if (taggedUsers.isEmpty()) {
-            taggedUsersScrollView.setVisibility(View.GONE);
-            return;
-        }
-        taggedUsersScrollView.setVisibility(View.VISIBLE);
-        LayoutInflater inflater = LayoutInflater.from(this);
-        for (User user : taggedUsers) {
-            View chip = inflater.inflate(R.layout.item_tag_chip, taggedUsersContainer, false);
-            TextView chipText = chip.findViewById(R.id.chip_text);
-            chipText.setText(user.getName());
-            chip.setOnClickListener(v -> {
-                taggedUsers.remove(user);
-                updateTaggedUsersUI();
-                if (taggedUsers.isEmpty()) {
-                    tagIcon.clearColorFilter();
-                }
-            });
-            taggedUsersContainer.addView(chip);
-        }
-    }
-
+    // RecyclerView Adapter for tagging dialog.
     private class TagUsersAdapter extends RecyclerView.Adapter<TagUsersAdapter.ViewHolder> {
         private List<User> users;
         private List<User> selectedUsers;
@@ -589,7 +607,9 @@ public class AddMood extends ActivityBase {
         }
 
         @Override
-        public int getItemCount() { return users.size(); }
+        public int getItemCount() {
+            return users.size();
+        }
 
         @Override
         public TagUsersAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
