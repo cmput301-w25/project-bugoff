@@ -42,7 +42,7 @@
         android:id="@+id/btn_cancel_location"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:backgroundTint="#439DEB"
+        android:backgroundTint="#EB4343"
         android:text="Cancel"
         android:layout_marginTop="8dp"
         android:elevation="4dp"
