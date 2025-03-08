@@ -3,8 +3,8 @@ package com.example.project1;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,6 +22,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -43,6 +45,7 @@ import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.AutocompleteActivity;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -72,7 +75,7 @@ public class AddMood extends ActivityBase {
     private FirebaseAuth auth;
     private FirebaseStorage storage;
     private StorageReference storageRef;
-    // Instead of a Place, we use our LocationWrapper to hold location info.
+    // Instead of a Place, we use a custom LocationWrapper to store location info.
     private LocationWrapper selectedLocation;
     private Uri selectedImageUri;
     private String currentPhotoPath;
@@ -80,6 +83,9 @@ public class AddMood extends ActivityBase {
     // Views for displaying tagged users as chips
     private HorizontalScrollView taggedUsersScrollView;
     private LinearLayout taggedUsersContainer;
+
+    // For the live character counter on the Reason field.
+    private TextView reasonCharCountText;
 
     // Request codes
     private static final int PLACE_AUTOCOMPLETE_REQUEST_CODE = 1;
@@ -90,16 +96,16 @@ public class AddMood extends ActivityBase {
     // Global list for tagged users
     private List<User> taggedUsers = new ArrayList<>();
 
-    // FusedLocationProviderClient for current location
+    // For current location
     private FusedLocationProviderClient fusedLocationClient;
 
-    // --- Custom interface to wrap location info ---
+    // --- Interface for location info ---
     public interface LocationWrapper {
         String getName();
         LatLng getLatLng();
     }
 
-    // DummyLocation: our simple implementation of LocationWrapper.
+    // DummyLocation: simple implementation of LocationWrapper.
     private class DummyLocation implements LocationWrapper {
         private final String name;
         private final LatLng latLng;
@@ -108,22 +114,18 @@ public class AddMood extends ActivityBase {
             this.latLng = new LatLng(lat, lng);
         }
         @Override
-        public String getName() {
-            return name;
-        }
+        public String getName() { return name; }
         @Override
-        public LatLng getLatLng() {
-            return latLng;
-        }
+        public LatLng getLatLng() { return latLng; }
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Inflate add_mood.xml into the content frame
+        // Inflate your provided add_mood.xml (the layout you shared)
         getLayoutInflater().inflate(R.layout.add_mood, findViewById(R.id.content_frame), true);
 
-        // Initialize Firebase components
+        // Initialize Firebase
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
@@ -133,10 +135,10 @@ public class AddMood extends ActivityBase {
         Places.initialize(getApplicationContext(), "YOUR_API_KEY");
         PlacesClient placesClient = Places.createClient(this);
 
-        // Initialize FusedLocationProviderClient for current location
+        // Initialize fused location client
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        // Initialize UI elements
+        // Initialize UI elements (IDs from your provided XML)
         moodSpinner = findViewById(R.id.moodSpinner);
         triggerInput = findViewById(R.id.triggerInput);
         reasonInput = findViewById(R.id.reasonInput);
@@ -149,8 +151,9 @@ public class AddMood extends ActivityBase {
         taggedUsersScrollView = findViewById(R.id.taggedUsersScrollView);
         taggedUsersContainer = findViewById(R.id.taggedUsersContainer);
         profileImage = findViewById(R.id.profileImage);
+        reasonCharCountText = findViewById(R.id.reasonCharCountText); // Make sure this TextView is added in your XML below Reason input
 
-        // Load logged in user's profile image (rounded) into profileImage view.
+        // Load logged in user's profile image (it is rounded via XML)
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser != null && currentUser.getPhotoUrl() != null) {
             Glide.with(this)
@@ -161,33 +164,69 @@ public class AddMood extends ActivityBase {
             profileImage.setImageResource(R.drawable.ic_profile);
         }
 
-        // Set up Spinner with mood options.
-        String[] moods = {"Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Surprised", "Shameful"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moods);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        moodSpinner.setAdapter(adapter);
+        // Setup Spinner: use an array with the placeholder as the first item.
+        String[] moodOptions = {"Select an Emotion", "Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Surprised", "Shameful"};
+        // Use default Android layouts for spinner items.
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moodOptions);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        moodSpinner.setAdapter(spinnerAdapter);
+        // Always start with the placeholder.
+        moodSpinner.setSelection(0);
 
         // Set current timestamp.
         SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
         timestampText.setText(sdf.format(new Date()));
 
-        // Location icon: launch location popup.
+        // Setup Reason input: Limit to 20 characters and show remaining count.
+        reasonInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(20)});
+        reasonInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                int remaining = 20 - s.length();
+                reasonCharCountText.setText(String.valueOf(remaining));
+            }
+            @Override
+            public void afterTextChanged(Editable s) { }
+        });
+
+        // Location icon: open the location popup.
         locationIcon.setOnClickListener(v -> showLocationPopup());
 
-        // Image import icon: open image picker dialog.
+        // Image import icon: open image picker.
         importImageIcon.setOnClickListener(v -> showImagePickerDialog());
 
-        // Tag icon: launch the tagging popup dialog.
+        // Tag icon: open the tagging popup.
         tagIcon.setOnClickListener(v -> showTagUsersDialog());
 
-        // Add Mood button: save mood data.
-        addMoodButton.setOnClickListener(v -> saveMoodToFirebase());
+        // Add Mood button: Validate inputs and then save.
+        addMoodButton.setOnClickListener(v -> {
+            if (moodSpinner.getSelectedItemPosition() == 0) {
+                showSnackbar("Please select an emotion.");
+                return;
+            }
+            if (reasonInput.getText().toString().trim().isEmpty()) {
+                showSnackbar("Please enter a reason (max 20 characters).");
+                return;
+            }
+            saveMoodToFirebase();
+        });
+    }
+
+    // Helper method to show error messages as a bottom Snackbar.
+    private void showSnackbar(String message) {
+        View parentView = findViewById(R.id.content_frame);
+        Snackbar snackbar= Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT).setDuration(1500).setBackgroundTint(Color.RED).setTextColor(Color.WHITE);
+        View snackbarView = snackbar.getView();
+        snackbarView.setTranslationY(-150);
+        snackbar.show();
     }
 
     // --- LOCATION POPUP ---
     private void showLocationPopup() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // Inflate your custom layout (create dialog_location_selection.xml in res/layout)
+        // Inflate your custom location popup layout (create dialog_location_selection.xml as needed)
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_location_selection, null);
         builder.setView(dialogView);
         final AlertDialog dialog = builder.create();
@@ -197,20 +236,14 @@ public class AddMood extends ActivityBase {
         Button btnRemoveLocation = dialogView.findViewById(R.id.btn_remove_location);
         Button btnCancel = dialogView.findViewById(R.id.btn_cancel_location);
 
-        // Show Remove button only if a location is currently attached.
-        if (selectedLocation == null) {
-            btnRemoveLocation.setVisibility(View.GONE);
-        } else {
-            btnRemoveLocation.setVisibility(View.VISIBLE);
-        }
+        btnRemoveLocation.setVisibility(selectedLocation == null ? View.GONE : View.VISIBLE);
 
         btnUseCurrent.setOnClickListener(v -> {
-            // Check for location permission.
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                         LOCATION_PERMISSION_REQUEST_CODE);
-                Toast.makeText(this, "Location permission required", Toast.LENGTH_SHORT).show();
+                showSnackbar("Location permission required");
                 return;
             }
             fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
@@ -230,17 +263,16 @@ public class AddMood extends ActivityBase {
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
-                        Toast.makeText(AddMood.this, "Error retrieving address", Toast.LENGTH_SHORT).show();
+                        showSnackbar("Error retrieving address");
                     }
                 } else {
-                    Toast.makeText(AddMood.this, "Unable to get current location", Toast.LENGTH_SHORT).show();
+                    showSnackbar("Unable to get current location");
                 }
             });
             dialog.dismiss();
         });
 
         btnSearchLocation.setOnClickListener(v -> {
-            // Launch the autocomplete search.
             List<Place.Field> fields = java.util.Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG);
             Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields)
                     .build(AddMood.this);
@@ -313,7 +345,6 @@ public class AddMood extends ActivityBase {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
-                // Wrap the autocomplete Place in our DummyLocation.
                 Place place = Autocomplete.getPlaceFromIntent(data);
                 selectedLocation = new DummyLocation(place.getName(), place.getLatLng().latitude, place.getLatLng().longitude);
                 locationIcon.setColorFilter(Color.BLUE);
@@ -343,7 +374,7 @@ public class AddMood extends ActivityBase {
     // --- SETUP IMAGE REMOVAL ---
     private void setupImageRemoval() {
         selectedImageView.setOnClickListener(v -> {
-            new AlertDialog.Builder(AddMood.this)
+            new android.app.AlertDialog.Builder(AddMood.this)
                     .setTitle("Remove Image")
                     .setMessage("Do you want to remove the selected image?")
                     .setPositiveButton("Yes", (dialog, which) -> {
@@ -360,10 +391,11 @@ public class AddMood extends ActivityBase {
     private void saveMoodToFirebase() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
-            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
+            showSnackbar("User not logged in");
             return;
         }
         String mood = moodSpinner.getSelectedItem().toString();
+        // The first item is the placeholder.
         String trigger = triggerInput.getText().toString().trim();
         String reason = reasonInput.getText().toString().trim();
         String timestamp = timestampText.getText().toString();
@@ -406,12 +438,12 @@ public class AddMood extends ActivityBase {
             long fileSize = afd.getLength();
             afd.close();
             if (fileSize > 65536) {
-                Toast.makeText(this, "Image exceeds maximum allowed size of 64KB", Toast.LENGTH_SHORT).show();
+                showSnackbar("Image exceeds maximum allowed size of 64KB");
                 return;
             }
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Error reading image file", Toast.LENGTH_SHORT).show();
+            showSnackbar("Error reading image file");
             return;
         }
         FirebaseUser user = auth.getCurrentUser();
@@ -438,7 +470,7 @@ public class AddMood extends ActivityBase {
         db.collection("users").document(user.getUid()).collection("moods")
                 .add(moodData)
                 .addOnSuccessListener(documentReference -> {
-                    // Clear UI upon success.
+                    // Clear UI on success.
                     triggerInput.setText("");
                     reasonInput.setText("");
                     selectedImageView.setVisibility(View.GONE);
@@ -449,15 +481,15 @@ public class AddMood extends ActivityBase {
                     taggedUsers.clear();
                     updateTaggedUsersUI();
                     tagIcon.clearColorFilter();
-                    Toast.makeText(AddMood.this, "Mood added successfully", Toast.LENGTH_SHORT).show();
+                    showSnackbar("Mood added successfully");
                 })
                 .addOnFailureListener(e -> {
                     Log.e("Firestore", "Error adding mood", e);
-                    Toast.makeText(AddMood.this, "Error adding mood", Toast.LENGTH_SHORT).show();
+                    showSnackbar("Error adding mood");
                 });
     }
 
-    // --- TAGGING FUNCTIONALITY (unchanged from previous version) ---
+    // --- TAGGING FUNCTIONALITY ---
     private void showTagUsersDialog() {
         final ArrayList<User> tempTaggedUsers = new ArrayList<>(taggedUsers);
         final List<User> currentData = new ArrayList<>();
@@ -557,9 +589,7 @@ public class AddMood extends ActivityBase {
         }
 
         @Override
-        public int getItemCount() {
-            return users.size();
-        }
+        public int getItemCount() { return users.size(); }
 
         @Override
         public TagUsersAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
