@@ -3,19 +3,32 @@ package com.example.project1;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.Calendar;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+import java.util.TimeZone;
+import java.text.ParseException;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -32,9 +45,12 @@ import com.google.firebase.auth.UserProfileChangeRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -51,6 +67,13 @@ public class ProfileActivity extends ActivityBase {
     private List<Mood> moodList;
     private ActivityResultLauncher<Intent> selectImageLauncher;
     private AlertDialog editProfileDialog;
+    // Global variables to store selected filters
+    private int selectedDaysFilter = 0; // 0 = All, 7 = Last 7 days, 30 = Last 30 days
+    private String selectedMoodFilter = "Select Mood"; // Default mood selection
+    private String searchQuery = ""; // Default is empty, meaning no search applied
+    private TextView followersCount;
+    private TextView followingCount;
+    private TextView moodCountText;
 
 
     @Override
@@ -77,6 +100,9 @@ public class ProfileActivity extends ActivityBase {
         profileBio = findViewById(R.id.profile_bio);
         profileEmail = findViewById(R.id.profile_email);
         editProfileButton = findViewById(R.id.edit_profile_btn);
+        followersCount = findViewById(R.id.followers_count);
+        followingCount = findViewById(R.id.following_count);
+        moodCountText = findViewById(R.id.moods_count);
 
         mAuth = FirebaseAuth.getInstance();
         recyclerView = findViewById(R.id.moods_recycler_view);
@@ -84,6 +110,12 @@ public class ProfileActivity extends ActivityBase {
         moodList = new ArrayList<>();
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
+
+        // Initialize the filter button
+        ImageButton filterButton = findViewById(R.id.filter_button);
+
+        // Set onClickListener to show the filter popup
+        filterButton.setOnClickListener(v -> showFilterPopup());
 
         // Load user details
         FirebaseUser user = mAuth.getCurrentUser();
@@ -123,6 +155,47 @@ public class ProfileActivity extends ActivityBase {
             loadMoods();
         }
 
+        // Set click listeners to navigate to FollowingActivity
+        followersCount.setOnClickListener(v -> {
+            Intent intent = new Intent(ProfileActivity.this, FollowingActivity.class);
+            intent.putExtra("type", "followers");
+            intent.putExtra("userId", mAuth.getCurrentUser().getUid());
+            startActivity(intent);
+        });
+
+        followingCount.setOnClickListener(v -> {
+            Intent intent = new Intent(ProfileActivity.this, FollowingActivity.class);
+            intent.putExtra("type", "following");
+            intent.putExtra("userId", mAuth.getCurrentUser().getUid());
+            startActivity(intent);
+        });
+
+        // Optional: Fetch and display the counts
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String userId = mAuth.getCurrentUser().getUid();
+
+        // Fetch followers count
+        db.collection("users").document(userId).collection("followers").get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int count = queryDocumentSnapshots.size();
+                    followersCount.setText(String.valueOf(count));
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("ProfileActivity", "Error fetching followers count", e);
+                    followersCount.setText("0"); // Fallback
+                });
+
+        // Fetch following count
+        db.collection("users").document(userId).collection("following").get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int count = queryDocumentSnapshots.size();
+                    followingCount.setText(String.valueOf(count));
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("ProfileActivity", "Error fetching following count", e);
+                    followingCount.setText("0"); // Fallback
+                });
+
         // Edit Profile Action
         editProfileButton.setOnClickListener(v -> {
             if (isNetworkAvailable()) {
@@ -133,13 +206,300 @@ public class ProfileActivity extends ActivityBase {
         });
     }
 
-    private void loadMoods() {
-        // Adding two sample Mood objects to the moodList
-        moodList.add(new Mood("Sample User", "User_id", "Edmonton, Canada", "4:39 AM, 2025-02-11", "Alone", "Feeling Angry", "Hunger", "Couldn't Find Food!", R.drawable.angry_photo));
-        moodList.add(new Mood("Sample User", "User_id", "Edmonton, Canada", "4:39 AM, 2025-02-11", "Alone", "Feeling Angry", "Hunger", "Couldn't Find Food!", null));
+    private void showFilterPopup() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View popupView = getLayoutInflater().inflate(R.layout.filter_popup, null);
+        builder.setView(popupView);
 
-        // Notify the adapter that the data has changed
-        moodAdapter.notifyDataSetChanged();
+        AlertDialog filterDialog = builder.create();
+        filterDialog.show();
+
+        // Force popup to be centered
+        if (filterDialog.getWindow() != null) {
+            filterDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            filterDialog.getWindow().setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            filterDialog.getWindow().setGravity(Gravity.CENTER);
+        }
+
+        // Close button functionality
+        ImageView closePopup = popupView.findViewById(R.id.close_popup);
+        closePopup.setOnClickListener(v -> filterDialog.dismiss());
+
+        // Radio Buttons for time filters
+        RadioButton filterWeek = popupView.findViewById(R.id.filter_week);
+        RadioButton filterMonth = popupView.findViewById(R.id.filter_month);
+
+        // Restore previously selected time filter
+        if (selectedDaysFilter == 7) {
+            filterWeek.setChecked(true);
+        } else if (selectedDaysFilter == 30) {
+            filterMonth.setChecked(true);
+        }
+
+        // Mood Spinner
+        Spinner moodSpinner = popupView.findViewById(R.id.spinner_emotional_state);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this, R.array.emotional_states, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        moodSpinner.setAdapter(adapter);
+
+        // Restore previously selected mood
+        int moodPosition = adapter.getPosition(selectedMoodFilter);
+        moodSpinner.setSelection(moodPosition);
+
+        // Search Box for "Reason Why"
+        EditText searchBox = popupView.findViewById(R.id.search_reason_box);
+        searchBox.setText(searchQuery); // Restore previous search query
+
+        // Apply Button
+        Button applyButton = popupView.findViewById(R.id.apply_button);
+        Button resetButton = popupView.findViewById(R.id.reset_button);
+
+        // Reset Button functionality
+        resetButton.setOnClickListener(v -> {
+            // Clear all filters
+            filterWeek.setChecked(false);
+            filterMonth.setChecked(false);
+            moodSpinner.setSelection(0); // Assuming first item is the default/no selection
+            searchBox.setText("");
+
+            // Reset stored filter values
+            selectedDaysFilter = 0;
+            selectedMoodFilter = "Select Mood";
+            searchQuery = "";
+
+            // Load all moods without filters
+            loadMoods();
+
+            // Close the dialog
+            filterDialog.dismiss();
+
+            // Show confirmation toast
+            Toast.makeText(ProfileActivity.this, "Filters reset", Toast.LENGTH_SHORT).show();
+        });
+
+        applyButton.setOnClickListener(v -> {
+            String selectedMood = moodSpinner.getSelectedItem().toString();
+            boolean applyMoodFilter = !selectedMood.equals("Select Mood");
+
+            // Store the selected filters
+            selectedDaysFilter = filterWeek.isChecked() ? 7 : filterMonth.isChecked() ? 30 : 0;
+            selectedMoodFilter = selectedMood;
+
+            // Get search query (if entered)
+            searchQuery = searchBox.getText().toString().trim();
+
+            // Apply filters
+            loadMoodsFiltered(selectedDaysFilter, applyMoodFilter ? selectedMood : null, searchQuery.isEmpty() ? null : searchQuery);
+
+            // Close the filter box after applying
+            filterDialog.dismiss();
+        });
+    }
+
+    private void loadMoods() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            String userId = user.getUid();
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+            db.collection("users").document(userId).get()
+                    .addOnSuccessListener(userDoc -> {
+                        String profileImageUrl = userDoc.getString("profilePictureUrl");
+                        moodList.clear();
+
+                        db.collection("users").document(userId).collection("moods")
+                                .orderBy("timestamp", Query.Direction.DESCENDING)
+                                .get()
+                                .addOnSuccessListener(queryDocumentSnapshots -> {
+                                    if (!queryDocumentSnapshots.isEmpty()) {
+                                        for (DocumentSnapshot document : queryDocumentSnapshots) {
+                                            String mood = document.getString("mood");
+                                            String locationName = document.getString("location");
+                                            String timestampStr = document.getString("timestamp");
+                                            String trigger = document.getString("trigger");
+                                            String reason = document.getString("reason");
+                                            String imageUrl = document.getString("imageUrl");
+
+                                            // Fetch tagged users (assumed stored as a list of maps with "username")
+                                            List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
+                                            List<String> taggedUserNames = new ArrayList<>();
+                                            if (tags != null) {
+                                                for (Map<String, Object> tag : tags) {
+                                                    String username = (String) tag.get("name");
+                                                    if (username != null) {
+                                                        taggedUserNames.add(username);
+                                                    }
+                                                }
+                                            }
+
+                                            // Calculate gathering status dynamically based on tags
+                                            String gatheringStatus;
+                                            if (tags == null || tags.isEmpty()) {
+                                                gatheringStatus = "Alone";
+                                            } else {
+                                                int tagCount = tags.size();
+                                                if (tagCount == 1) {
+                                                    gatheringStatus = "With 1 other";
+                                                } else if (tagCount <= 5) {
+                                                    gatheringStatus = "With " + tagCount + " others";
+                                                } else {
+                                                    gatheringStatus = "With a crowd";
+                                                }
+                                            }
+
+                                            moodList.add(new Mood(
+                                                    user.getDisplayName(),
+                                                    user.getEmail(),
+                                                    locationName != null ? locationName : "No location",
+                                                    timestampStr,
+                                                    gatheringStatus, // Use the calculated gathering status
+                                                    "Feeling " + mood,
+                                                    trigger,
+                                                    reason,
+                                                    imageUrl,
+                                                    profileImageUrl,
+                                                    taggedUserNames // Include tagged users
+                                            ));
+                                        }
+                                        moodAdapter.notifyDataSetChanged();
+                                        updateMoodCount();
+                                    } else {
+                                        Toast.makeText(ProfileActivity.this, "No moods found", Toast.LENGTH_SHORT).show();
+                                        updateMoodCount();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e("ProfileActivity", "Error loading moods", e);
+                                    Toast.makeText(ProfileActivity.this, "Error loading moods", Toast.LENGTH_SHORT).show();
+                                    updateMoodCount();
+                                });
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("ProfileActivity", "Error fetching user profile", e);
+                        Toast.makeText(ProfileActivity.this, "Error loading user profile", Toast.LENGTH_SHORT).show();
+                    });
+        }
+    }
+
+    private void loadMoodsFiltered(int days, @Nullable String moodFilter, @Nullable String searchFilter) {
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user != null) {
+            String userId = user.getUid();
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+            // Fetch the user's profile image URL first
+            db.collection("users").document(userId).get()
+                    .addOnSuccessListener(userDoc -> {
+                        String profileImageUrl = userDoc.getString("profilePictureUrl");
+
+                        // Clear previous moods
+                        moodList.clear();
+
+                        // Compute cutoff timestamp before lambda to ensure it's final
+                        final long cutoffTimestamp;
+                        if (days > 0) {
+                            Calendar calendar = Calendar.getInstance();
+                            calendar.add(Calendar.DAY_OF_YEAR, -days);
+                            cutoffTimestamp = calendar.getTimeInMillis();
+                        } else {
+                            cutoffTimestamp = 0; // No time filtering
+                        }
+
+                        // Fetch moods from Firestore
+                        db.collection("users").document(userId).collection("moods")
+                                .orderBy("timestamp", Query.Direction.DESCENDING)
+                                .get()
+                                .addOnSuccessListener(queryDocumentSnapshots -> {
+                                    if (!queryDocumentSnapshots.isEmpty()) {
+                                        for (DocumentSnapshot document : queryDocumentSnapshots) {
+                                            String mood = document.getString("mood");
+                                            String reason = document.getString("reason");
+                                            String timestampStr = document.getString("timestamp");
+                                            String trigger = document.getString("trigger");
+                                            String imageUrl = document.getString("imageUrl");
+                                            String locationName = document.getString("locationName");
+                                            List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
+
+                                            // Extract tagged user names
+                                            List<String> taggedUserNames = new ArrayList<>();
+                                            if (tags != null) {
+                                                for (Map<String, Object> tag : tags) {
+                                                    String username = (String) tag.get("username");
+                                                    if (username != null) {
+                                                        taggedUserNames.add(username);
+                                                    }
+                                                }
+                                            }
+
+                                            // Calculate gathering status based on tagged users
+                                            String gatheringStatus;
+                                            int tagCount = taggedUserNames.size();
+                                            if (tagCount == 0) {
+                                                gatheringStatus = "Alone";
+                                            } else if (tagCount == 1) {
+                                                gatheringStatus = "With 1 other";
+                                            } else if (tagCount <= 5) {
+                                                gatheringStatus = "With " + tagCount + " others";
+                                            } else {
+                                                gatheringStatus = "With a crowd";
+                                            }
+
+                                            // Convert timestamp to milliseconds
+                                            long moodTimestamp = convertTimestampToMillis(timestampStr);
+
+                                            // Apply filters
+                                            boolean withinTimeRange = (days == 0) || (moodTimestamp >= cutoffTimestamp);
+                                            boolean matchesMood = (moodFilter == null) || (mood.equalsIgnoreCase(moodFilter));
+                                            boolean matchesSearch = (searchFilter == null) ||
+                                                    (reason != null && reason.toLowerCase().contains(searchFilter.toLowerCase()));
+
+                                            if (withinTimeRange && matchesMood && matchesSearch) {
+                                                moodList.add(new Mood(
+                                                        user.getDisplayName(),
+                                                        user.getEmail(),
+                                                        locationName != null ? locationName : "No location",
+                                                        timestampStr,
+                                                        gatheringStatus,
+                                                        "Feeling " + mood,
+                                                        trigger,
+                                                        reason,
+                                                        imageUrl,
+                                                        profileImageUrl,  // Added profile image URL
+                                                        taggedUserNames   // Added list of tagged user names
+                                                ));
+                                            }
+                                        }
+                                        moodAdapter.notifyDataSetChanged();
+                                        updateMoodCount();
+                                    } else {
+                                        Toast.makeText(ProfileActivity.this, "No moods found for the selected filter", Toast.LENGTH_SHORT).show();
+                                        updateMoodCount();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e("ProfileActivity", "Error getting moods", e);
+                                    Toast.makeText(ProfileActivity.this, "Error loading moods", Toast.LENGTH_SHORT).show();
+                                    updateMoodCount();
+                                });
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("ProfileActivity", "Error fetching user profile", e);
+                        Toast.makeText(ProfileActivity.this, "Error loading user profile", Toast.LENGTH_SHORT).show();
+                    });
+        }
+    }
+
+    private long convertTimestampToMillis(String timestampStr) {
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a - MMMM dd, yyyy", Locale.ENGLISH);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC")); // Ensure consistency across time zones
+        try {
+            Date date = sdf.parse(timestampStr);
+            return date != null ? date.getTime() : 0;
+        } catch (ParseException e) {
+            Log.e("ProfileActivity", "Error parsing timestamp: " + timestampStr, e);
+            return 0;
+        }
     }
     private boolean isNetworkAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -285,5 +645,9 @@ public class ProfileActivity extends ActivityBase {
                             Toast.makeText(this, "Update Failed!", Toast.LENGTH_SHORT).show()
                     );
         }
+    }
+
+    private void updateMoodCount() {
+        moodCountText.setText("" + moodList.size());
     }
 }

@@ -1,5 +1,7 @@
 package com.example.project1;
 
+import java.util.List;
+
 public class Mood {
     private String userName;
     private String userId;
@@ -9,9 +11,11 @@ public class Mood {
     private String moodStatus;
     private String moodTrigger;
     private String moodReason;
-    private Integer moodImage;
+    private String moodImage;
+    private String profileImageUrl;
+    private List<String> taggedUserNames;
 
-    public Mood(String userName, String userId, String userLocation, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, Integer moodImage) {
+    public Mood(String userName, String userId, String userLocation, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames) {
         this.userName = userName;
         this.userId = userId;
         this.userLocation = userLocation;
@@ -21,6 +25,16 @@ public class Mood {
         this.moodTrigger = moodTrigger;
         this.moodReason = moodReason;
         this.moodImage = moodImage;
+        this.profileImageUrl = profileImageUrl;
+        this.taggedUserNames = taggedUserNames;
+    }
+
+    public List<String> getTaggedUserNames() {
+        return taggedUserNames;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
     }
 
     public String getUserName() {
@@ -55,7 +69,9 @@ public class Mood {
         return moodReason;
     }
 
-    public Integer getMoodImage() {
+    public String getMoodImage() {
         return moodImage;
     }
+
+
 }
