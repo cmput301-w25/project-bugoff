@@ -1,3 +1,15 @@
+/**
+ * SearchActivity allows the user to search for other users by name and view the results in a RecyclerView.
+ * It uses Firebase Firestore to fetch user data based on the search query and displays the results in real-time
+ * as the user types in the search box.
+ *
+ * This activity includes functionality to handle user input, query the database, and display search results.
+ *
+ * Outstanding Issues:
+ * - The search results might be delayed due to network latency; consider adding a loading indicator.
+ * - No error handling for situations when the user is offline or the database query fails.
+ */
+
 package com.example.project1;
 
 import android.content.Intent;
@@ -25,37 +37,41 @@ public class SearchActivity extends ActivityBase {
     private List<User> userList;
     private FirebaseFirestore db;
 
+    /**
+     * Called when the activity is first created.
+     * Initializes Firestore, sets up the RecyclerView for search results,
+     * and adds a TextWatcher to the search EditText for real-time searching.
+     *
+     * @param savedInstanceState The saved instance state bundle.
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base);
 
-        // Inflate search_box.xml into the FrameLayout container
+        // Inflate the layout for the search box into the content frame
         FrameLayout contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.search_box, contentFrame, true);
 
-        // Retrieve views from search_box.xml
+        // Retrieve views for the search input and results RecyclerView
         searchEditText = contentFrame.findViewById(R.id.search_edit_text);
         recommendationsRecyclerView = contentFrame.findViewById(R.id.search_results_recycler_view);
 
-        // Setup RecyclerView for search recommendations
+        // Set up RecyclerView for displaying search recommendations
         userList = new ArrayList<>();
         adapter = new SearchResultAdapter(this, userList);
         recommendationsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         recommendationsRecyclerView.setAdapter(adapter);
 
-        // Initialize Firestore
+        // Initialize Firestore instance for querying user data
         db = FirebaseFirestore.getInstance();
 
-        // ✅ Manually initialize bottom navigation buttons
+        // Initialize bottom navigation buttons
         findViewById(R.id.home).setOnClickListener(v -> startActivity(new Intent(this, HomePageActivity.class)));
-        findViewById(R.id.search).setOnClickListener(v -> startActivity(new Intent(this, SearchActivity.class))); // Redundant, but keeps it consistent
-        //findViewById(R.id.add).setOnClickListener(v -> startActivity(new Intent(this, AddPostActivity.class)));
-        //findViewById(R.id.heart).setOnClickListener(v -> startActivity(new Intent(this, NotificationsActivity.class)));
+        findViewById(R.id.search).setOnClickListener(v -> startActivity(new Intent(this, SearchActivity.class)));
         findViewById(R.id.profile_button).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
 
-
-        // Add TextWatcher to searchEditText for live search results
+        // Add a TextWatcher to searchEditText to trigger search as user types
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -64,7 +80,7 @@ public class SearchActivity extends ActivityBase {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Trigger search as user types
+                // Trigger search as the user types in the search box
                 performSearch(s.toString());
             }
 
@@ -75,24 +91,31 @@ public class SearchActivity extends ActivityBase {
         });
     }
 
+    /**
+     * Performs a search query in Firestore based on the input string.
+     * If the search query is empty, it clears the list of results and hides the RecyclerView.
+     * If users are found, it adds them to the list and updates the RecyclerView.
+     *
+     * @param query The search query entered by the user.
+     */
     private void performSearch(String query) {
         if (query.isEmpty()) {
-            userList.clear();
+            userList.clear(); // Clear the previous search results
             adapter.notifyDataSetChanged();
-            recommendationsRecyclerView.setVisibility(RecyclerView.GONE);
+            recommendationsRecyclerView.setVisibility(RecyclerView.GONE); // Hide the RecyclerView when there's no query
             return;
         }
 
-        // Clear previous results and show RecyclerView
+        // Clear previous search results and show the RecyclerView
         userList.clear();
         adapter.notifyDataSetChanged();
         recommendationsRecyclerView.setVisibility(RecyclerView.VISIBLE);
 
-        // Query Firestore for users where "name" starts with the search query
+        // Query Firestore for users where the "name" field starts with the search query
         db.collection("users")
                 .orderBy("name")
                 .startAt(query)
-                .endAt(query + "\uf8ff")
+                .endAt(query + "\uf8ff") // Query range to include all users whose names start with the query
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     userList.clear();
@@ -103,11 +126,12 @@ public class SearchActivity extends ActivityBase {
                             String id = doc.getId();
                             String username = doc.getString("username");
                             String displayName = doc.getString("name");
-                            String profilePicUrl = doc.getString("profilePictureUrl"); // 🔹 Fetch profile picture URL
+                            String profilePicUrl = doc.getString("profilePictureUrl"); // Fetch the profile picture URL
 
-                            userList.add(new User(id, username, displayName, profilePicUrl)); // 🔹 Pass it to the User object
+                            // Add the user to the list of results
+                            userList.add(new User(id, username, displayName, profilePicUrl));
                         }
-                        adapter.notifyDataSetChanged();
+                        adapter.notifyDataSetChanged(); // Notify the adapter that the data has changed
                     }
                 })
                 .addOnFailureListener(e -> {

@@ -1,3 +1,24 @@
+/**
+ * The `AddMood` class is an activity that allows users to log their current mood, along with
+ * optional details such as triggers, reasons, location, tags, and an image. The mood data is
+ * stored in Firebase Firestore, and images are uploaded to Firebase Storage. The activity integrates
+ * with the Google Places API for location selection and supports tagging other users from the app.
+ *
+ * Key Features:
+ * - Mood selection via a spinner.
+ * - Optional triggers and reasons with character limits.
+ * - Location selection using current location or Google Places autocomplete.
+ * - Image upload from the camera or gallery.
+ * - Tagging other users in the mood entry.
+ * - Validation and error handling for user inputs.
+ * - Integration with Firebase for data storage and retrieval.
+ *
+ * Outstanding Issues:
+ * - The image size validation logic may need optimization for handling large files.
+ * - The location permission handling could be improved for better user experience.
+ *
+ */
+
 package com.example.project1;
 
 import android.Manifest;
@@ -96,22 +117,59 @@ public class AddMood extends ActivityBase {
     // For current location
     private FusedLocationProviderClient fusedLocationClient;
 
-    // --- Interface for location info ---
+    /**
+     * The `LocationWrapper` interface provides a contract for wrapping location information,
+     * including the location name and its geographical coordinates (latitude and longitude).
+     * This interface is used to abstract the source of location data, allowing for flexibility
+     * in how location information is retrieved and displayed.
+     */
     public interface LocationWrapper {
+        /**
+         * Returns the name of the location (e.g., a place name or address).
+         *
+         * @return The name of the location as a String.
+         */
         String getName();
+        /**
+         * Returns the geographical coordinates of the location as a `LatLng` object.
+         *
+         * @return The latitude and longitude of the location.
+         */
         LatLng getLatLng();
     }
 
     // DummyLocation: simple implementation of LocationWrapper.
+    /**
+     * A simple implementation of the `LocationWrapper` interface. This class is used to store
+     * location information when the user selects a location using the Google Places API or
+     * their current location.
+     */
     private class DummyLocation implements LocationWrapper {
         private final String name;
         private final LatLng latLng;
+        /**
+         * Constructs a new `DummyLocation` object with the specified name and coordinates.
+         *
+         * @param name The name of the location.
+         * @param lat  The latitude of the location.
+         * @param lng  The longitude of the location.
+         */
         public DummyLocation(String name, double lat, double lng) {
             this.name = name;
             this.latLng = new LatLng(lat, lng);
         }
+        /**
+         * Returns the name of the location.
+         *
+         * @return The name of the location.
+         */
         @Override
         public String getName() { return name; }
+        /**
+         * Returns the geographical coordinates of the location.
+         *
+         * @return The latitude and longitude of the location.
+         */
         @Override
         public LatLng getLatLng() { return latLng; }
     }
