@@ -48,7 +48,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -71,6 +73,7 @@ public class ProfileActivity extends ActivityBase {
     private String searchQuery = ""; // Default is empty, meaning no search applied
     private TextView followersCount;
     private TextView followingCount;
+    private TextView moodCountText;
 
 
     @Override
@@ -99,6 +102,7 @@ public class ProfileActivity extends ActivityBase {
         editProfileButton = findViewById(R.id.edit_profile_btn);
         followersCount = findViewById(R.id.followers_count);
         followingCount = findViewById(R.id.following_count);
+        moodCountText = findViewById(R.id.moods_count);
 
         mAuth = FirebaseAuth.getInstance();
         recyclerView = findViewById(R.id.moods_recycler_view);
@@ -174,22 +178,22 @@ public class ProfileActivity extends ActivityBase {
         db.collection("users").document(userId).collection("followers").get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     int count = queryDocumentSnapshots.size();
-                    followersCount.setText(count + " Followers");
+                    followersCount.setText(String.valueOf(count));
                 })
                 .addOnFailureListener(e -> {
                     Log.e("ProfileActivity", "Error fetching followers count", e);
-                    followersCount.setText("0 Followers"); // Fallback
+                    followersCount.setText("0"); // Fallback
                 });
 
         // Fetch following count
         db.collection("users").document(userId).collection("following").get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     int count = queryDocumentSnapshots.size();
-                    followingCount.setText(count + " Following");
+                    followingCount.setText(String.valueOf(count));
                 })
                 .addOnFailureListener(e -> {
                     Log.e("ProfileActivity", "Error fetching following count", e);
-                    followingCount.setText("0 Following"); // Fallback
+                    followingCount.setText("0"); // Fallback
                 });
 
         // Edit Profile Action
@@ -294,46 +298,86 @@ public class ProfileActivity extends ActivityBase {
     }
 
     private void loadMoods() {
-        FirebaseUser user = mAuth.getCurrentUser();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             String userId = user.getUid();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-            // Clear previous moods
-            moodList.clear();
+            db.collection("users").document(userId).get()
+                    .addOnSuccessListener(userDoc -> {
+                        String profileImageUrl = userDoc.getString("profilePictureUrl");
+                        moodList.clear();
 
-            // Fetch all moods without filtering by date
-            db.collection("users").document(userId).collection("moods")
-                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                    .get()
-                    .addOnSuccessListener(queryDocumentSnapshots -> {
-                        if (!queryDocumentSnapshots.isEmpty()) {
-                            for (com.google.firebase.firestore.DocumentSnapshot document : queryDocumentSnapshots) {
-                                String mood = document.getString("mood");
-                                String reason = document.getString("reason");
-                                String timestampStr = document.getString("timestamp");
-                                String trigger = document.getString("trigger");
+                        db.collection("users").document(userId).collection("moods")
+                                .orderBy("timestamp", Query.Direction.DESCENDING)
+                                .get()
+                                .addOnSuccessListener(queryDocumentSnapshots -> {
+                                    if (!queryDocumentSnapshots.isEmpty()) {
+                                        for (DocumentSnapshot document : queryDocumentSnapshots) {
+                                            String mood = document.getString("mood");
+                                            String locationName = document.getString("location");
+                                            String timestampStr = document.getString("timestamp");
+                                            String trigger = document.getString("trigger");
+                                            String reason = document.getString("reason");
+                                            String imageUrl = document.getString("imageUrl");
 
-                                // Add mood to the list (no filtering)
-                                moodList.add(new Mood(
-                                        user.getDisplayName(),
-                                        user.getEmail(),
-                                        "Edmonton, Canada",
-                                        timestampStr,
-                                        "Alone",
-                                        "Feeling " + mood,
-                                        trigger,
-                                        reason,
-                                        null));
-                            }
-                            moodAdapter.notifyDataSetChanged();
-                        } else {
-                            Toast.makeText(ProfileActivity.this, "No moods found", Toast.LENGTH_SHORT).show();
-                        }
+                                            // Fetch tagged users (assumed stored as a list of maps with "username")
+                                            List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
+                                            List<String> taggedUserNames = new ArrayList<>();
+                                            if (tags != null) {
+                                                for (Map<String, Object> tag : tags) {
+                                                    String username = (String) tag.get("name");
+                                                    if (username != null) {
+                                                        taggedUserNames.add(username);
+                                                    }
+                                                }
+                                            }
+
+                                            // Calculate gathering status dynamically based on tags
+                                            String gatheringStatus;
+                                            if (tags == null || tags.isEmpty()) {
+                                                gatheringStatus = "Alone";
+                                            } else {
+                                                int tagCount = tags.size();
+                                                if (tagCount == 1) {
+                                                    gatheringStatus = "With 1 other";
+                                                } else if (tagCount <= 5) {
+                                                    gatheringStatus = "With " + tagCount + " others";
+                                                } else {
+                                                    gatheringStatus = "With a crowd";
+                                                }
+                                            }
+
+                                            moodList.add(new Mood(
+                                                    user.getDisplayName(),
+                                                    user.getEmail(),
+                                                    locationName != null ? locationName : "No location",
+                                                    timestampStr,
+                                                    gatheringStatus, // Use the calculated gathering status
+                                                    "Feeling " + mood,
+                                                    trigger,
+                                                    reason,
+                                                    imageUrl,
+                                                    profileImageUrl,
+                                                    taggedUserNames // Include tagged users
+                                            ));
+                                        }
+                                        moodAdapter.notifyDataSetChanged();
+                                        updateMoodCount();
+                                    } else {
+                                        Toast.makeText(ProfileActivity.this, "No moods found", Toast.LENGTH_SHORT).show();
+                                        updateMoodCount();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e("ProfileActivity", "Error loading moods", e);
+                                    Toast.makeText(ProfileActivity.this, "Error loading moods", Toast.LENGTH_SHORT).show();
+                                    updateMoodCount();
+                                });
                     })
                     .addOnFailureListener(e -> {
-                        Log.e("ProfileActivity", "Error getting moods", e);
-                        Toast.makeText(ProfileActivity.this, "Error loading moods", Toast.LENGTH_SHORT).show();
+                        Log.e("ProfileActivity", "Error fetching user profile", e);
+                        Toast.makeText(ProfileActivity.this, "Error loading user profile", Toast.LENGTH_SHORT).show();
                     });
         }
     }
@@ -344,60 +388,104 @@ public class ProfileActivity extends ActivityBase {
             String userId = user.getUid();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-            // Clear previous moods
-            moodList.clear();
+            // Fetch the user's profile image URL first
+            db.collection("users").document(userId).get()
+                    .addOnSuccessListener(userDoc -> {
+                        String profileImageUrl = userDoc.getString("profilePictureUrl");
 
-            // Compute cutoff timestamp before lambda to ensure it's final
-            final long cutoffTimestamp;
-            if (days > 0) {
-                Calendar calendar = Calendar.getInstance();
-                calendar.add(Calendar.DAY_OF_YEAR, -days);
-                cutoffTimestamp = calendar.getTimeInMillis();
-            } else {
-                cutoffTimestamp = 0; // No time filtering
-            }
+                        // Clear previous moods
+                        moodList.clear();
 
-            // Fetch moods from Firestore
-            db.collection("users").document(userId).collection("moods")
-                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                    .get()
-                    .addOnSuccessListener(queryDocumentSnapshots -> {
-                        if (!queryDocumentSnapshots.isEmpty()) {
-                            for (com.google.firebase.firestore.DocumentSnapshot document : queryDocumentSnapshots) {
-                                String mood = document.getString("mood");
-                                String reason = document.getString("reason");
-                                String timestampStr = document.getString("timestamp");
-                                String trigger = document.getString("trigger");
-
-                                // Convert timestamp to milliseconds
-                                long moodTimestamp = convertTimestampToMillis(timestampStr);
-
-                                // Ensure the variables used in lambda are final/effectively final
-                                boolean withinTimeRange = (days == 0) || (moodTimestamp >= cutoffTimestamp);
-                                boolean matchesMood = (moodFilter == null) || (mood.equalsIgnoreCase(moodFilter));
-                                boolean matchesSearch = (searchFilter == null) || (reason != null && reason.toLowerCase().contains(searchFilter.toLowerCase()));
-
-                                if (withinTimeRange && matchesMood && matchesSearch) {
-                                    moodList.add(new Mood(
-                                            user.getDisplayName(),
-                                            user.getEmail(),
-                                            "Edmonton, Canada",
-                                            timestampStr,
-                                            "Alone",
-                                            "Feeling " + mood,
-                                            trigger,
-                                            reason,
-                                            null));
-                                }
-                            }
-                            moodAdapter.notifyDataSetChanged();
+                        // Compute cutoff timestamp before lambda to ensure it's final
+                        final long cutoffTimestamp;
+                        if (days > 0) {
+                            Calendar calendar = Calendar.getInstance();
+                            calendar.add(Calendar.DAY_OF_YEAR, -days);
+                            cutoffTimestamp = calendar.getTimeInMillis();
                         } else {
-                            Toast.makeText(ProfileActivity.this, "No moods found for the selected filter", Toast.LENGTH_SHORT).show();
+                            cutoffTimestamp = 0; // No time filtering
                         }
+
+                        // Fetch moods from Firestore
+                        db.collection("users").document(userId).collection("moods")
+                                .orderBy("timestamp", Query.Direction.DESCENDING)
+                                .get()
+                                .addOnSuccessListener(queryDocumentSnapshots -> {
+                                    if (!queryDocumentSnapshots.isEmpty()) {
+                                        for (DocumentSnapshot document : queryDocumentSnapshots) {
+                                            String mood = document.getString("mood");
+                                            String reason = document.getString("reason");
+                                            String timestampStr = document.getString("timestamp");
+                                            String trigger = document.getString("trigger");
+                                            String imageUrl = document.getString("imageUrl");
+                                            String locationName = document.getString("locationName");
+                                            List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
+
+                                            // Extract tagged user names
+                                            List<String> taggedUserNames = new ArrayList<>();
+                                            if (tags != null) {
+                                                for (Map<String, Object> tag : tags) {
+                                                    String username = (String) tag.get("username");
+                                                    if (username != null) {
+                                                        taggedUserNames.add(username);
+                                                    }
+                                                }
+                                            }
+
+                                            // Calculate gathering status based on tagged users
+                                            String gatheringStatus;
+                                            int tagCount = taggedUserNames.size();
+                                            if (tagCount == 0) {
+                                                gatheringStatus = "Alone";
+                                            } else if (tagCount == 1) {
+                                                gatheringStatus = "With 1 other";
+                                            } else if (tagCount <= 5) {
+                                                gatheringStatus = "With " + tagCount + " others";
+                                            } else {
+                                                gatheringStatus = "With a crowd";
+                                            }
+
+                                            // Convert timestamp to milliseconds
+                                            long moodTimestamp = convertTimestampToMillis(timestampStr);
+
+                                            // Apply filters
+                                            boolean withinTimeRange = (days == 0) || (moodTimestamp >= cutoffTimestamp);
+                                            boolean matchesMood = (moodFilter == null) || (mood.equalsIgnoreCase(moodFilter));
+                                            boolean matchesSearch = (searchFilter == null) ||
+                                                    (reason != null && reason.toLowerCase().contains(searchFilter.toLowerCase()));
+
+                                            if (withinTimeRange && matchesMood && matchesSearch) {
+                                                moodList.add(new Mood(
+                                                        user.getDisplayName(),
+                                                        user.getEmail(),
+                                                        locationName != null ? locationName : "No location",
+                                                        timestampStr,
+                                                        gatheringStatus,
+                                                        "Feeling " + mood,
+                                                        trigger,
+                                                        reason,
+                                                        imageUrl,
+                                                        profileImageUrl,  // Added profile image URL
+                                                        taggedUserNames   // Added list of tagged user names
+                                                ));
+                                            }
+                                        }
+                                        moodAdapter.notifyDataSetChanged();
+                                        updateMoodCount();
+                                    } else {
+                                        Toast.makeText(ProfileActivity.this, "No moods found for the selected filter", Toast.LENGTH_SHORT).show();
+                                        updateMoodCount();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e("ProfileActivity", "Error getting moods", e);
+                                    Toast.makeText(ProfileActivity.this, "Error loading moods", Toast.LENGTH_SHORT).show();
+                                    updateMoodCount();
+                                });
                     })
                     .addOnFailureListener(e -> {
-                        Log.e("ProfileActivity", "Error getting moods", e);
-                        Toast.makeText(ProfileActivity.this, "Error loading moods", Toast.LENGTH_SHORT).show();
+                        Log.e("ProfileActivity", "Error fetching user profile", e);
+                        Toast.makeText(ProfileActivity.this, "Error loading user profile", Toast.LENGTH_SHORT).show();
                     });
         }
     }
@@ -557,5 +645,9 @@ public class ProfileActivity extends ActivityBase {
                             Toast.makeText(this, "Update Failed!", Toast.LENGTH_SHORT).show()
                     );
         }
+    }
+
+    private void updateMoodCount() {
+        moodCountText.setText("" + moodList.size());
     }
 }

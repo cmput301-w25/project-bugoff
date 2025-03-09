@@ -111,6 +111,8 @@
             android:drawablePadding="8dp"
             android:text="Alone"
             android:textColor="@android:color/darker_gray"
+            android:clickable="true"
+            android:focusable="true"
             android:textSize="12sp" />
     </LinearLayout>
 

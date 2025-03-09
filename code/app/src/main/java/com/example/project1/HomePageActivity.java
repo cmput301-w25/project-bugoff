@@ -56,8 +56,6 @@ public class HomePageActivity extends ActivityBase {
 
     private void loadMoods() {
         // Adding two sample Mood objects to the moodList
-        moodList.add(new Mood("Sample User", "User_id", "Edmonton, Canada", "4:39 AM, 2025-02-11", "Alone", "Feeling Angry", "Hunger", "Couldn't Find Food!", R.drawable.angry_photo));
-        moodList.add(new Mood("Sample User", "User_id", "Edmonton, Canada", "4:39 AM, 2025-02-11", "Alone", "Feeling Angry", "Hunger", "Couldn't Find Food!", null));
 
         // Notify the adapter that the data has changed
         moodAdapter.notifyDataSetChanged();
