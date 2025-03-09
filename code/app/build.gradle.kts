@@ -33,7 +33,12 @@ android {
 }
 
 dependencies {
-
+    // Google Places API for location search
+    implementation("com.google.android.libraries.places:places:4.1.0")
+    // Firebase Storage for image upload
+    implementation("com.google.firebase:firebase-storage:21.0.1")
+    // FileProvider for camera
+    implementation("androidx.core:core:1.9.0")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
@@ -50,4 +55,6 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore:25.1.1")
     implementation("com.google.firebase:firebase-auth:21.0.8")
     implementation("com.google.firebase:firebase-database:20.0.5")
+    implementation("com.github.bumptech.glide:glide:4.12.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.12.0")
 }

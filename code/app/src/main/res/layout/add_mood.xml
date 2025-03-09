@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center">
+
+    <LinearLayout
+        android:layout_width="344dp"
+        android:layout_height="587dp"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/profileImage"
+            android:layout_width="90dp"
+            android:layout_height="90dp"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/ic_profile"
+            android:clipToOutline="true"
+            android:background="@drawable/circular_background"/>
+
+        <FrameLayout
+            android:id="@+id/spinnerFrame"
+            android:layout_width="264dp"
+            android:layout_height="35dp"
+            android:layout_marginTop="25dp"
+            android:elevation="6dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/input_field">
+
+                <!-- Spinner -->
+                <Spinner
+                    android:id="@+id/moodSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:background="@android:color/transparent"
+                    android:hint="Click to Select a Mood"
+                    android:prompt="@string/select_mood"/>
+
+                <!-- Dropdown Icon -->
+                <ImageView
+                    android:id="@+id/spinner_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_centerVertical="true"
+                    android:layout_alignParentEnd="true"
+                    android:src="@drawable/ic_dropdown" />
+            </RelativeLayout>
+        </FrameLayout>
+
+        <EditText
+            android:id="@+id/triggerInput"
+            android:layout_width="match_parent"
+            android:background="@drawable/input_field"
+            android:padding="15dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Add Trigger..." />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="25dp">
+
+            <EditText
+                android:id="@+id/reasonInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/input_field"
+                android:padding="15dp"
+                android:textColor="@color/black"
+                android:textColorHint="@color/gray"
+                android:hint="Add Reason..."
+                android:maxLength="20" />
+
+            <TextView
+                android:id="@+id/reasonCharCountText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:padding="4dp"
+                android:text="20"
+                android:layout_marginEnd="5dp"
+                android:layout_marginBottom="2dp"
+                android:textSize="12sp"
+                android:textColor="@color/gray" />
+        </FrameLayout>
+
+        <!-- Display Selected Location and number of tags -->
+        <TextView
+            android:id="@+id/selectedLocationText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:textColor="#439DEB"
+            android:gravity="center_horizontal"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <!-- Icons Row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/importImageIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="14dp"
+                android:src="@drawable/import_image"
+                app:tint="#878787" />
+
+            <ImageView
+                android:id="@+id/locationIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="14dp"
+                android:src="@drawable/location_icon"
+                app:tint="#878787" />
+
+            <ImageView
+                android:id="@+id/tagIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/tag_icon"
+                app:tint="#878787" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/timestampText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center_horizontal"
+            android:text="4:24 PM - December 12, 2024"
+            android:textColor="#757575"
+            android:textSize="12sp" />
+
+        <ImageView
+            android:id="@+id/selectedImageView"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/addMoodButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#439DEB"
+            android:text="Add Mood" />
+    </LinearLayout>
+</LinearLayout>
