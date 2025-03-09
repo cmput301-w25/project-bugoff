@@ -9,6 +9,7 @@
     <!-- Header (Custom Toolbar) -->
 
     <!-- Footer (5 Icons Evenly Spaced with Padding and Margin) -->
+
     <FrameLayout
         android:id="@+id/content_frame"
         android:layout_width="match_parent"
@@ -18,10 +19,9 @@
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="75dp"
+            android:layout_height="wrap_content"
             android:background="@android:color/white"
             android:elevation="4dp"
-            android:padding="10dp"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
 
             <TextView
@@ -31,8 +31,9 @@
                 android:layout_gravity="center_vertical"
                 android:fontFamily="@font/kaushan_script"
                 android:text="Whimsy"
+                android:layout_marginStart="2dp"
                 android:textColor="@android:color/black"
-                android:textSize="32sp" />
+                android:textSize="30sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -45,13 +46,13 @@
                     android:id="@+id/iconGlobe"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_marginEnd="15dp"
+                    android:layout_marginEnd="20dp"
                     android:src="@drawable/ic_globe" />
 
                 <ImageView
                     android:id="@+id/iconSettings"
-                    android:layout_width="28dp"
-                    android:layout_height="match_parent"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:layout_marginEnd="20dp"
                     android:src="@drawable/ic_settings" />
             </LinearLayout>
