@@ -19,16 +19,6 @@
         android:text="Use Current Location" />
 
     <Button
-        android:id="@+id/btn_search_location"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:backgroundTint="#439DEB"
-        android:layout_marginTop="8dp"
-        android:elevation="4dp"
-        android:padding="8dp"
-        android:text="Search for Location" />
-
-    <Button
         android:id="@+id/btn_remove_location"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

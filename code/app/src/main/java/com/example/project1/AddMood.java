@@ -239,16 +239,17 @@ public class AddMood extends ActivityBase {
     // --- LOCATION POPUP ---
     private void showLocationPopup() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // Inflate your custom location popup layout (dialog_location_selection.xml)
+        // Inflate your location popup layout (update dialog_location_selection.xml accordingly)
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_location_selection, null);
         builder.setView(dialogView);
         final AlertDialog dialog = builder.create();
 
         Button btnUseCurrent = dialogView.findViewById(R.id.btn_use_current);
-        Button btnSearchLocation = dialogView.findViewById(R.id.btn_search_location);
+
         Button btnRemoveLocation = dialogView.findViewById(R.id.btn_remove_location);
         Button btnCancel = dialogView.findViewById(R.id.btn_cancel_location);
 
+        // Show the Remove button only if a location is already attached.
         btnRemoveLocation.setVisibility(selectedLocation == null ? View.GONE : View.VISIBLE);
 
         btnUseCurrent.setOnClickListener(v -> {
@@ -259,9 +260,9 @@ public class AddMood extends ActivityBase {
                 showSnackbar("Location permission required");
                 return;
             }
+            // Use getCurrentLocation() to actively get the location.
             fusedLocationClient.getCurrentLocation(
-                            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-                            null)
+                            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null)
                     .addOnSuccessListener(location -> {
                         if (location != null) {
                             Geocoder geocoder = new Geocoder(AddMood.this, Locale.getDefault());
@@ -269,14 +270,22 @@ public class AddMood extends ActivityBase {
                                 List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
                                 if (addresses != null && !addresses.isEmpty()) {
                                     Address address = addresses.get(0);
-                                    String locName = (address.getFeatureName() != null && !address.getFeatureName().isEmpty())
-                                            ? address.getFeatureName() : address.getLocality();
-                                    if (locName == null || locName.isEmpty()) {
+                                    // Get City and Country from the address.
+                                    String city = address.getLocality();
+                                    String country = address.getCountryName();
+                                    String locName;
+                                    if (city != null && country != null) {
+                                        locName = city + ", " + country;
+                                    } else if (city != null) {
+                                        locName = city;
+                                    } else if (country != null) {
+                                        locName = country;
+                                    } else {
                                         locName = "Current Location";
                                     }
                                     selectedLocation = new DummyLocation(locName, location.getLatitude(), location.getLongitude());
                                     locationIcon.setColorFilter(Color.BLUE);
-                                    updateSelectedLocationDisplay();  // Update the display here.
+                                    updateSelectedLocationDisplay();
                                     showSnackbar("Location selected: " + selectedLocation.getName());
                                 }
                             } catch (IOException e) {
@@ -290,21 +299,10 @@ public class AddMood extends ActivityBase {
             dialog.dismiss();
         });
 
-
-
-
-        btnSearchLocation.setOnClickListener(v -> {
-            List<Place.Field> fields = java.util.Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG);
-            Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields)
-                    .build(AddMood.this);
-            startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE);
-            dialog.dismiss();
-        });
-
         btnRemoveLocation.setOnClickListener(v -> {
             selectedLocation = null;
             locationIcon.clearColorFilter();
-            updateSelectedLocationDisplay();  // Clear the display.
+            updateSelectedLocationDisplay();
             dialog.dismiss();
         });
 
@@ -312,6 +310,7 @@ public class AddMood extends ActivityBase {
 
         dialog.show();
     }
+
 
     // --- IMAGE SELECTION METHODS ---
     private void showImagePickerDialog() {
@@ -381,17 +380,7 @@ public class AddMood extends ActivityBase {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                Place place = Autocomplete.getPlaceFromIntent(data);
-                selectedLocation = new DummyLocation(place.getName(), place.getLatLng().latitude, place.getLatLng().longitude);
-                locationIcon.setColorFilter(Color.BLUE);
-                updateSelectedLocationDisplay();  // Update the display.
-            } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
-                Status status = Autocomplete.getStatusFromIntent(data);
-                Log.e("AddMood", "Error retrieving location: " + status);
-            }
-        } else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             selectedImageUri = Uri.fromFile(new File(currentPhotoPath));
             displaySelectedImage(selectedImageUri);
             importImageIcon.setColorFilter(Color.BLUE);
