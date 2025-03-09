@@ -27,6 +27,7 @@ public class ActivityBase extends AppCompatActivity {
         profileButton = findViewById(R.id.profile_button);
         settings = findViewById(R.id.iconSettings);
         searchButton = findViewById(R.id.search);
+        addMoodButton = findViewById(R.id.add);
 
         homeButton.setOnClickListener(v -> {
             startActivity(new Intent(this, HomePageActivity.class));
@@ -40,6 +41,10 @@ public class ActivityBase extends AppCompatActivity {
         searchButton.setOnClickListener(v -> {
             startActivity(new Intent(this, SearchActivity.class));
         });
+        addMoodButton.setOnClickListener(v -> {
+            startActivity(new Intent(this, AddMood.class));
+        });
+
 
     }
 }
