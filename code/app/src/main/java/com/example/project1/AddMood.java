@@ -85,7 +85,6 @@ public class AddMood extends ActivityBase {
     private TextView reasonCharCountText;
 
     // Request codes
-    private static final int PLACE_AUTOCOMPLETE_REQUEST_CODE = 1;
     private static final int REQUEST_IMAGE_CAPTURE = 2;
     private static final int REQUEST_IMAGE_PICK = 3;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
