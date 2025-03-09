@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="CustomDialog" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/dialog_bg</item>
+        <item name="android:windowMinWidthMajor">80%</item> <!-- Adjust width -->
+        <item name="android:windowMinWidthMinor">80%</item>
+        <item name="android:backgroundDimAmount">0.5</item> <!-- Dim background -->
+        <item name="android:windowElevation">10dp</item>
+    </style>
+    <style name="FilterDialogTheme">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
+    <style name="CircularImageView" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>

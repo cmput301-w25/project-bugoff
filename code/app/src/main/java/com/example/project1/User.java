@@ -6,6 +6,16 @@ public class User {
     private String username;
     private String profilePictureUrl; // Optional, can be removed if not needed
 
+    public String getGmail() {
+        return gmail;
+    }
+
+    public void setGmail(String gmail) {
+        this.gmail = gmail;
+    }
+
+    private String gmail;
+
     // Default constructor required for Firestore deserialization
     public User() {
     }
@@ -15,6 +25,12 @@ public class User {
         this.name = name;
         this.username = username;
         this.profilePictureUrl = profilePictureUrl;
+    }
+
+    public User(String id, String username, String displayName) {
+        this.id = id;
+        this.username = username;
+        this.name = displayName;
     }
 
     // Getters and setters

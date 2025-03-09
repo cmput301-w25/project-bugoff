@@ -7,16 +7,18 @@
     android:background="@android:color/white">
 
     <!-- Header (Custom Toolbar) -->
+
+    <!-- Footer (5 Icons Evenly Spaced with Padding and Margin) -->
     <FrameLayout
         android:id="@+id/content_frame"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="856dp"
         android:layout_weight="1">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="73dp"
+            android:layout_height="56dp"
             android:background="@android:color/white"
             android:elevation="4dp"
             android:padding="10dp"
@@ -56,7 +58,6 @@
         </androidx.appcompat.widget.Toolbar>
     </FrameLayout>
 
-    <!-- Footer (5 Icons Evenly Spaced with Padding and Margin) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

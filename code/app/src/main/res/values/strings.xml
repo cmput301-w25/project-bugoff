@@ -1,4 +1,13 @@
 <resources>
     <string name="app_name">Project1</string>
     <string name="select_mood">Select a Mood</string>
+    <string-array name="emotional_states">
+        <item>Select Mood</item>  <!-- Placeholder item -->
+        <item>Happy</item>
+        <item>Sad</item>
+        <item>Excited</item>
+        <item>Angry</item>
+        <item>Stressed</item>
+        <item>Relaxed</item>
+    </string-array>
 </resources>

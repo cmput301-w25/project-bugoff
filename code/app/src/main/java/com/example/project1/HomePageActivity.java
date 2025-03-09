@@ -21,19 +21,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HomePageActivity extends ActivityBase {
-
     private RecyclerView recyclerView;
     private MoodAdapter moodAdapter;
     private List<Mood> moodList;
     private FirebaseAuth mAuth;
     private FirebaseDatabase database;
     private DatabaseReference databaseReference;
-    private ImageView profileButton;
+    private ImageView profileButton, homeButton, addMoodButton, searchButton, notificationButton;
     protected FrameLayout contentFrame;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base); // Set the base layout
+        initializeNavigation();
 
         // Inflate the home page layout into the content frame
         FrameLayout contentFrame = findViewById(R.id.content_frame);
@@ -49,15 +49,9 @@ public class HomePageActivity extends ActivityBase {
         mAuth = FirebaseAuth.getInstance();
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
-//            databaseReference = FirebaseDatabase.getInstance().getReference("moods").child(user.getUid());
+//          databaseReference = FirebaseDatabase.getInstance().getReference("moods").child(user.getUid());
             loadMoods();
         }
-
-        contentFrame = findViewById(R.id.content_frame);
-        profileButton = findViewById(R.id.profile_button);
-        profileButton.setOnClickListener(v -> {
-            startActivity(new Intent(this, ProfileActivity.class));
-        });
     }
 
     private void loadMoods() {
