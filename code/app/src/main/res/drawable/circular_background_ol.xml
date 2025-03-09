@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <!-- Transparent fill -->
+    <solid android:color="@android:color/transparent" />
+    <!-- Outline with desired width and color -->
+    <stroke
+        android:width="2dp"
+        android:color="#439DEB" />
+</shape>

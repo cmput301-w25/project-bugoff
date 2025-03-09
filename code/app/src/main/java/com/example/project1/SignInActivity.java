@@ -1,31 +1,31 @@
 package com.example.project1;
 
-import static androidx.core.content.ContextCompat.getSystemService;
-
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.text.InputType;
+import android.text.TextUtils;
+import android.util.Patterns;
 import android.view.View;
 import android.view.Window;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Objects;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.content.Context;
-import android.widget.Toast;
-
 
 public class SignInActivity extends AppCompatActivity {
 
@@ -34,6 +34,7 @@ public class SignInActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,33 +60,96 @@ public class SignInActivity extends AppCompatActivity {
     }
 
     private void loginUser() {
-        String email = emailEditText.getText().toString().trim();
+        String identifier = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
 
         if (!isNetworkAvailable()) {
-            Toast.makeText(SignInActivity.this, "No internet connection", Toast.LENGTH_LONG).show();
+            Snackbar.make(findViewById(android.R.id.content),
+                            "No internet connection", Snackbar.LENGTH_LONG)
+                    .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
             return;
         }
 
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Email and password are required", Toast.LENGTH_SHORT).show();
+        // For empty identifier or password, set errors and apply shake animation.
+        if (TextUtils.isEmpty(identifier) || TextUtils.isEmpty(password)) {
+            if (TextUtils.isEmpty(identifier)) {
+                emailEditText.setError("Email or username is required");
+                shakeView(emailEditText);
+            }
+            if (TextUtils.isEmpty(password)) {
+                passwordEditText.setError("Password is required");
+                shakeView(passwordEditText);
+            }
             return;
         }
 
         progressBar.setVisibility(View.VISIBLE);
 
-        mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        if (user != null) {
-                            fetchUserData(user.getUid());
+        // Check if the identifier is a valid email address.
+        if (Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
+            // Use identifier as email.
+            mAuth.signInWithEmailAndPassword(identifier, password)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            if (user != null) {
+                                fetchUserData(user.getUid());
+                            }
+                        } else {
+                            progressBar.setVisibility(View.GONE);
+                            Snackbar.make(findViewById(android.R.id.content),
+                                            "Login failed: " + Objects.requireNonNull(task.getException()).getMessage(),
+                                            Snackbar.LENGTH_SHORT)
+                                    .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
                         }
-                    } else {
-                        progressBar.setVisibility(View.GONE);
-                        Toast.makeText(SignInActivity.this, "Login failed: " + Objects.requireNonNull(task.getException()).getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                });
+                    });
+        } else {
+            // Otherwise, treat the identifier as a username.
+            db.collection("users")
+                    .whereEqualTo("username", identifier)
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            if (task.getResult() != null && !task.getResult().isEmpty()) {
+                                // Get the associated email from the first matching document.
+                                String email = task.getResult().getDocuments().get(0).getString("email");
+                                if (email == null) {
+                                    progressBar.setVisibility(View.GONE);
+                                    Snackbar.make(findViewById(android.R.id.content),
+                                                    "No email associated with this username", Snackbar.LENGTH_SHORT)
+                                            .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                                    return;
+                                }
+                                mAuth.signInWithEmailAndPassword(email, password)
+                                        .addOnCompleteListener(authTask -> {
+                                            if (authTask.isSuccessful()) {
+                                                FirebaseUser user = mAuth.getCurrentUser();
+                                                if (user != null) {
+                                                    fetchUserData(user.getUid());
+                                                }
+                                            } else {
+                                                progressBar.setVisibility(View.GONE);
+                                                Snackbar.make(findViewById(android.R.id.content),
+                                                                "Login failed: " + Objects.requireNonNull(authTask.getException()).getMessage(),
+                                                                Snackbar.LENGTH_SHORT)
+                                                        .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                                            }
+                                        });
+                            } else {
+                                progressBar.setVisibility(View.GONE);
+                                Snackbar.make(findViewById(android.R.id.content),
+                                                "Username not found", Snackbar.LENGTH_SHORT)
+                                        .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                            }
+                        } else {
+                            progressBar.setVisibility(View.GONE);
+                            Snackbar.make(findViewById(android.R.id.content),
+                                            "Error checking username: " + Objects.requireNonNull(task.getException()).getMessage(),
+                                            Snackbar.LENGTH_LONG)
+                                    .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                        }
+                    });
+        }
     }
 
     private void fetchUserData(String userId) {
@@ -94,7 +158,6 @@ public class SignInActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentSnapshot -> {
                     progressBar.setVisibility(View.GONE);
                     if (documentSnapshot.exists()) {
-                        String name = documentSnapshot.getString("name");
                         Intent intent = new Intent(SignInActivity.this, HomePageActivity.class);
                         startActivity(intent);
                         finish();
@@ -102,7 +165,9 @@ public class SignInActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> {
                     progressBar.setVisibility(View.GONE);
-                    Toast.makeText(SignInActivity.this, "Error fetching data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content),
+                                    "Error fetching data: " + e.getMessage(), Snackbar.LENGTH_SHORT)
+                            .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
                 });
     }
 
@@ -119,17 +184,45 @@ public class SignInActivity extends AppCompatActivity {
         sendButton.setOnClickListener(v -> {
             String email = emailEditText.getText().toString().trim();
             if (email.isEmpty()) {
-                Toast.makeText(SignInActivity.this, "Please enter your email", Toast.LENGTH_SHORT).show();
+                Snackbar.make(findViewById(android.R.id.content),
+                                "Please enter your email", Snackbar.LENGTH_SHORT)
+                        .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
                 return;
             }
 
-            mAuth.sendPasswordResetEmail(email)
+            // Check if the email exists in the database before sending the reset email.
+            db.collection("users")
+                    .whereEqualTo("email", email)
+                    .get()
                     .addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
-                            Toast.makeText(SignInActivity.this, "Password reset email sent", Toast.LENGTH_LONG).show();
-                            dialog.dismiss();
+                            if (task.getResult() != null && !task.getResult().isEmpty()) {
+                                // Email exists, send password reset email.
+                                mAuth.sendPasswordResetEmail(email)
+                                        .addOnCompleteListener(resetTask -> {
+                                            if (resetTask.isSuccessful()) {
+                                                Snackbar.make(findViewById(android.R.id.content),
+                                                                "Password reset email sent", Snackbar.LENGTH_LONG)
+                                                        .setBackgroundTint(Color.parseColor("#006400")).setTextColor(Color.WHITE).show();
+                                                dialog.dismiss();
+                                            } else {
+                                                Snackbar.make(findViewById(android.R.id.content),
+                                                                "Error: " + Objects.requireNonNull(resetTask.getException()).getMessage(),
+                                                                Snackbar.LENGTH_LONG)
+                                                        .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                                            }
+                                        });
+                            } else {
+                                // Email not found.
+                                Snackbar.make(findViewById(android.R.id.content),
+                                                "Email not found", Snackbar.LENGTH_SHORT)
+                                        .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                            }
                         } else {
-                            Toast.makeText(SignInActivity.this, "Error: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                            Snackbar.make(findViewById(android.R.id.content),
+                                            "Error checking email: " + Objects.requireNonNull(task.getException()).getMessage(),
+                                            Snackbar.LENGTH_LONG)
+                                    .setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
                         }
                     });
         });
@@ -138,10 +231,19 @@ public class SignInActivity extends AppCompatActivity {
 
         dialog.show();
     }
+
     private boolean isNetworkAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
     }
-}
 
+    // Shake animation method similar to SignUpActivity
+    private void shakeView(View view) {
+        Animation shake = new TranslateAnimation(0, 15, 0, 0);
+        shake.setDuration(120);
+        shake.setRepeatCount(5);
+        shake.setRepeatMode(Animation.REVERSE);
+        view.startAnimation(shake);
+    }
+}

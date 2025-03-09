@@ -15,4 +15,30 @@
     <style name="CircularImageView" parent="">
         <item name="cornerSize">50%</item>
     </style>
+    <!-- Custom DatePickerDialog Theme -->
+    <style name="MyDatePickerDialogTheme" parent="Theme.AppCompat.Light.Dialog">
+        <!-- Use your blue color as accent -->
+        <item name="colorAccent">@color/blue</item>
+        <!-- Style the DatePicker header using our custom DatePicker style -->
+        <item name="android:datePickerStyle">@style/MyDatePickerStyle</item>
+        <!-- Style the positive and negative buttons -->
+        <item name="android:buttonBarPositiveButtonStyle">@style/MyDialogButton</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/MyDialogButton</item>
+    </style>
+
+    <!-- Custom DatePicker Style -->
+    <style name="MyDatePickerStyle" parent="android:Widget.Material.DatePicker">
+        <!-- Set header background to blue -->
+        <item name="android:headerBackground">@color/blue</item>
+        <!-- Removed the unsupported datePickerHeaderTextColor attribute -->
+    </style>
+
+    <!-- Custom Dialog Button Style -->
+    <style name="MyDialogButton" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <!-- Use white text for readability -->
+        <item name="android:textColor">@color/blue</item>
+        <!-- Optionally, force a blue background on the buttons -->
+        <!-- <item name="android:background">@color/blue</item>-->
+    </style>
+
 </resources>
