@@ -18,7 +18,7 @@
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="75dp"
             android:background="@android:color/white"
             android:elevation="4dp"
             android:padding="10dp"
@@ -29,11 +29,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:fontFamily="serif"
-                android:text="WHIMSY"
+                android:fontFamily="@font/kaushan_script"
+                android:text="Whimsy"
                 android:textColor="@android:color/black"
-                android:textSize="24sp"
-                android:textStyle="italic" />
+                android:textSize="32sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -46,13 +45,14 @@
                     android:id="@+id/iconGlobe"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="15dp"
                     android:src="@drawable/ic_globe" />
 
                 <ImageView
                     android:id="@+id/iconSettings"
                     android:layout_width="28dp"
                     android:layout_height="match_parent"
+                    android:layout_marginEnd="20dp"
                     android:src="@drawable/ic_settings" />
             </LinearLayout>
         </androidx.appcompat.widget.Toolbar>
