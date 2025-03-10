@@ -5,14 +5,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -28,7 +26,6 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     @Override
     public int getItemViewType(int position) {
         String imageUrl = moodList.get(position).getMoodImage();
-        // Check if image URL is not null and not empty
         return (imageUrl != null && !imageUrl.isEmpty()) ? VIEW_TYPE_WITH_IMAGE : VIEW_TYPE_NO_IMAGE;
     }
 
@@ -36,10 +33,12 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         if (viewType == VIEW_TYPE_WITH_IMAGE) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.mood_fragment_with_image, parent, false);
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.mood_fragment_with_image, parent, false);
             return new MoodWithImageViewHolder(view);
         } else {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.mood_fragment_no_image, parent, false);
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.mood_fragment_no_image, parent, false);
             return new MoodNoImageViewHolder(view);
         }
     }
@@ -49,7 +48,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         Mood mood = moodList.get(position);
         if (holder instanceof MoodWithImageViewHolder) {
             ((MoodWithImageViewHolder) holder).bind(mood);
-        } else if (holder instanceof MoodNoImageViewHolder) {
+        } else {
             ((MoodNoImageViewHolder) holder).bind(mood);
         }
     }
@@ -61,11 +60,9 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static class MoodWithImageViewHolder extends RecyclerView.ViewHolder {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
-        private ImageView moodImage;
-        private ImageView profileImage; // Add profile image view
+        private ImageView moodImage, profileImage;
 
-
-        public MoodWithImageViewHolder(@NonNull View itemView) {
+        MoodWithImageViewHolder(@NonNull View itemView) {
             super(itemView);
             userName = itemView.findViewById(R.id.user_name);
             userId = itemView.findViewById(R.id.user_ID);
@@ -79,7 +76,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             profileImage = itemView.findViewById(R.id.profile_image);
         }
 
-        public void bind(Mood mood) {
+        void bind(Mood mood) {
             userName.setText(mood.getUserName());
             userId.setText(mood.getUserId());
             userLocation.setText(mood.getUserLocation());
@@ -89,30 +86,24 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
 
-            String profileImageUrl = mood.getProfileImageUrl();
-            if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
-                Glide.with(itemView.getContext())
-                        .load(profileImageUrl)
-                        .into(profileImage);
+            String pUrl = mood.getProfileImageUrl();
+            if (pUrl != null && !pUrl.isEmpty()) {
+                Glide.with(itemView.getContext()).load(pUrl).into(profileImage);
             } else {
-                profileImage.setImageResource(R.drawable.ic_profile); // Set a default image if profileImageUrl is null or empty
+                profileImage.setImageResource(R.drawable.ic_profile);
             }
 
-            String moodImageUrl = mood.getMoodImage();
-            if (moodImageUrl != null && !moodImageUrl.isEmpty()) {
-                Glide.with(itemView.getContext())
-                        .load(moodImageUrl)
-                        .placeholder(R.drawable.circle_background) // Optional placeholder
-                        .error(R.drawable.ic_profile)              // Optional fallback on error
-                        .into(moodImage);
+            String mUrl = mood.getMoodImage();
+            if (mUrl != null && !mUrl.isEmpty()) {
+                Glide.with(itemView.getContext()).load(mUrl).into(moodImage);
             } else {
-                moodImage.setImageResource(R.drawable.ic_profile); // Fallback if no image
+                moodImage.setImageResource(R.drawable.ic_profile);
             }
 
             userGatheringStatus.setOnClickListener(v -> {
                 List<String> taggedUsers = mood.getTaggedUserNames();
                 if (taggedUsers != null && !taggedUsers.isEmpty()) {
-                    String taggedUsersStr = String.join("\n", taggedUsers); // Simple newline-separated list
+                    String taggedUsersStr = String.join("\n", taggedUsers);
                     new AlertDialog.Builder(itemView.getContext())
                             .setTitle("Tagged Users")
                             .setMessage(taggedUsersStr)
@@ -127,8 +118,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
         private ImageView profileImage;
 
-
-        public MoodNoImageViewHolder(@NonNull View itemView) {
+        MoodNoImageViewHolder(@NonNull View itemView) {
             super(itemView);
             userName = itemView.findViewById(R.id.user_name);
             userId = itemView.findViewById(R.id.user_ID);
@@ -141,7 +131,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             profileImage = itemView.findViewById(R.id.image_profile);
         }
 
-        public void bind(Mood mood) {
+        void bind(Mood mood) {
             userName.setText(mood.getUserName());
             userId.setText(mood.getUserId());
             userLocation.setText(mood.getUserLocation());
@@ -150,19 +140,18 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodStatus.setText(mood.getMoodStatus());
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
-            String imageUrl = mood.getProfileImageUrl();
-            if (imageUrl != null && !imageUrl.isEmpty()) {
-                Glide.with(itemView.getContext())
-                        .load(imageUrl)
-                        .into(profileImage);
+
+            String pUrl = mood.getProfileImageUrl();
+            if (pUrl != null && !pUrl.isEmpty()) {
+                Glide.with(itemView.getContext()).load(pUrl).into(profileImage);
             } else {
-                profileImage.setImageResource(R.drawable.ic_profile); // Set a default image if imageUrl is null or empty
+                profileImage.setImageResource(R.drawable.ic_profile);
             }
 
             userGatheringStatus.setOnClickListener(v -> {
                 List<String> taggedUsers = mood.getTaggedUserNames();
                 if (taggedUsers != null && !taggedUsers.isEmpty()) {
-                    String taggedUsersStr = String.join("\n", taggedUsers); // Simple newline-separated list
+                    String taggedUsersStr = String.join("\n", taggedUsers);
                     new AlertDialog.Builder(itemView.getContext())
                             .setTitle("Tagged Users")
                             .setMessage(taggedUsersStr)
