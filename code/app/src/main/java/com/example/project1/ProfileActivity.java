@@ -291,7 +291,7 @@ public class ProfileActivity extends ActivityBase {
                                     if (!queryDocumentSnapshots.isEmpty()) {
                                         for (DocumentSnapshot document : queryDocumentSnapshots) {
                                             String mood = document.getString("mood");
-                                            String locationName = document.getString("location");
+                                            String locationName = document.getString("locationName");
                                             String timestampStr = document.getString("timestamp");
                                             String trigger = document.getString("trigger");
                                             String reason = document.getString("reason");
@@ -522,6 +522,15 @@ public class ProfileActivity extends ActivityBase {
                             }
                             editBio.setText(bio);
                         }
+                        String gender = documentSnapshot.getString("gender");
+                        if (gender != null) {
+                            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                                    this, R.array.gender_options, android.R.layout.simple_spinner_item);
+                            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                            genderSpinner.setAdapter(adapter);
+                            int genderPosition = adapter.getPosition(gender);
+                            genderSpinner.setSelection(genderPosition);
+                        }
                         String profilePicUrl = documentSnapshot.getString("profilePictureUrl");
                         if (profilePicUrl != null && !profilePicUrl.isEmpty()) {
                             Glide.with(this).load(profilePicUrl).into(profilePic);
@@ -597,6 +606,12 @@ public class ProfileActivity extends ActivityBase {
     private void saveUserProfile(String name, String bio, String gender) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
+            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                    .setDisplayName(name)
+                    .build();
+            user.updateProfile(profileUpdates)
+                    .addOnSuccessListener(aVoid -> Log.d("Profile", "Firebase Auth profile updated"))
+                    .addOnFailureListener(e -> Log.e("Profile", "Failed to update Firebase Auth profile", e));
             String userId = user.getUid();
             Map<String, Object> userProfile = new HashMap<>();
             userProfile.put("name", name);
@@ -606,9 +621,19 @@ public class ProfileActivity extends ActivityBase {
             FirebaseFirestore.getInstance().collection("users").document(userId)
                     .set(userProfile, SetOptions.merge())
                     .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "Profile Updated!", Toast.LENGTH_SHORT).show();
-                        profileName.setText(name);
-                        profileBio.setText(bio);
+                        FirebaseFirestore.getInstance().collection("users").document(userId)
+                                .get()
+                                .addOnSuccessListener(documentSnapshot -> {
+                                    if (documentSnapshot.exists()) {
+                                        String updatedName = documentSnapshot.getString("name");
+                                        String updatedBio = documentSnapshot.getString("bio");
+                                        String updatedGender = documentSnapshot.getString("gender");
+
+                                        profileName.setText(updatedName);
+                                        profileBio.setText(updatedBio);
+                                        Toast.makeText(this, "Profile Updated!", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
                     })
                     .addOnFailureListener(e -> Toast.makeText(this, "Update Failed!", Toast.LENGTH_SHORT).show());
         }
