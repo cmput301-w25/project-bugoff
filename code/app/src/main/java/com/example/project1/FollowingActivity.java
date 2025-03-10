@@ -31,9 +31,6 @@ public class FollowingActivity extends AppCompatActivity {
     private List<User> userList;
     private String type;  // Type of list ("followers" or "following")
     private String userId; // The ID of the user whose list is being viewed
-
-    private String type;
-    private String userId;
     private TextView following_followers_title;
 
     /**

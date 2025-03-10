@@ -22,7 +22,7 @@ public class Mood implements Serializable {
     private String moodStatus;        // The user's mood (e.g., happy, sad, angry)
     private String moodTrigger;       // The trigger for the mood (e.g., event, circumstance)
     private String moodReason;        // The reason behind the mood (e.g., feeling lonely)
-    private Integer moodImage;        // An image representing the mood (can be null)
+    private String moodImage;        // An image representing the mood (can be null)
     private String profileImageUrl;
     private List<String> taggedUserNames;
     private String timestamp;
@@ -56,6 +56,9 @@ public class Mood implements Serializable {
     }
 
     public Mood() {
+    }
+
+    public Mood(String s, String s1, String s2, String timestampStr, String gatheringStatus, String s3, String trigger, String reason, String imageUrl, String profileImageUrl, List<String> taggedUserNames) {
     }
 
     public List<String> getTaggedUserNames() {
