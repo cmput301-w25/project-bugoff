@@ -24,6 +24,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -63,8 +64,8 @@ public class ProfileActivity extends ActivityBase {
     private Button editProfileButton;
     private FirebaseAuth mAuth;
     private RecyclerView recyclerView;
-    private MoodAdapter moodAdapter;
-    private List<Mood> moodList;
+    public MoodAdapter moodAdapter;
+    public List<Mood> moodList;
     private ActivityResultLauncher<Intent> selectImageLauncher;
     private AlertDialog editProfileDialog;
     // Global variables to store selected filters
@@ -73,7 +74,7 @@ public class ProfileActivity extends ActivityBase {
     private String searchQuery = ""; // Default is empty, meaning no search applied
     private TextView followersCount;
     private TextView followingCount;
-    private TextView moodCountText;
+    public TextView moodCountText;
 
 
     @Override
@@ -297,7 +298,7 @@ public class ProfileActivity extends ActivityBase {
         });
     }
 
-    private void loadMoods() {
+    public void loadMoods() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             String userId = user.getUid();
@@ -321,7 +322,7 @@ public class ProfileActivity extends ActivityBase {
                                             String reason = document.getString("reason");
                                             String imageUrl = document.getString("imageUrl");
 
-                                            // Fetch tagged users (assumed stored as a list of maps with "username")
+                                            // Fetch tagged users
                                             List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
                                             List<String> taggedUserNames = new ArrayList<>();
                                             if (tags != null) {
@@ -333,7 +334,7 @@ public class ProfileActivity extends ActivityBase {
                                                 }
                                             }
 
-                                            // Calculate gathering status dynamically based on tags
+                                            // Calculate gathering status
                                             String gatheringStatus;
                                             if (tags == null || tags.isEmpty()) {
                                                 gatheringStatus = "Alone";
@@ -349,19 +350,26 @@ public class ProfileActivity extends ActivityBase {
                                             }
 
                                             moodList.add(new Mood(
-                                                    user.getDisplayName(),
-                                                    user.getEmail(),
-                                                    locationName != null ? locationName : "No location",
-                                                    timestampStr,
-                                                    gatheringStatus, // Use the calculated gathering status
-                                                    "Feeling " + mood,
-                                                    trigger,
-                                                    reason,
-                                                    imageUrl,
-                                                    profileImageUrl,
-                                                    taggedUserNames // Include tagged users
+                                                    user.getDisplayName(),                           // userName
+                                                    user.getEmail(),                                 // userId
+                                                    locationName != null ? locationName : "No location",  // userLocation
+                                                    timestampStr,                                    // timestamp
+                                                    timestampStr,                                    // userTime (NEW: using timestampStr as placeholder)
+                                                    gatheringStatus,                                 // userGatheringStatus
+                                                    "Feeling " + mood,                               // moodStatus
+                                                    trigger,                                         // moodTrigger
+                                                    reason,                                          // moodReason
+                                                    imageUrl,                                        // moodImage
+                                                    profileImageUrl,                                 // profileImageUrl
+                                                    taggedUserNames                                  // taggedUserNames
                                             ));
+
                                         }
+                                        // Ensure the list is sorted from latest to earliest
+                                        Collections.sort(moodList, (m1, m2) ->
+                                                Long.compare(convertTimestampToMillis(m2.getTimestamp()),
+                                                        convertTimestampToMillis(m1.getTimestamp()))
+                                        );
                                         moodAdapter.notifyDataSetChanged();
                                         updateMoodCount();
                                     } else {
@@ -382,31 +390,27 @@ public class ProfileActivity extends ActivityBase {
         }
     }
 
+
     private void loadMoodsFiltered(int days, @Nullable String moodFilter, @Nullable String searchFilter) {
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
             String userId = user.getUid();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-            // Fetch the user's profile image URL first
             db.collection("users").document(userId).get()
                     .addOnSuccessListener(userDoc -> {
                         String profileImageUrl = userDoc.getString("profilePictureUrl");
-
-                        // Clear previous moods
                         moodList.clear();
 
-                        // Compute cutoff timestamp before lambda to ensure it's final
                         final long cutoffTimestamp;
                         if (days > 0) {
                             Calendar calendar = Calendar.getInstance();
                             calendar.add(Calendar.DAY_OF_YEAR, -days);
                             cutoffTimestamp = calendar.getTimeInMillis();
                         } else {
-                            cutoffTimestamp = 0; // No time filtering
+                            cutoffTimestamp = 0;
                         }
 
-                        // Fetch moods from Firestore
                         db.collection("users").document(userId).collection("moods")
                                 .orderBy("timestamp", Query.Direction.DESCENDING)
                                 .get()
@@ -421,7 +425,6 @@ public class ProfileActivity extends ActivityBase {
                                             String locationName = document.getString("locationName");
                                             List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
 
-                                            // Extract tagged user names
                                             List<String> taggedUserNames = new ArrayList<>();
                                             if (tags != null) {
                                                 for (Map<String, Object> tag : tags) {
@@ -432,7 +435,6 @@ public class ProfileActivity extends ActivityBase {
                                                 }
                                             }
 
-                                            // Calculate gathering status based on tagged users
                                             String gatheringStatus;
                                             int tagCount = taggedUserNames.size();
                                             if (tagCount == 0) {
@@ -445,10 +447,8 @@ public class ProfileActivity extends ActivityBase {
                                                 gatheringStatus = "With a crowd";
                                             }
 
-                                            // Convert timestamp to milliseconds
                                             long moodTimestamp = convertTimestampToMillis(timestampStr);
 
-                                            // Apply filters
                                             boolean withinTimeRange = (days == 0) || (moodTimestamp >= cutoffTimestamp);
                                             boolean matchesMood = (moodFilter == null) || (mood.equalsIgnoreCase(moodFilter));
                                             boolean matchesSearch = (searchFilter == null) ||
@@ -456,20 +456,27 @@ public class ProfileActivity extends ActivityBase {
 
                                             if (withinTimeRange && matchesMood && matchesSearch) {
                                                 moodList.add(new Mood(
-                                                        user.getDisplayName(),
-                                                        user.getEmail(),
-                                                        locationName != null ? locationName : "No location",
-                                                        timestampStr,
-                                                        gatheringStatus,
-                                                        "Feeling " + mood,
-                                                        trigger,
-                                                        reason,
-                                                        imageUrl,
-                                                        profileImageUrl,  // Added profile image URL
-                                                        taggedUserNames   // Added list of tagged user names
+                                                        user.getDisplayName(),                           // userName
+                                                        user.getEmail(),                                 // userId
+                                                        locationName != null ? locationName : "No location",  // userLocation
+                                                        timestampStr,                                    // timestamp
+                                                        timestampStr,                                    // userTime (NEW: using timestampStr as placeholder)
+                                                        gatheringStatus,                                 // userGatheringStatus
+                                                        "Feeling " + mood,                               // moodStatus
+                                                        trigger,                                         // moodTrigger
+                                                        reason,                                          // moodReason
+                                                        imageUrl,                                        // moodImage
+                                                        profileImageUrl,                                 // profileImageUrl
+                                                        taggedUserNames                                  // taggedUserNames
                                                 ));
+
                                             }
                                         }
+                                        // Sort moods by date (latest first)
+                                        Collections.sort(moodList, (m1, m2) ->
+                                                Long.compare(convertTimestampToMillis(m2.getTimestamp()),
+                                                        convertTimestampToMillis(m1.getTimestamp()))
+                                        );
                                         moodAdapter.notifyDataSetChanged();
                                         updateMoodCount();
                                     } else {
