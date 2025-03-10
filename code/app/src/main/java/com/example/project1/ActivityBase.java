@@ -30,12 +30,7 @@ public class ActivityBase extends AppCompatActivity {
         homeButton = findViewById(R.id.home);
         profileButton = findViewById(R.id.profile_button);
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if(user != null && user.getPhotoUrl() != null) {
-            Glide.with(this)
-                    .load(user.getPhotoUrl())
-                    .placeholder(R.drawable.ic_profile) // fallback image
-                    .into(profileButton);
-        }
+
         settings = findViewById(R.id.iconSettings);
         searchButton = findViewById(R.id.search);
         addMoodButton = findViewById(R.id.add);

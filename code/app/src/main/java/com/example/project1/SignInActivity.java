@@ -29,11 +29,11 @@ import java.util.Objects;
 
 public class SignInActivity extends AppCompatActivity {
 
-    private EditText emailEditText, passwordEditText;
+    public EditText emailEditText, passwordEditText;
     private Button loginButton;
     private ProgressBar progressBar;
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
+    FirebaseAuth mAuth;
+    FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +59,7 @@ public class SignInActivity extends AppCompatActivity {
         forgotPasswordText.setOnClickListener(v -> showForgotPasswordDialog());
     }
 
-    private void loginUser() {
+    void loginUser() {
         String identifier = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
 
@@ -152,7 +152,7 @@ public class SignInActivity extends AppCompatActivity {
         }
     }
 
-    private void fetchUserData(String userId) {
+    void fetchUserData(String userId) {
         db.collection("users").document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -232,14 +232,14 @@ public class SignInActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private boolean isNetworkAvailable() {
+    boolean isNetworkAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
     }
 
     // Shake animation method similar to SignUpActivity
-    private void shakeView(View view) {
+    void shakeView(View view) {
         Animation shake = new TranslateAnimation(0, 15, 0, 0);
         shake.setDuration(120);
         shake.setRepeatCount(5);
@@ -247,3 +247,4 @@ public class SignInActivity extends AppCompatActivity {
         view.startAnimation(shake);
     }
 }
+
