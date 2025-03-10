@@ -1,22 +1,45 @@
+/**
+ * The Mood class represents the mood of a user, storing information about
+ * the user's mood status, location, time, and other related attributes.
+ *
+ * This class is used to encapsulate a user's mood data, including their
+ * name, ID, gathering status, mood trigger, reason for mood, and an optional image.
+ * It provides getter methods for accessing these attributes.
+ *
+ * Outstanding Issues:
+ * - None identified.
+ */
 package com.example.project1;
-
 import java.io.Serializable;
 import java.util.List;
 
 public class Mood implements Serializable {
-    private String userName;
-    private String userId;
-    private String userLocation;
-    private String userTime;
-    private String userGatheringStatus;
-    private String moodStatus;
-    private String moodTrigger;
-    private String moodReason;
-    private String moodImage;
+    private String userName;          // The name of the user
+    private String userId;            // The ID of the user
+    private String userLocation;      // The user's location
+    private String userTime;          // The time the mood was recorded
+    private String userGatheringStatus; // The user's gathering status (e.g., alone, with friends)
+    private String moodStatus;        // The user's mood (e.g., happy, sad, angry)
+    private String moodTrigger;       // The trigger for the mood (e.g., event, circumstance)
+    private String moodReason;        // The reason behind the mood (e.g., feeling lonely)
+    private Integer moodImage;        // An image representing the mood (can be null)
     private String profileImageUrl;
     private List<String> taggedUserNames;
     private String timestamp;
-
+    
+    /**
+     * Constructor for initializing the Mood object with all its attributes.
+     *
+     * @param userName          The name of the user
+     * @param userId            The ID of the user
+     * @param userLocation      The user's location
+     * @param userTime          The time the mood was recorded
+     * @param userGatheringStatus The gathering status of the user
+     * @param moodStatus        The user's mood
+     * @param moodTrigger       The trigger for the mood
+     * @param moodReason        The reason behind the mood
+     * @param moodImage         An optional image representing the mood
+     */
     public Mood(String userName, String userId, String userLocation, String timestamp, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames) {
         this.userName = userName;
         this.userId = userId;
@@ -49,10 +72,20 @@ public class Mood implements Serializable {
         this.profileImageUrl = profileImageUrl;
     }
 
+    /**
+     * Returns the name of the user.
+     *
+     * @return The name of the user.
+     */
     public String getUserName() {
         return userName;
     }
 
+    /**
+     * Returns the ID of the user.
+     *
+     * @return The ID of the user.
+     */
     public void setUserName(String userName) {
         this.userName = userName;
     }
@@ -61,6 +94,11 @@ public class Mood implements Serializable {
         return userId;
     }
 
+    /**
+     * Returns the location of the user.
+     *
+     * @return The location of the user.
+     */
     public void setUserId(String userId) {
         this.userId = userId;
     }
@@ -69,6 +107,11 @@ public class Mood implements Serializable {
         return userLocation;
     }
 
+    /**
+     * Returns the time when the mood was recorded.
+     *
+     * @return The time the mood was recorded.
+     */
     public void setUserLocation(String userLocation) {
         this.userLocation = userLocation;
     }
@@ -77,10 +120,20 @@ public class Mood implements Serializable {
         return userTime;
     }
 
+    /**
+     * Returns the gathering status of the user (e.g., alone, with friends).
+     *
+     * @return The gathering status of the user.
+     */
     public String getUserGatheringStatus() {
         return userGatheringStatus;
     }
 
+    /**
+     * Returns the user's mood status (e.g., happy, sad, angry).
+     *
+     * @return The user's mood status.
+     */
     public void setUserGatheringStatus(String userGatheringStatus) {
         this.userGatheringStatus = userGatheringStatus;
     }
@@ -89,6 +142,11 @@ public class Mood implements Serializable {
         return moodStatus;
     }
 
+    /**
+     * Returns the trigger that caused the user's mood.
+     *
+     * @return The trigger for the mood.
+     */
     public void setMoodStatus(String moodStatus) {
         this.moodStatus = moodStatus;
     }
@@ -98,6 +156,11 @@ public class Mood implements Serializable {
         return moodTrigger;
     }
 
+    /**
+     * Returns the reason behind the user's mood.
+     *
+     * @return The reason behind the user's mood.
+     */
     public void setMoodTrigger(String moodTrigger) {
         this.moodTrigger = moodTrigger;
     }
@@ -106,6 +169,11 @@ public class Mood implements Serializable {
         return moodReason;
     }
 
+    /**
+     * Returns the image associated with the user's mood.
+     *
+     * @return The image representing the mood (may be null).
+     */
     public void setMoodReason(String moodReason) {
         this.moodReason = moodReason;
     }

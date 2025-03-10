@@ -14,11 +14,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * FollowingAdapter is responsible for displaying a list of users
+ * in a RecyclerView, allowing interactions such as following and unfollowing.
+ */
 public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.UserViewHolder> {
 
     private final List<User> userList;
     private final String currentUserId;
 
+    /**
+     * Constructor to initialize the adapter with user list and current user ID.
+     *
+     * @param userList      List of users to be displayed
+     * @param currentUserId ID of the logged-in user
+     */
     public FollowingAdapter(List<User> userList, String currentUserId) {
         this.userList = userList;
         this.currentUserId = currentUserId;
@@ -38,7 +48,7 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
         holder.userName.setText(user.getName());
         holder.userHandle.setText(user.getUsername());
 
-        // Load profile picture (assuming User class has getProfilePictureUrl())
+        // Load profile picture from URL
         Glide.with(holder.itemView.getContext())
                 .load(user.getProfilePictureUrl())
                 .placeholder(R.drawable.ic_profile)
@@ -62,6 +72,7 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
             int currentPosition = holder.getAdapterPosition();
             if (currentPosition == RecyclerView.NO_POSITION) return;
             User currentUser = userList.get(currentPosition);
+
             db.collection("users")
                     .document(currentUserId)
                     .collection("following")
@@ -69,7 +80,7 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
                     .get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
-                            // Unfollow
+                            // Unfollow logic
                             db.collection("users")
                                     .document(currentUserId)
                                     .collection("following")
@@ -81,13 +92,15 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
                                     .document(currentUserId)
                                     .delete();
                             holder.followButton.setText("Follow");
+
+                            // Remove user from the list and update UI
                             if (userList.contains(currentUser)) {
                                 userList.remove(currentPosition);
                                 notifyItemRemoved(currentPosition);
                                 notifyItemRangeChanged(currentPosition, userList.size());
                             }
                         } else {
-                            // Follow
+                            // Follow logic
                             Map<String, Object> followData = new HashMap<>();
                             followData.put("followed", true);
                             db.collection("users")
@@ -113,12 +126,20 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
         return userList.size();
     }
 
+    /**
+     * ViewHolder class for representing individual user items in the RecyclerView.
+     */
     public static class UserViewHolder extends RecyclerView.ViewHolder {
         ImageView profilePicture;
         TextView userName;
         TextView userHandle;
         Button followButton;
 
+        /**
+         * Initializes UI elements for each item.
+         *
+         * @param itemView The view associated with each item
+         */
         public UserViewHolder(@NonNull View itemView) {
             super(itemView);
             profilePicture = itemView.findViewById(R.id.profilePicture);

@@ -1,3 +1,16 @@
+/**
+ * OtherProfileActivity handles the display of another user's profile and allows
+ * the current user to follow or unfollow that user.
+ *
+ * This activity loads the profile information of the searched user, including
+ * their name, email, bio, and profile picture, and shows the follow button's
+ * state based on whether the current user is already following the searched user.
+ *
+ * Outstanding Issues:
+ * - There is no handling for network or Firebase connection issues during the follow/unfollow process.
+ * - The current user may accidentally try to follow themselves, which is blocked but needs clearer messaging.
+ */
+
 package com.example.project1;
 
 import android.content.Intent;
@@ -30,6 +43,12 @@ public class OtherProfileActivity extends ActivityBase {
     private FirebaseAuth auth;
     private String currentUserId;
 
+    /**
+     * Called when the activity is first created.
+     * Initializes Firebase, sets up navigation buttons, and loads user data.
+     *
+     * @param savedInstanceState The saved instance state bundle.
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,6 +83,10 @@ public class OtherProfileActivity extends ActivityBase {
         }
     }
 
+    /**
+     * Initializes the user interface components like profile image, text fields,
+     * and buttons for following and navigating back.
+     */
     private void initUI() {
         profileImage = findViewById(R.id.other_profile_image);
         profileName = findViewById(R.id.other_profile_name);
@@ -77,6 +100,11 @@ public class OtherProfileActivity extends ActivityBase {
         followButton.setOnClickListener(v -> followUser());
     }
 
+    /**
+     * Loads the data for the searched user and populates the profile UI.
+     *
+     * @param userId The user ID to load the data for.
+     */
     private void loadUserData(String userId) {
         // Fetch user profile data
         db.collection("users").document(userId)
@@ -114,6 +142,10 @@ public class OtherProfileActivity extends ActivityBase {
                 .addOnFailureListener(e -> Log.e("OtherProfileActivity", "Error fetching user data", e));
     }
 
+    /**
+     * Allows the current user to follow the searched user by adding them to both
+     * users' follower/following subcollections in Firestore.
+     */
     private void followUser() {
         // Validate user IDs
         if (currentUserId == null || searchedUserId == null || currentUserId.equals(searchedUserId)) {

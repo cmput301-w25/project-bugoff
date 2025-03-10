@@ -1,3 +1,15 @@
+/**
+ * FollowingActivity is responsible for displaying a list of users
+ * that a specific user follows or is followed by.
+ *
+ * It retrieves the user list from Firestore, differentiating
+ * between "followers" and "following" based on the provided intent data.
+ *
+ * Outstanding Issues:
+ * - Currently does not handle real-time updates to the follower/following list.
+ * - Does not handle network failures or retry mechanisms efficiently.
+ */
+
 package com.example.project1;
 
 import android.os.Bundle;
@@ -7,9 +19,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.project1.R; // Adjust to your package name
-import com.example.project1.User; // Adjust to your package name
-import com.example.project1.FollowingAdapter; // Adjust to your package name
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
@@ -20,26 +29,36 @@ public class FollowingActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private FollowingAdapter adapter;
     private List<User> userList;
+    private String type;  // Type of list ("followers" or "following")
+    private String userId; // The ID of the user whose list is being viewed
+
     private String type;
     private String userId;
     private TextView following_followers_title;
 
+    /**
+     * Called when the activity is first created.
+     * Initializes the RecyclerView, retrieves intent extras, and fetches user data.
+     *
+     * @param savedInstanceState The saved instance state bundle.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.following);
+        setContentView(R.layout.following); // Set the UI layout for the activity
 
-        // Retrieve type and userId from intent
+        // Retrieve type and userId from the intent
         type = getIntent().getStringExtra("type");
         userId = getIntent().getStringExtra("userId");
 
-        // Validate intent extras
+        // Validate intent extras to ensure proper functionality
         if (type == null || userId == null) {
             Toast.makeText(this, "Invalid parameters", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
+        // Set the activity title based on whether viewing followers or following
         following_followers_title = findViewById(R.id.following_followers_title);
 
         // Set the activity title based on type
@@ -56,25 +75,25 @@ public class FollowingActivity extends AppCompatActivity {
 
         // Initialize RecyclerView
         recyclerView = findViewById(R.id.recyclerViewFollowing);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setLayoutManager(new LinearLayoutManager(this)); // Set layout manager for list display
         userList = new ArrayList<>();
         adapter = new FollowingAdapter(userList, userId);
-        recyclerView.setAdapter(adapter);
+        recyclerView.setAdapter(adapter); // Attach adapter to RecyclerView
 
-        // Fetch the list of users based on type and userId
+        // Fetch the user list from Firestore
         fetchUsersList(type, userId);
     }
 
     /**
-     * Fetches the list of user IDs from the specified subcollection (followers or following).
+     * Fetches the list of user IDs from the specified subcollection ("followers" or "following").
      *
-     * @param type   The type of list to fetch ("followers" or "following")
-     * @param userId The ID of the user whose list is being fetched
+     * @param type   The type of list to fetch ("followers" or "following").
+     * @param userId The ID of the user whose list is being fetched.
      */
     private void fetchUsersList(String type, String userId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        // Determine the subcollection based on type
+        // Determine the Firestore subcollection to query
         String subcollection = type.equals("followers") ? "followers" : "following";
 
         db.collection("users")
@@ -83,10 +102,13 @@ public class FollowingActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<String> userIds = new ArrayList<>();
+
+                    // Iterate over the retrieved documents and extract user IDs
                     for (DocumentSnapshot document : queryDocumentSnapshots) {
                         userIds.add(document.getId());
                     }
 
+                    // If users exist, fetch their details; otherwise, show a message
                     if (!userIds.isEmpty()) {
                         fetchUserDetails(userIds);
                     } else {
@@ -102,22 +124,28 @@ public class FollowingActivity extends AppCompatActivity {
     /**
      * Fetches user details for the given list of user IDs and updates the RecyclerView.
      *
-     * @param userIds The list of user IDs to fetch details for
+     * @param userIds The list of user IDs whose details need to be retrieved.
      */
     private void fetchUserDetails(List<String> userIds) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        userList.clear();
+        userList.clear(); // Clear the current list before adding new data
 
+        // Fetch details for each user ID in the list
         for (String id : userIds) {
             db.collection("users")
                     .document(id)
                     .get()
                     .addOnSuccessListener(userDoc -> {
                         if (userDoc.exists()) {
+                            // Extract user details from Firestore document
                             String name = userDoc.getString("name");
                             String username = userDoc.getString("username");
                             String profilePictureUrl = userDoc.getString("profilePictureUrl");
+
+                            // Create a new User object and add it to the list
                             userList.add(new User(id, name, username, profilePictureUrl));
+
+                            // Notify the adapter that data has changed to refresh the UI
                             adapter.notifyDataSetChanged();
                         }
                     })
