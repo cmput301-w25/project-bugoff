@@ -1,16 +1,3 @@
-/**
- * SignUpActivity handles the user registration process,
- * including input validation, Firebase Authentication for account creation,
- * and Firestore for saving user details.
- *
- * This activity provides real-time validation for email and password fields,
- * and visual feedback for errors using animations and Toast messages.
- *
- * Outstanding Issues:
- * - No handling for password strength beyond length check.
- * - No checks for duplicate users in Firestore.
- * - No retry logic for network or Firebase errors.
- */
 package com.example.project1;
 
 import android.app.DatePickerDialog;
@@ -23,10 +10,13 @@ import android.util.Patterns;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
@@ -50,6 +40,7 @@ public class SignUpActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+    private Spinner genderSpinner;
     // Date format used for DOB display and parsing
     private final SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 
@@ -77,6 +68,53 @@ public class SignUpActivity extends AppCompatActivity {
         confirmPasswordEditText = findViewById(R.id.confirm_password);
         signUpButton = findViewById(R.id.signup_btn);
         progressBar = findViewById(R.id.progressBar);
+
+        // Initialize gender spinner
+        genderSpinner = findViewById(R.id.gender_spinner);
+        ArrayAdapter<CharSequence> genderAdapter = ArrayAdapter.createFromResource(
+                this, R.array.gender_options, android.R.layout.simple_spinner_item);
+        genderAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        genderSpinner.setAdapter(genderAdapter);
+
+        // Add TextWatcher to enforce lowercase input for username
+        usernameEditText.addTextChangedListener(new TextWatcher() {
+            private boolean isEditing = false;
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (isEditing) return;
+                isEditing = true;
+                String lowerText = s.toString().toLowerCase();
+                if (!s.toString().equals(lowerText)) {
+                    usernameEditText.setText(lowerText);
+                    usernameEditText.setSelection(lowerText.length());
+                }
+                isEditing = false;
+            }
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) { }
+        });
+
+        // Add TextWatcher to enforce lowercase input for email (Gmail)
+        emailEditText.addTextChangedListener(new TextWatcher() {
+            private boolean isEditing = false;
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (isEditing) return;
+                isEditing = true;
+                String lowerText = s.toString().toLowerCase();
+                if (!s.toString().equals(lowerText)) {
+                    emailEditText.setText(lowerText);
+                    emailEditText.setSelection(lowerText.length());
+                }
+                isEditing = false;
+            }
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) { }
+        });
 
         // Set up redirect to SignInActivity
         TextView loginRedirect = findViewById(R.id.login_redirect);
@@ -115,7 +153,6 @@ public class SignUpActivity extends AppCompatActivity {
 
             // Use reflection / view lookup to set the header text (Year and Date) to white.
             try {
-                // These identifiers might vary based on Android version.
                 int yearId = getResources().getIdentifier("android:id/date_picker_header_year", null, null);
                 int dateId = getResources().getIdentifier("android:id/date_picker_header_date", null, null);
                 TextView yearTextView = datePickerDialog.findViewById(yearId);
@@ -131,20 +168,17 @@ public class SignUpActivity extends AppCompatActivity {
             }
         });
 
-
         signUpButton.setOnClickListener(v -> registerUser());
 
         // Real-time password matching
         confirmPasswordEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
-                // Check if passwords match in real-time
                 if (!passwordEditText.getText().toString().equals(confirmPasswordEditText.getText().toString())) {
                     confirmPasswordEditText.setError("Passwords do not match!");
-                    shakeView(confirmPasswordEditText); // Trigger shake animation on mismatch
+                    shakeView(confirmPasswordEditText);
                 }
             }
-
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override
@@ -158,16 +192,19 @@ public class SignUpActivity extends AppCompatActivity {
      */
     private void registerUser() {
         String name = nameEditText.getText().toString().trim();
-        String username = usernameEditText.getText().toString().trim();
-        String email = emailEditText.getText().toString().trim();
+        // Ensure username is lowercase
+        String username = usernameEditText.getText().toString().trim().toLowerCase();
+        // Ensure email is lowercase
+        String email = emailEditText.getText().toString().trim().toLowerCase();
         String dobString = dobEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
         String confirmPassword = confirmPasswordEditText.getText().toString().trim();
+        String selectedGender = genderSpinner.getSelectedItem().toString();
 
         // Input Validations
         if (name.isEmpty()) {
             nameEditText.setError("Full Name is required");
-            shakeView(nameEditText); // Trigger shake animation on invalid input
+            shakeView(nameEditText);
             return;
         }
         if (username.isEmpty()) {
@@ -177,7 +214,7 @@ public class SignUpActivity extends AppCompatActivity {
         }
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             emailEditText.setError("Enter a valid email address");
-            shakeView(emailEditText); // Trigger shake animation on invalid email
+            shakeView(emailEditText);
             return;
         }
         if (dobString.isEmpty()) {
@@ -185,7 +222,17 @@ public class SignUpActivity extends AppCompatActivity {
             shakeView(dobEditText);
             return;
         }
-        // Validate age (must be at least 16 years old)
+        // Validate gender selection
+        if (selectedGender.equals("Select Gender")) {
+            shakeView(genderSpinner);
+            Snackbar.make(findViewById(android.R.id.content),
+                            "Please select a gender",
+                            Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(Color.RED)
+                    .setTextColor(Color.WHITE)
+                    .show();
+            return;
+        }
         try {
             Date dobDate = sdf.parse(dobString);
             Calendar dobCal = Calendar.getInstance();
@@ -207,17 +254,17 @@ public class SignUpActivity extends AppCompatActivity {
         }
         if (password.isEmpty() || password.length() < 6) {
             passwordEditText.setError("Password must be at least 6 characters");
-            shakeView(passwordEditText); // Trigger shake animation on invalid password
+            shakeView(passwordEditText);
             return;
         }
         if (!password.equals(confirmPassword)) {
             confirmPasswordEditText.setError("Passwords do not match!");
-            shakeView(confirmPasswordEditText); // Trigger shake animation on password mismatch
+            shakeView(confirmPasswordEditText);
             return;
         }
 
-        progressBar.setVisibility(View.VISIBLE); // Show progress bar while processing
-        signUpButton.setEnabled(false); // Disable sign-up button during the process
+        progressBar.setVisibility(View.VISIBLE);
+        signUpButton.setEnabled(false);
 
         // Check if username is unique
         db.collection("users")
@@ -232,28 +279,53 @@ public class SignUpActivity extends AppCompatActivity {
                             usernameEditText.setError("Username is already taken!");
                             shakeView(usernameEditText);
                         } else {
-                            // Create user in Firebase Auth
-                            mAuth.createUserWithEmailAndPassword(email, password)
-                                    .addOnCompleteListener(authTask -> {
-                                        if (authTask.isSuccessful()) {
-                                            FirebaseUser user = mAuth.getCurrentUser();
-                                            if (user != null) {
-                                                // Update Firebase User Profile (Display Name)
-                                                UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
-                                                        .setDisplayName(name)
-                                                        .build();
-
-                                                user.updateProfile(profileUpdates)
-                                                        .addOnCompleteListener(updateTask -> {
-                                                            if (updateTask.isSuccessful()) {
-                                                                // Save user details to Firestore, including username and DOB
-                                                                saveUserToFirestore(user.getUid(), name, username, email, dobString);
+                            // Username is unique; now check if the email is unique
+                            db.collection("users")
+                                    .whereEqualTo("email", email)
+                                    .get()
+                                    .addOnCompleteListener(emailTask -> {
+                                        if (emailTask.isSuccessful()) {
+                                            QuerySnapshot emailQuery = emailTask.getResult();
+                                            if (emailQuery != null && !emailQuery.isEmpty()) {
+                                                progressBar.setVisibility(View.GONE);
+                                                signUpButton.setEnabled(true);
+                                                emailEditText.setError("Email is already registered!");
+                                                shakeView(emailEditText);
+                                            } else {
+                                                // Create user in Firebase Auth
+                                                mAuth.createUserWithEmailAndPassword(email, password)
+                                                        .addOnCompleteListener(authTask -> {
+                                                            if (authTask.isSuccessful()) {
+                                                                FirebaseUser user = mAuth.getCurrentUser();
+                                                                if (user != null) {
+                                                                    UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                                                                            .setDisplayName(name)
+                                                                            .build();
+                                                                    user.updateProfile(profileUpdates)
+                                                                            .addOnCompleteListener(updateTask -> {
+                                                                                if (updateTask.isSuccessful()) {
+                                                                                    saveUserToFirestore(user.getUid(), name, username, email, dobString, selectedGender);
+                                                                                } else {
+                                                                                    progressBar.setVisibility(View.GONE);
+                                                                                    signUpButton.setEnabled(true);
+                                                                                    Snackbar.make(findViewById(android.R.id.content),
+                                                                                                    "Profile update failed",
+                                                                                                    Snackbar.LENGTH_SHORT)
+                                                                                            .setBackgroundTint(Color.RED)
+                                                                                            .setTextColor(Color.WHITE)
+                                                                                            .show();
+                                                                                }
+                                                                            });
+                                                                }
                                                             } else {
                                                                 progressBar.setVisibility(View.GONE);
                                                                 signUpButton.setEnabled(true);
                                                                 Snackbar.make(findViewById(android.R.id.content),
-                                                                        "Profile update failed",
-                                                                        Snackbar.LENGTH_SHORT).setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                                                                                "Registration failed: " + Objects.requireNonNull(authTask.getException()).getMessage(),
+                                                                                Snackbar.LENGTH_SHORT)
+                                                                        .setBackgroundTint(Color.RED)
+                                                                        .setTextColor(Color.WHITE)
+                                                                        .show();
                                                             }
                                                         });
                                             }
@@ -261,8 +333,11 @@ public class SignUpActivity extends AppCompatActivity {
                                             progressBar.setVisibility(View.GONE);
                                             signUpButton.setEnabled(true);
                                             Snackbar.make(findViewById(android.R.id.content),
-                                                    "Registration failed: " + Objects.requireNonNull(authTask.getException()).getMessage(),
-                                                    Snackbar.LENGTH_SHORT).setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                                                            "Error checking email uniqueness: " + Objects.requireNonNull(emailTask.getException()).getMessage(),
+                                                            Snackbar.LENGTH_SHORT)
+                                                    .setBackgroundTint(Color.RED)
+                                                    .setTextColor(Color.WHITE)
+                                                    .show();
                                         }
                                     });
                         }
@@ -270,8 +345,11 @@ public class SignUpActivity extends AppCompatActivity {
                         progressBar.setVisibility(View.GONE);
                         signUpButton.setEnabled(true);
                         Snackbar.make(findViewById(android.R.id.content),
-                                "Error checking username uniqueness: " + Objects.requireNonNull(task.getException()).getMessage(),
-                                Snackbar.LENGTH_SHORT).setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                                        "Error checking username uniqueness: " + Objects.requireNonNull(task.getException()).getMessage(),
+                                        Snackbar.LENGTH_SHORT)
+                                .setBackgroundTint(Color.RED)
+                                .setTextColor(Color.WHITE)
+                                .show();
                     }
                 });
     }
@@ -279,25 +357,28 @@ public class SignUpActivity extends AppCompatActivity {
     /**
      * Saves the user details to Firestore after successful account creation and profile update.
      *
-     * @param userId The user ID generated by Firebase Authentication.
-     * @param name The full name of the user.
-     * @param email The email address of the user.
+     * @param userId         The user ID generated by Firebase Authentication.
+     * @param name           The full name of the user.
+     * @param email          The email address of the user.
+     * @param selectedGender
      */
-    private void saveUserToFirestore(String userId, String name, String username, String email, String dob) {
+    private void saveUserToFirestore(String userId, String name, String username, String email, String dob, String selectedGender) {
         Map<String, Object> user = new HashMap<>();
         user.put("name", name);
         user.put("username", username);
         user.put("email", email);
         user.put("dob", dob);
 
-        // Save user details to Firestore
         db.collection("users").document(userId)
                 .set(user)
                 .addOnSuccessListener(aVoid -> {
                     progressBar.setVisibility(View.GONE);
                     Snackbar.make(findViewById(android.R.id.content),
-                            "User registered successfully!",
-                            Snackbar.LENGTH_SHORT).setBackgroundTint(getResources().getColor(R.color.dark_green)).setTextColor(Color.WHITE).show();
+                                    "User registered successfully!",
+                                    Snackbar.LENGTH_SHORT)
+                            .setBackgroundTint(getResources().getColor(R.color.dark_green))
+                            .setTextColor(Color.WHITE)
+                            .show();
                     startActivity(new Intent(SignUpActivity.this, SignInActivity.class));
                     finish();
                 })
@@ -305,8 +386,11 @@ public class SignUpActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                     signUpButton.setEnabled(true);
                     Snackbar.make(findViewById(android.R.id.content),
-                            "Firestore error: " + e.getMessage(),
-                            Snackbar.LENGTH_SHORT).setBackgroundTint(Color.RED).setTextColor(Color.WHITE).show();
+                                    "Firestore error: " + e.getMessage(),
+                                    Snackbar.LENGTH_SHORT)
+                            .setBackgroundTint(Color.RED)
+                            .setTextColor(Color.WHITE)
+                            .show();
                 });
     }
 
