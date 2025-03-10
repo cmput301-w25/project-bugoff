@@ -1,8 +1,9 @@
 package com.example.project1;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class Mood {
+public class Mood implements Serializable {
     private String userName;
     private String userId;
     private String userLocation;
@@ -29,24 +30,45 @@ public class Mood {
         this.taggedUserNames = taggedUserNames;
     }
 
+    public Mood() {
+    }
+
     public List<String> getTaggedUserNames() {
         return taggedUserNames;
+    }
+    public void setTaggedUserNames(List<String> taggedUserNames) {
+        this.taggedUserNames = taggedUserNames;
     }
 
     public String getProfileImageUrl() {
         return profileImageUrl;
+    }
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
     }
 
     public String getUserName() {
         return userName;
     }
 
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
     public String getUserId() {
         return userId;
     }
 
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
     public String getUserLocation() {
         return userLocation;
+    }
+
+    public void setUserLocation(String userLocation) {
+        this.userLocation = userLocation;
     }
 
     public String getUserTime() {
@@ -57,20 +79,41 @@ public class Mood {
         return userGatheringStatus;
     }
 
+    public void setUserGatheringStatus(String userGatheringStatus) {
+        this.userGatheringStatus = userGatheringStatus;
+    }
+
     public String getMoodStatus() {
         return moodStatus;
     }
 
+    public void setMoodStatus(String moodStatus) {
+        this.moodStatus = moodStatus;
+    }
+
+
     public String getMoodTrigger() {
         return moodTrigger;
+    }
+
+    public void setMoodTrigger(String moodTrigger) {
+        this.moodTrigger = moodTrigger;
     }
 
     public String getMoodReason() {
         return moodReason;
     }
 
+    public void setMoodReason(String moodReason) {
+        this.moodReason = moodReason;
+    }
+
     public String getMoodImage() {
         return moodImage;
+    }
+
+    public void setMoodImage(String moodImage) {
+        this.moodImage = moodImage;
     }
 
 
