@@ -642,4 +642,5 @@ public class ProfileActivity extends ActivityBase {
     private void updateMoodCount() {
         moodCountText.setText("" + moodList.size());
     }
+
 }
