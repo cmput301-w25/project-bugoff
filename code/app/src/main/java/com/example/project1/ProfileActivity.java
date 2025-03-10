@@ -23,6 +23,13 @@ import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+import java.util.TimeZone;
+import java.text.ParseException;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -72,7 +79,7 @@ public class ProfileActivity extends ActivityBase {
     private String searchQuery = "";
     private TextView followersCount;
     private TextView followingCount;
-    private TextView moodCountText;
+    public TextView moodCountText;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -265,7 +272,7 @@ public class ProfileActivity extends ActivityBase {
         });
     }
 
-    private void loadMoods() {
+    public void loadMoods() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             String userId = user.getUid();
@@ -290,6 +297,7 @@ public class ProfileActivity extends ActivityBase {
                                             String reason = document.getString("reason");
                                             String imageUrl = document.getString("imageUrl");
 
+                                            // Fetch tagged users
                                             List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
                                             List<String> taggedUserNames = new ArrayList<>();
                                             if (tags != null) {
@@ -301,6 +309,7 @@ public class ProfileActivity extends ActivityBase {
                                                 }
                                             }
 
+                                            // Calculate gathering status
                                             String gatheringStatus;
                                             if (tags == null || tags.isEmpty()) {
                                                 gatheringStatus = "Alone";
@@ -320,6 +329,7 @@ public class ProfileActivity extends ActivityBase {
                                                     user.getEmail(), // Use email instead of UID
                                                     locationName != null ? locationName : "No location",
                                                     timestampStr,
+                                                    timestampStr,
                                                     gatheringStatus,
                                                     "Feeling " + mood,
                                                     trigger,
@@ -330,7 +340,13 @@ public class ProfileActivity extends ActivityBase {
                                             );
                                             moodList.add(moodObj);
                                             moodDocIds.add(document.getId());
+
                                         }
+                                        // Ensure the list is sorted from latest to earliest
+                                        Collections.sort(moodList, (m1, m2) ->
+                                                Long.compare(convertTimestampToMillis(m2.getTimestamp()),
+                                                        convertTimestampToMillis(m1.getTimestamp()))
+                                        );
                                         moodAdapter.notifyDataSetChanged();
                                         updateMoodCount();
                                     } else {
@@ -350,6 +366,7 @@ public class ProfileActivity extends ActivityBase {
                     });
         }
     }
+
 
     private void loadMoodsFiltered(int days, @Nullable String moodFilter, @Nullable String searchFilter) {
         FirebaseUser user = mAuth.getCurrentUser();
@@ -416,10 +433,12 @@ public class ProfileActivity extends ActivityBase {
                                                     (reason != null && reason.toLowerCase().contains(searchFilter.toLowerCase()));
 
                                             if (withinTimeRange && matchesMood && matchesSearch) {
+
                                                 Mood moodObj = new Mood(
                                                         user.getDisplayName(),
                                                         user.getEmail(), // Use email instead of UID
                                                         locationName != null ? locationName : "No location",
+                                                        timestampStr,
                                                         timestampStr,
                                                         gatheringStatus,
                                                         "Feeling " + mood,
@@ -433,6 +452,11 @@ public class ProfileActivity extends ActivityBase {
                                                 moodDocIds.add(document.getId());
                                             }
                                         }
+                                        // Sort moods by date (latest first)
+                                        Collections.sort(moodList, (m1, m2) ->
+                                                Long.compare(convertTimestampToMillis(m2.getTimestamp()),
+                                                        convertTimestampToMillis(m1.getTimestamp()))
+                                        );
                                         moodAdapter.notifyDataSetChanged();
                                         updateMoodCount();
                                     } else {
