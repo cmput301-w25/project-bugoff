@@ -13,18 +13,17 @@
 
 ## Project Description
 
-[Brief description of the project in your own words]
-
+Whimsy is a modern-day social media application that helps people share their feelings in a short and crisp way. It uses Firebase for authentication and data storage and offers features like: following, profile editing, and search functionality. *The app is currently in it development stage and we are working on some exciting features that make it different from all other social media apps.
 ## Key Features
 
-- [Feature 1]: Brief description
-- [Feature 2]: Brief description
-- [Feature 3]: Brief description
+- [Follow and Following]: Users can follow other users. and see what others posting.
+- [Sign-in & Sign-up]: Users can logout from the app to keep their account secure.
+- [Tag your Friends]: Users can tag other users who use Whimsy, to their moods.
 
 ## Setup Instructions
 
-1. [Step 1]
-2. [Step 2]
+1. To use the app you first need to Sign up and then log in with your Username/Email and password
+2. To run tests you need to be logged into the app.
 3. [Step 3]
 
 ## Documentation
@@ -32,4 +31,4 @@
 - Wiki : https://github.com/cmput301-w25/project-bugoff/wiki/BugOff's-Wiki
 - Scrum Board : https://github.com/orgs/cmput301-w25/projects/84
 - UI Mockups : https://github.com/cmput301-w25/project-bugoff/blob/main/User-Interface/UImockup.pdf
-- [UML]
+- UML : https://github.com/user-attachments/assets/df6cb1da-c580-4bd9-82ce-01649702f486
