@@ -1,3 +1,18 @@
+/**
+ * SignInActivity handles user authentication via Firebase,
+ * allowing the user to sign in with their email and password.
+ * It also provides navigation for users who need to sign up or reset their password.
+ *
+ * The activity includes:
+ * - Firebase authentication for signing in.
+ * - Network connectivity check before attempting to log in.
+ * - A dialog to reset the password.
+ *
+ * Outstanding Issues:
+ * - No handling of different error states for network or Firebase sign-in failures.
+ * - Does not provide feedback for wrong credentials apart from a generic failure message.
+ */
+
 package com.example.project1;
 
 import android.app.Dialog;
@@ -26,43 +41,63 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Objects;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.content.Context;
 
+/**
+ * SignInActivity allows users to sign in with their email and password.
+ */
 public class SignInActivity extends AppCompatActivity {
+    private EditText emailEditText, passwordEditText;  // Input fields for email and password
+    private Button loginButton;  // Button for triggering login
+    private ProgressBar progressBar;  // Progress bar shown during login attempt
+    private FirebaseAuth mAuth;  // Firebase authentication instance
+    private FirebaseFirestore db;  // Firestore database instance
 
-    private EditText emailEditText, passwordEditText;
-    private Button loginButton;
-    private ProgressBar progressBar;
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
-
+    /**
+     * Called when the activity is first created.
+     * Initializes the necessary views and sets up click listeners.
+     *
+     * @param savedInstanceState The saved instance state bundle.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.sign_in);
+        setContentView(R.layout.sign_in);  // Set the layout for the activity
 
-        mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
+        mAuth = FirebaseAuth.getInstance();  // Initialize FirebaseAuth instance
+        db = FirebaseFirestore.getInstance();  // Initialize Firestore instance
 
+        // Find UI components by their IDs
         emailEditText = findViewById(R.id.email);
         passwordEditText = findViewById(R.id.password);
-        TextView loginRedirect = findViewById(R.id.login_redirect);
-        loginRedirect.setOnClickListener(v -> {
-            Intent intent = new Intent(SignInActivity.this, SignUpActivity.class);
-            startActivity(intent);
-        });
         progressBar = findViewById(R.id.progressBar);
         loginButton = findViewById(R.id.signIn_btn);
 
+        // Setup redirect to SignUpActivity
+        TextView loginRedirect = findViewById(R.id.login_redirect);
+        loginRedirect.setOnClickListener(v -> {
+            Intent intent = new Intent(SignInActivity.this, SignUpActivity.class);
+            startActivity(intent);  // Redirect to SignUpActivity
+        });
+
+        // Set click listener to attempt login
         loginButton.setOnClickListener(v -> loginUser());
 
+        // Setup "Forgot password" link to show dialog
         TextView forgotPasswordText = findViewById(R.id.forgot_password);
         forgotPasswordText.setOnClickListener(v -> showForgotPasswordDialog());
     }
-
-    private void loginUser() {
+  
+    /**
+     * Attempts to sign in the user with the email and password provided.
+     */
+    void loginUser() {
         String identifier = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
 
+        // Check for network availability before attempting login
         if (!isNetworkAvailable()) {
             Snackbar.make(findViewById(android.R.id.content),
                             "No internet connection", Snackbar.LENGTH_LONG)
@@ -83,8 +118,8 @@ public class SignInActivity extends AppCompatActivity {
             return;
         }
 
-        progressBar.setVisibility(View.VISIBLE);
-
+        progressBar.setVisibility(View.VISIBLE);  // Show progress bar during login attempt
+      
         // Check if the identifier is a valid email address.
         if (Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
             // Use identifier as email.
@@ -152,15 +187,15 @@ public class SignInActivity extends AppCompatActivity {
         }
     }
 
-    private void fetchUserData(String userId) {
+    void fetchUserData(String userId) {
         db.collection("users").document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    progressBar.setVisibility(View.GONE);
+                    progressBar.setVisibility(View.GONE);  // Hide progress bar after fetching user data
                     if (documentSnapshot.exists()) {
                         Intent intent = new Intent(SignInActivity.this, HomePageActivity.class);
-                        startActivity(intent);
-                        finish();
+                        startActivity(intent);  // Redirect to HomePageActivity
+                        finish();  // Close this activity
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -171,16 +206,20 @@ public class SignInActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Displays a dialog for the user to enter their email and reset their password.
+     */
     private void showForgotPasswordDialog() {
         Dialog dialog = new Dialog(this);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_forgot_password);
-        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);  // Remove title from dialog
+        dialog.setContentView(R.layout.dialog_forgot_password);  // Set the content view for the dialog
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);  // Transparent background
 
         EditText emailEditText = dialog.findViewById(R.id.emailEditText);
         Button sendButton = dialog.findViewById(R.id.sendButton);
         Button cancelButton = dialog.findViewById(R.id.cancelButton);
 
+        // Send password reset email when button is clicked
         sendButton.setOnClickListener(v -> {
             String email = emailEditText.getText().toString().trim();
             if (email.isEmpty()) {
@@ -227,19 +266,24 @@ public class SignInActivity extends AppCompatActivity {
                     });
         });
 
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        cancelButton.setOnClickListener(v -> dialog.dismiss());  // Close the dialog when cancel is clicked
 
-        dialog.show();
+        dialog.show();  // Show the dialog
     }
 
-    private boolean isNetworkAvailable() {
+    /**
+     * Checks whether there is an active network connection.
+     *
+     * @return True if the device is connected to the internet, otherwise false.
+     */
+    boolean isNetworkAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();  // Check network connection
     }
 
     // Shake animation method similar to SignUpActivity
-    private void shakeView(View view) {
+    void shakeView(View view) {
         Animation shake = new TranslateAnimation(0, 15, 0, 0);
         shake.setDuration(120);
         shake.setRepeatCount(5);

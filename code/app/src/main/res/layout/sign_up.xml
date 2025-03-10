@@ -8,21 +8,23 @@
     android:padding="16dp">
 
     <!-- Logo / Title -->
+
+    <!-- Subtitle -->
+
     <TextView
         android:id="@+id/logo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="88dp"
-        android:fontFamily="serif"
+        android:layout_marginTop="20dp"
+        android:fontFamily="@font/kaushan_script"
         android:text="Whimsy"
         android:textColor="#000000"
         android:textSize="36sp"
-        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Subtitle -->
     <TextView
         android:id="@+id/signin_text"
         android:layout_width="wrap_content"
@@ -100,6 +102,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="12dp"/>
 
+    <!-- Gender Selection -->
+    <Spinner
+        android:id="@+id/gender_spinner"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:background="@drawable/input_field"
+        android:padding="15dp"
+        app:layout_constraintTop_toBottomOf="@id/dob"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp"/>
+
     <!-- Password -->
     <EditText
         android:id="@+id/password"
@@ -111,7 +125,7 @@
         android:padding="15dp"
         android:textColor="@color/black"
         android:textColorHint="@color/gray"
-        app:layout_constraintTop_toBottomOf="@id/dob"
+        app:layout_constraintTop_toBottomOf="@id/gender_spinner"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="12dp"/>

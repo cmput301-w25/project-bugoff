@@ -41,4 +41,27 @@
         <!-- <item name="android:background">@color/blue</item>-->
     </style>
 
+
+    <!-- Anger Style -->
+    <style name="AngerStyle">
+        <item name="cardBackgroundColor">@color/anger_card</item>
+        <item name="textColor">@color/anger_text</item>
+        <item name="buttonBackgroundColor">@color/anger_background</item>
+    </style>
+
+    <!-- Happy Style -->
+    <style name="HappyStyle">
+        <item name="cardBackgroundColor">@color/happy_card</item>
+        <item name="textColor">@color/happy_text</item>
+        <item name="buttonBackgroundColor">@color/happy_background</item>
+    </style>
+
+    <style name="DisgustStyle">
+        <item name="cardBackgroundColor">@color/disgust_card</item>
+        <item name="textColor">@color/disgust_text</item>
+        <item name="buttonBackgroundColor">@color/disgust_background</item>
+    </style>
 </resources>
+
+
+
