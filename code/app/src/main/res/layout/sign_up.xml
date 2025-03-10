@@ -8,9 +8,6 @@
     android:padding="16dp">
 
     <!-- Logo / Title -->
-
-    <!-- Subtitle -->
-
     <TextView
         android:id="@+id/logo"
         android:layout_width="wrap_content"
@@ -25,6 +22,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Subtitle -->
     <TextView
         android:id="@+id/signin_text"
         android:layout_width="wrap_content"
@@ -36,13 +34,9 @@
         app:layout_constraintTop_toBottomOf="@id/logo"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         android:layout_marginTop="8dp"/>
 
     <!-- Full Name -->
-
-    <!-- Username -->
-
     <EditText
         android:id="@+id/name"
         android:layout_width="0dp"
@@ -58,6 +52,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/logo" />
 
+    <!-- Username -->
     <EditText
         android:id="@+id/username"
         android:layout_width="0dp"
@@ -95,7 +90,8 @@
         android:layout_height="50dp"
         android:background="@drawable/input_field"
         android:hint="Date of Birth"
-        android:inputType="date"
+        android:focusable="false"
+        android:clickable="true"
         android:padding="15dp"
         android:textColor="@color/black"
         android:textColorHint="@color/gray"
@@ -137,9 +133,6 @@
         android:layout_marginTop="12dp"/>
 
     <!-- Sign Up Button -->
-
-    <!-- Login Redirect -->
-
     <Button
         android:id="@+id/signup_btn"
         android:layout_width="0dp"
@@ -155,6 +148,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/confirm_password" />
 
+    <!-- Login Redirect -->
     <TextView
         android:id="@+id/login_redirect"
         android:layout_width="wrap_content"

@@ -3,7 +3,8 @@
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="12dp"
+    android:background="@drawable/rounded_dialog_background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,7 +18,8 @@
             android:layout_height="50dp"
             android:src="@drawable/ic_profile"
             android:scaleType="centerCrop"
-            android:layout_marginEnd="10dp" />
+            android:layout_marginEnd="10dp"
+            android:layout_gravity="start"/>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -67,63 +69,72 @@
                     android:id="@+id/user_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:drawableLeft="@drawable/mood_time_icon"
+                    android:drawablePadding="6dp"
                     android:text="4:39 AM, 2025-02-11"
                     android:textSize="12sp"
                     android:textColor="@android:color/darker_gray"
                     android:layout_marginStart="4dp"/>
+                <TextView
+                    android:id="@+id/user_gathering_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:drawableLeft="@drawable/mood_gather_icon"
+                    android:drawablePadding="8dp"
+                    android:text="Alone"
+                    android:textColor="@android:color/darker_gray"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:textSize="12sp" />
 
             </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <TextView
+                    android:id="@+id/mood_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawableLeft="@drawable/anger_emoji"
+                    android:drawablePadding="8dp"
+                    android:text="Feeling Angry"
+                    android:textColor="@android:color/holo_red_dark"
+                    android:textStyle="bold"
+                    android:textSize="16sp"/>
+
+                <TextView
+                    android:id="@+id/mood_trigger"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Trigger here"
+                    android:textStyle="italic"
+                    android:textSize="14sp"
+                    android:textColor="@android:color/darker_gray"
+                    android:layout_marginStart="8dp"/>
+
+
+            </LinearLayout>
+            <TextView
+                android:id="@+id/mood_reason"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Couldn't Find Food!"
+                android:textStyle="italic"
+                android:textSize="14sp"
+                android:textColor="@android:color/darker_gray"
+                android:layout_marginTop="2dp"/>
         </LinearLayout>
+
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="6dp"
-        android:layout_marginStart="60dp">
 
-        <TextView
-            android:id="@+id/mood_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Feeling Angry"
-            android:textColor="@android:color/holo_red_dark"
-            android:textStyle="bold"
-            android:textSize="16sp"/>
 
-        <TextView
-            android:id="@+id/mood_trigger"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Trigger here"
-            android:textStyle="italic"
-            android:textSize="14sp"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginStart="8dp"/>
 
-        <TextView
-            android:id="@+id/user_gathering_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:drawableLeft="@drawable/mood_gather_icon"
-            android:drawablePadding="8dp"
-            android:text="Alone"
-            android:textColor="@android:color/darker_gray"
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/mood_reason"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Couldn't Find Food!"
-        android:textStyle="italic"
-        android:textSize="14sp"
-        android:textColor="@android:color/darker_gray"
-        android:layout_marginTop="2dp"
-        android:layout_marginStart="60dp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -139,9 +150,9 @@
             android:layout_height="wrap_content"
             android:text="Track Mood Event"
             android:drawableLeft="@drawable/mood_heart_icon"
-            android:drawableTint="@color/red_heart_text"
-            android:textColor="@color/red_heart_text"
-            android:backgroundTint="@color/red_heart_background"
+            android:drawableTint="@color/anger_text"
+            android:textColor="@color/anger_text"
+            android:backgroundTint="@color/anger_background"
             android:layout_marginStart="6dp"/>
 
         <Button
@@ -151,9 +162,9 @@
             android:layout_height="wrap_content"
             android:text="Comment"
             android:drawableLeft="@drawable/mood_comment"
-            android:drawableTint="@color/red_heart_text"
-            android:textColor="@color/red_heart_text"
-            android:backgroundTint="@color/red_heart_background"
+            android:drawableTint="@color/anger_text"
+            android:textColor="@color/anger_text"
+            android:backgroundTint="@color/anger_background"
             android:layout_marginStart="6dp"/>
     </LinearLayout>
 

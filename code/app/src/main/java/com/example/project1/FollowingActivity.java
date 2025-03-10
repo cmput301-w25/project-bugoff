@@ -14,6 +14,7 @@ package com.example.project1;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -30,6 +31,10 @@ public class FollowingActivity extends AppCompatActivity {
     private List<User> userList;
     private String type;  // Type of list ("followers" or "following")
     private String userId; // The ID of the user whose list is being viewed
+
+    private String type;
+    private String userId;
+    private TextView following_followers_title;
 
     /**
      * Called when the activity is first created.
@@ -54,10 +59,13 @@ public class FollowingActivity extends AppCompatActivity {
         }
 
         // Set the activity title based on whether viewing followers or following
+        following_followers_title = findViewById(R.id.following_followers_title);
+
+        // Set the activity title based on type
         if (type.equals("followers")) {
-            setTitle("Followers");
+            following_followers_title.setText("Followers");
         } else if (type.equals("following")) {
-            setTitle("Following");
+            following_followers_title.setText("Following");
         } else {
             setTitle("Unknown");
             Toast.makeText(this, "Invalid list type", Toast.LENGTH_SHORT).show();

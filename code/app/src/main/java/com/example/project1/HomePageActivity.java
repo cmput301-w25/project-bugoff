@@ -18,16 +18,25 @@ import android.os.Bundle;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class HomePageActivity extends ActivityBase {
 
@@ -52,8 +61,20 @@ public class HomePageActivity extends ActivityBase {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base); // Set the base layout
         initializeNavigation(); // Initialize navigation buttons
+    private static final String TAG = "HomePageActivity";
+    private List<Mood> moodList;
+    private List<String> moodDocIds;
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
+    private RecyclerView recyclerView;
+    private MoodAdapter moodAdapter;
 
-        // Inflate the home page layout into the content frame
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_base);
+        initializeNavigation();
+
         FrameLayout contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.activity_home_page, contentFrame, true);
 
@@ -63,18 +84,38 @@ public class HomePageActivity extends ActivityBase {
 
         // Initialize the mood list and adapter
         moodList = new ArrayList<>();
+        moodDocIds = new ArrayList<>();
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
 
         // Initialize Firebase authentication instance
         mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
         FirebaseUser user = mAuth.getCurrentUser();
 
         // If the user is authenticated, load moods from the database
         if (user != null) {
-            // databaseReference = FirebaseDatabase.getInstance().getReference("moods").child(user.getUid());
-            loadMoods(); // Load sample moods
+            loadFollowedUsersMoods(user.getUid());
+        } else {
+            Log.e(TAG, "User is not authenticated");
         }
+
+        recyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                View child = rv.findChildViewUnder(e.getX(), e.getY());
+                if (child != null && e.getAction() == MotionEvent.ACTION_UP) {
+                    int position = rv.getChildAdapterPosition(child);
+                    if (position != RecyclerView.NO_POSITION) {
+                        Intent intent = new Intent(HomePageActivity.this, MoodPageActivity.class);
+                        intent.putExtra("SELECTED_MOOD", moodList.get(position));
+                        intent.putExtra("MOOD_ID", moodDocIds.get(position));
+                        startActivity(intent);
+                    }
+                }
+                return false;
+            }
+        });
     }
 
     /**
@@ -82,12 +123,95 @@ public class HomePageActivity extends ActivityBase {
      * This function simulates retrieving data from a database (e.g., Firebase).
      * In a real implementation, this should be replaced with actual data retrieval logic.
      */
-    private void loadMoods() {
-        // Adding two sample Mood objects to the moodList
-        moodList.add(new Mood("Sample User", "User_id", "Edmonton, Canada", "4:39 AM, 2025-02-11", "Alone", "Feeling Angry", "Hunger", "Couldn't Find Food!", R.drawable.angry_photo));
-        moodList.add(new Mood("Sample User", "User_id", "Edmonton, Canada", "4:39 AM, 2025-02-11", "Alone", "Feeling Angry", "Hunger", "Couldn't Find Food!", null));
+    private void loadFollowedUsersMoods(String userId) {
+        db.collection("users").document(userId).collection("following")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<String> followedUserIds = new ArrayList<>();
+                    for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
+                        followedUserIds.add(doc.getId());
+                    }
+                    loadMoodsFromFollowedUsers(followedUserIds);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to load following list", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Error loading following", e);
+                });
+    }
 
-        // Notify the adapter that the data has changed so the UI can be updated
-        moodAdapter.notifyDataSetChanged();
+    private void loadMoodsFromFollowedUsers(List<String> followedUserIds) {
+        moodList.clear();
+        moodDocIds.clear();
+        for (String followedId : followedUserIds) {
+            db.collection("users").document(followedId).get()
+                    .addOnSuccessListener(userDoc -> {
+                        String profileImageUrl = userDoc.getString("profilePictureUrl");
+                        String displayName = userDoc.getString("name");
+                        String userEmail = userDoc.getString("username"); // Assuming "username" stores email
+
+                        db.collection("users").document(followedId)
+                                .collection("moods")
+                                .orderBy("timestamp", Query.Direction.DESCENDING)
+                                .get()
+                                .addOnSuccessListener(querySnapshots -> {
+                                    for (DocumentSnapshot doc : querySnapshots.getDocuments()) {
+                                        String moodStr = doc.getString("mood");
+                                        String locationName = doc.getString("location");
+                                        String timestampStr = doc.getString("timestamp");
+                                        String trigger = doc.getString("trigger");
+                                        String reason = doc.getString("reason");
+                                        String imageUrl = doc.getString("imageUrl");
+
+                                        List<Map<String, Object>> tags = (List<Map<String, Object>>) doc.get("tags");
+                                        List<String> taggedUserNames = new ArrayList<>();
+                                        if (tags != null) {
+                                            for (Map<String, Object> tag : tags) {
+                                                String username = (String) tag.get("name");
+                                                if (username != null) {
+                                                    taggedUserNames.add(username);
+                                                }
+                                            }
+                                        }
+
+                                        String gatheringStatus;
+                                        if (tags == null || tags.isEmpty()) {
+                                            gatheringStatus = "Alone";
+                                        } else {
+                                            int tagCount = tags.size();
+                                            if (tagCount == 1) {
+                                                gatheringStatus = "With 1 other";
+                                            } else if (tagCount <= 5) {
+                                                gatheringStatus = "With " + tagCount + " others";
+                                            } else {
+                                                gatheringStatus = "With a crowd";
+                                            }
+                                        }
+
+                                        Mood mood = new Mood(
+                                                (displayName != null ? displayName : "Unknown"),
+                                                (userEmail != null ? userEmail : "Unknown"), // Use email instead of UID
+                                                (locationName != null ? locationName : "No location"),
+                                                timestampStr,
+                                                gatheringStatus,
+                                                "Feeling " + moodStr,
+                                                trigger,
+                                                reason,
+                                                imageUrl,
+                                                profileImageUrl,
+                                                taggedUserNames
+                                        );
+                                        moodList.add(mood);
+                                        moodDocIds.add(doc.getId());
+                                    }
+                                    moodAdapter.notifyDataSetChanged();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Failed to load moods", Toast.LENGTH_SHORT).show();
+                                });
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to load user profile", Toast.LENGTH_SHORT).show();
+                    });
+        }
     }
 }

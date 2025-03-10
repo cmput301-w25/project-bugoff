@@ -48,6 +48,7 @@ public class SearchActivity extends ActivityBase {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base);
+        initializeNavigation();
 
         // Inflate the layout for the search box into the content frame
         FrameLayout contentFrame = findViewById(R.id.content_frame);
@@ -66,12 +67,7 @@ public class SearchActivity extends ActivityBase {
         // Initialize Firestore instance for querying user data
         db = FirebaseFirestore.getInstance();
 
-        // Initialize bottom navigation buttons
-        findViewById(R.id.home).setOnClickListener(v -> startActivity(new Intent(this, HomePageActivity.class)));
-        findViewById(R.id.search).setOnClickListener(v -> startActivity(new Intent(this, SearchActivity.class)));
-        findViewById(R.id.profile_button).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
-
-        // Add a TextWatcher to searchEditText to trigger search as user types
+        // Add TextWatcher to searchEditText for live search results
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {

@@ -5,7 +5,33 @@
     <color name="blue">#3F51B5</color>
     <color name="gray">#808080</color>
     <color name="light_gray">#D3D3D3</color>
+
+    <color name="anger_background">#FFDDDD</color>
+    <color name="anger_text">#FF5B5B</color>
+
+    <color name="ashamed_background">#FFDDDD</color>
+    <color name="ashamed_text">#FF5B5B</color>
+
+    <color name="confused_background">#FFDDDD</color>
+    <color name="confused_text">#FF5B5B</color>
+
+    <color name="disgust_background">#FFDDDD</color>
+    <color name="disgust_text">#77B255</color>
+
+    <color name="excited_background">#FFDDDD</color>
+    <color name="excited_text">#FF5B5B</color>
+
+    <color name="happy_background">#FFDDDD</color>
+    <color name="happy_text">#FF5B5B</color>
+
+    <color name="sad_background">#FFDDDD</color>
+    <color name="sad_text">#FF5B5B</color>
+
+    <color name="scared_background">#FFDDDD</color>
+    <color name="scared_text">#FF5B5B</color>
+
     <color name="red_heart_background">#FFDDDD</color>
     <color name="red_heart_text">#FF5B5B</color>
     <color name="green_heat_text">#77B255</color>
+    <color name="dark_green">#006400</color>
 </resources>

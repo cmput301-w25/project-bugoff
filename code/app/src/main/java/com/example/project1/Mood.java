@@ -10,9 +10,10 @@
  * - None identified.
  */
 package com.example.project1;
+import java.io.Serializable;
+import java.util.List;
 
-public class Mood {
-
+public class Mood implements Serializable {
     private String userName;          // The name of the user
     private String userId;            // The ID of the user
     private String userLocation;      // The user's location
@@ -22,7 +23,10 @@ public class Mood {
     private String moodTrigger;       // The trigger for the mood (e.g., event, circumstance)
     private String moodReason;        // The reason behind the mood (e.g., feeling lonely)
     private Integer moodImage;        // An image representing the mood (can be null)
-
+    private String profileImageUrl;
+    private List<String> taggedUserNames;
+    private String timestamp;
+    
     /**
      * Constructor for initializing the Mood object with all its attributes.
      *
@@ -36,9 +40,7 @@ public class Mood {
      * @param moodReason        The reason behind the mood
      * @param moodImage         An optional image representing the mood
      */
-    public Mood(String userName, String userId, String userLocation, String userTime,
-                String userGatheringStatus, String moodStatus, String moodTrigger,
-                String moodReason, Integer moodImage) {
+    public Mood(String userName, String userId, String userLocation, String timestamp, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames) {
         this.userName = userName;
         this.userId = userId;
         this.userLocation = userLocation;
@@ -48,6 +50,26 @@ public class Mood {
         this.moodTrigger = moodTrigger;
         this.moodReason = moodReason;
         this.moodImage = moodImage;
+        this.profileImageUrl = profileImageUrl;
+        this.taggedUserNames = taggedUserNames;
+        this.timestamp = timestamp;
+    }
+
+    public Mood() {
+    }
+
+    public List<String> getTaggedUserNames() {
+        return taggedUserNames;
+    }
+    public void setTaggedUserNames(List<String> taggedUserNames) {
+        this.taggedUserNames = taggedUserNames;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
+    }
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
     }
 
     /**
@@ -64,6 +86,10 @@ public class Mood {
      *
      * @return The ID of the user.
      */
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
     public String getUserId() {
         return userId;
     }
@@ -73,6 +99,10 @@ public class Mood {
      *
      * @return The location of the user.
      */
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
     public String getUserLocation() {
         return userLocation;
     }
@@ -82,6 +112,10 @@ public class Mood {
      *
      * @return The time the mood was recorded.
      */
+    public void setUserLocation(String userLocation) {
+        this.userLocation = userLocation;
+    }
+
     public String getUserTime() {
         return userTime;
     }
@@ -100,6 +134,10 @@ public class Mood {
      *
      * @return The user's mood status.
      */
+    public void setUserGatheringStatus(String userGatheringStatus) {
+        this.userGatheringStatus = userGatheringStatus;
+    }
+
     public String getMoodStatus() {
         return moodStatus;
     }
@@ -109,6 +147,11 @@ public class Mood {
      *
      * @return The trigger for the mood.
      */
+    public void setMoodStatus(String moodStatus) {
+        this.moodStatus = moodStatus;
+    }
+
+
     public String getMoodTrigger() {
         return moodTrigger;
     }
@@ -118,6 +161,10 @@ public class Mood {
      *
      * @return The reason behind the user's mood.
      */
+    public void setMoodTrigger(String moodTrigger) {
+        this.moodTrigger = moodTrigger;
+    }
+
     public String getMoodReason() {
         return moodReason;
     }
@@ -127,7 +174,22 @@ public class Mood {
      *
      * @return The image representing the mood (may be null).
      */
-    public Integer getMoodImage() {
+    public void setMoodReason(String moodReason) {
+        this.moodReason = moodReason;
+    }
+
+    public String getMoodImage() {
         return moodImage;
     }
+    public String getTimestamp() {
+        return timestamp;
+    }
+
+
+
+    public void setMoodImage(String moodImage) {
+        this.moodImage = moodImage;
+    }
+
+
 }

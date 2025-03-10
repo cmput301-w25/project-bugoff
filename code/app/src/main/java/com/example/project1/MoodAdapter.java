@@ -14,10 +14,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -43,7 +45,8 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
      */
     @Override
     public int getItemViewType(int position) {
-        return moodList.get(position).getMoodImage() != null ? VIEW_TYPE_WITH_IMAGE : VIEW_TYPE_NO_IMAGE;
+        String imageUrl = moodList.get(position).getMoodImage();
+        return (imageUrl != null && !imageUrl.isEmpty()) ? VIEW_TYPE_WITH_IMAGE : VIEW_TYPE_NO_IMAGE;
     }
 
     /**
@@ -78,8 +81,8 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         Mood mood = moodList.get(position);
         if (holder instanceof MoodWithImageViewHolder) {
             ((MoodWithImageViewHolder) holder).bind(mood);  // Bind data to the mood view with image
-        } else if (holder instanceof MoodNoImageViewHolder) {
-            ((MoodNoImageViewHolder) holder).bind(mood);  // Bind data to the mood view without image
+        } else {                                            // Bind data to the mood view without image
+            ((MoodNoImageViewHolder) holder).bind(mood);
         }
     }
 
@@ -98,14 +101,14 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
      */
     static class MoodWithImageViewHolder extends RecyclerView.ViewHolder {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
-        private ImageView moodImage;
+        private ImageView moodImage, profileImage;
 
         /**
          * Constructor for the ViewHolder that holds views for moods with images.
          *
          * @param itemView The view for the individual item.
          */
-        public MoodWithImageViewHolder(@NonNull View itemView) {
+        MoodWithImageViewHolder(@NonNull View itemView) {
             super(itemView);
             userName = itemView.findViewById(R.id.user_name);
             userId = itemView.findViewById(R.id.user_ID);
@@ -116,6 +119,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodTrigger = itemView.findViewById(R.id.mood_trigger);
             moodReason = itemView.findViewById(R.id.mood_reason);
             moodImage = itemView.findViewById(R.id.mood_image);
+            profileImage = itemView.findViewById(R.id.profile_image);
         }
 
         /**
@@ -123,7 +127,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
          *
          * @param mood The Mood object containing the data to bind.
          */
-        public void bind(Mood mood) {
+        void bind(Mood mood) {
             userName.setText(mood.getUserName());
             userId.setText(mood.getUserId());
             userLocation.setText(mood.getUserLocation());
@@ -132,7 +136,32 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodStatus.setText(mood.getMoodStatus());
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
-            moodImage.setImageResource(mood.getMoodImage());
+
+            String pUrl = mood.getProfileImageUrl();
+            if (pUrl != null && !pUrl.isEmpty()) {
+                Glide.with(itemView.getContext()).load(pUrl).into(profileImage);
+            } else {
+                profileImage.setImageResource(R.drawable.ic_profile);
+            }
+
+            String mUrl = mood.getMoodImage();
+            if (mUrl != null && !mUrl.isEmpty()) {
+                Glide.with(itemView.getContext()).load(mUrl).into(moodImage);
+            } else {
+                moodImage.setImageResource(R.drawable.ic_profile);
+            }
+
+            userGatheringStatus.setOnClickListener(v -> {
+                List<String> taggedUsers = mood.getTaggedUserNames();
+                if (taggedUsers != null && !taggedUsers.isEmpty()) {
+                    String taggedUsersStr = String.join("\n", taggedUsers);
+                    new AlertDialog.Builder(itemView.getContext())
+                            .setTitle("Tagged Users")
+                            .setMessage(taggedUsersStr)
+                            .setPositiveButton("OK", null)
+                            .show();
+                }
+            });
         }
     }
 
@@ -141,13 +170,14 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
      */
     static class MoodNoImageViewHolder extends RecyclerView.ViewHolder {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
+        private ImageView profileImage;
 
         /**
          * Constructor for the ViewHolder that holds views for moods without images.
          *
          * @param itemView The view for the individual item.
          */
-        public MoodNoImageViewHolder(@NonNull View itemView) {
+        MoodNoImageViewHolder(@NonNull View itemView) {
             super(itemView);
             userName = itemView.findViewById(R.id.user_name);
             userId = itemView.findViewById(R.id.user_ID);
@@ -157,6 +187,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodStatus = itemView.findViewById(R.id.mood_status);
             moodTrigger = itemView.findViewById(R.id.mood_trigger);
             moodReason = itemView.findViewById(R.id.mood_reason);
+            profileImage = itemView.findViewById(R.id.image_profile);
         }
 
         /**
@@ -164,7 +195,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
          *
          * @param mood The Mood object containing the data to bind.
          */
-        public void bind(Mood mood) {
+        void bind(Mood mood) {
             userName.setText(mood.getUserName());
             userId.setText(mood.getUserId());
             userLocation.setText(mood.getUserLocation());
@@ -173,6 +204,25 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodStatus.setText(mood.getMoodStatus());
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
+
+            String pUrl = mood.getProfileImageUrl();
+            if (pUrl != null && !pUrl.isEmpty()) {
+                Glide.with(itemView.getContext()).load(pUrl).into(profileImage);
+            } else {
+                profileImage.setImageResource(R.drawable.ic_profile);
+            }
+
+            userGatheringStatus.setOnClickListener(v -> {
+                List<String> taggedUsers = mood.getTaggedUserNames();
+                if (taggedUsers != null && !taggedUsers.isEmpty()) {
+                    String taggedUsersStr = String.join("\n", taggedUsers);
+                    new AlertDialog.Builder(itemView.getContext())
+                            .setTitle("Tagged Users")
+                            .setMessage(taggedUsersStr)
+                            .setPositiveButton("OK", null)
+                            .show();
+                }
+            });
         }
     }
 }
