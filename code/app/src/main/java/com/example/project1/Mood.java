@@ -14,8 +14,9 @@ public class Mood {
     private String moodImage;
     private String profileImageUrl;
     private List<String> taggedUserNames;
+    private String timestamp;
 
-    public Mood(String userName, String userId, String userLocation, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames) {
+    public Mood(String userName, String userId, String userLocation, String timestamp, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames) {
         this.userName = userName;
         this.userId = userId;
         this.userLocation = userLocation;
@@ -27,6 +28,7 @@ public class Mood {
         this.moodImage = moodImage;
         this.profileImageUrl = profileImageUrl;
         this.taggedUserNames = taggedUserNames;
+        this.timestamp = timestamp;
     }
 
     public List<String> getTaggedUserNames() {
@@ -72,6 +74,11 @@ public class Mood {
     public String getMoodImage() {
         return moodImage;
     }
+    public String getTimestamp() {
+        return timestamp;
+    }
+
+
 
 
 }
