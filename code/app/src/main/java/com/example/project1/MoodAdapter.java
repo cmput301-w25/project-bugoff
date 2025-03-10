@@ -9,15 +9,24 @@
  */
 package com.example.project1;
 
+import android.content.Context;
+import android.content.res.ColorStateList;
+import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,11 +89,81 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         Mood mood = moodList.get(position);
         if (holder instanceof MoodWithImageViewHolder) {
-            ((MoodWithImageViewHolder) holder).bind(mood);  // Bind data to the mood view with image
-        } else {                                            // Bind data to the mood view without image
-            ((MoodNoImageViewHolder) holder).bind(mood);
+            ((MoodWithImageViewHolder) holder).bind(mood, this);// Bind data to the mood view with image
+        } else {                                          // Bind data to the mood view without image
+            ((MoodNoImageViewHolder) holder).bind(mood, this);;
         }
     }
+
+    private String formatDateString(String dateString) {
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
+            Date date = inputFormat.parse(dateString);
+            SimpleDateFormat outputFormat = new SimpleDateFormat("h:mm a • yyyy-MM-dd", Locale.getDefault());
+            return outputFormat.format(date);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return dateString; // Return the original string if parsing fails
+        }
+    }
+    private void applyStyle(View itemView, String moodFeeling) {
+        int styleResId;
+        switch (moodFeeling.toLowerCase()) {
+            case "feeling angry":
+                styleResId = R.style.AngerStyle;
+                break;
+            case "feeling happy":
+                styleResId = R.style.HappyStyle;
+                break;
+            case "feeling disgusted":
+                styleResId = R.style.DisgustStyle;
+                break;
+            // Add more cases for other moods (e.g., "sad", "scared")
+            default:
+                styleResId = R.style.AngerStyle; // Default style
+                break;
+        }
+        Context context = itemView.getContext();
+        TypedArray a = context.obtainStyledAttributes(styleResId, R.styleable.MoodStyle);
+        int cardBackgroundColor = a.getColor(R.styleable.MoodStyle_cardBackgroundColor, Color.WHITE);
+        int textColor = a.getColor(R.styleable.MoodStyle_textColor, Color.BLACK);
+        int buttonBackgroundColor = a.getColor(R.styleable.MoodStyle_buttonBackgroundColor, Color.GRAY);
+        a.recycle();
+
+        CardView cardView = itemView.findViewById(R.id.card_view);
+        cardView.setCardBackgroundColor(cardBackgroundColor);
+
+        TextView moodStatus = itemView.findViewById(R.id.mood_status);
+        moodStatus.setTextColor(textColor);
+
+        Button trackMoodButton = itemView.findViewById(R.id.track_mood_button);
+        trackMoodButton.setTextColor(textColor); // Ensure text color is set
+        trackMoodButton.setBackgroundTintList(ColorStateList.valueOf(buttonBackgroundColor));
+
+        Button commentButton = itemView.findViewById(R.id.comment_button);
+        commentButton.setTextColor(textColor); // Ensure text color is set
+        commentButton.setBackgroundTintList(ColorStateList.valueOf(buttonBackgroundColor));
+    }
+    private void setEmojiBasedOnMood(String moodFeeling, TextView moodStatus) {
+        int emojiResId;
+        switch (moodFeeling.toLowerCase()) {
+            case "feeling angry":
+                emojiResId = R.drawable.anger_emoji;
+                break;
+            case "feeling happy":
+                emojiResId = R.drawable.happy_emoji;
+                break;
+            case "feeling disgusted":
+                emojiResId = R.drawable.disgust_emoji;
+                break;
+            // Add cases for other moods
+            default:
+                emojiResId = R.drawable.anger_emoji; // Default emoji
+                break;
+        }
+        moodStatus.setCompoundDrawablesRelativeWithIntrinsicBounds(emojiResId, 0, 0, 0);
+    }
+
 
     /**
      * Returns the total number of items in the list.
@@ -103,11 +182,6 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
         private ImageView moodImage, profileImage;
 
-        /**
-         * Constructor for the ViewHolder that holds views for moods with images.
-         *
-         * @param itemView The view for the individual item.
-         */
         MoodWithImageViewHolder(@NonNull View itemView) {
             super(itemView);
             userName = itemView.findViewById(R.id.user_name);
@@ -119,23 +193,27 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodTrigger = itemView.findViewById(R.id.mood_trigger);
             moodReason = itemView.findViewById(R.id.mood_reason);
             moodImage = itemView.findViewById(R.id.mood_image);
-            profileImage = itemView.findViewById(R.id.profile_image);
+            // Corrected ID: image_profile instead of profile_image
+            profileImage = itemView.findViewById(R.id.image_profile); // <-- Fix here
         }
+
 
         /**
          * Binds the data from the given Mood object to the views in this ViewHolder.
          *
          * @param mood The Mood object containing the data to bind.
          */
-        void bind(Mood mood) {
+        void bind(Mood mood, MoodAdapter adapter) {
             userName.setText(mood.getUserName());
             userId.setText(mood.getUserId());
             userLocation.setText(mood.getUserLocation());
-            userTime.setText(mood.getUserTime());
+            userTime.setText(adapter.formatDateString(mood.getUserTime())); // Format the date string
             userGatheringStatus.setText(mood.getUserGatheringStatus());
             moodStatus.setText(mood.getMoodStatus());
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
+            adapter.applyStyle(itemView, mood.getMoodStatus());
+            adapter.setEmojiBasedOnMood(mood.getMoodStatus(), moodStatus);
 
             String pUrl = mood.getProfileImageUrl();
             if (pUrl != null && !pUrl.isEmpty()) {
@@ -195,15 +273,18 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
          *
          * @param mood The Mood object containing the data to bind.
          */
-        void bind(Mood mood) {
+        void bind(Mood mood, MoodAdapter adapter) {
             userName.setText(mood.getUserName());
             userId.setText(mood.getUserId());
             userLocation.setText(mood.getUserLocation());
+            userTime.setText(adapter.formatDateString(mood.getUserTime())); // Format the date string
             userTime.setText(mood.getUserTime());
             userGatheringStatus.setText(mood.getUserGatheringStatus());
-            moodStatus.setText(mood.getMoodStatus());
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
+            adapter.applyStyle(itemView, mood.getMoodStatus());
+            moodStatus.setText(mood.getMoodStatus());
+            adapter.setEmojiBasedOnMood(mood.getMoodStatus(), moodStatus);
 
             String pUrl = mood.getProfileImageUrl();
             if (pUrl != null && !pUrl.isEmpty()) {
