@@ -1,0 +1,7 @@
+<resources>
+    <declare-styleable name="MoodStyle">
+        <attr name="cardBackgroundColor" format="color" />
+        <attr name="textColor" format="color" />
+        <attr name="buttonBackgroundColor" format="color" />
+    </declare-styleable>
+</resources>

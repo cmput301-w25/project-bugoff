@@ -329,7 +329,7 @@ public class AddMood extends ActivityBase {
                                     Address address = addresses.get(0);
                                     // Get City and Country from the address.
                                     String city = address.getLocality();
-                                    String country = address.getCountryName();
+                                    String country = address.getCountryCode();
                                     String locName;
                                     if (city != null && country != null) {
                                         locName = city + ", " + country;
@@ -338,7 +338,7 @@ public class AddMood extends ActivityBase {
                                     } else if (country != null) {
                                         locName = country;
                                     } else {
-                                        locName = "Current Location";
+                                        locName = "Unknown Location";
                                     }
                                     selectedLocation = new DummyLocation(locName, location.getLatitude(), location.getLongitude());
                                     locationIcon.setColorFilter(Color.BLUE);
