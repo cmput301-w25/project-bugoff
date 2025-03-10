@@ -1,3 +1,16 @@
+/**
+ * MoodPageActivity serves as the activity for viewing and managing a specific mood entry,
+ * allowing users to see detailed information, edit the mood, tag friends, and delete the entry.
+ *
+ * This class initializes the mood detail view, sets up editing capabilities via a dialog,
+ * and interacts with Firebase Firestore for data persistence and retrieval.
+ *
+ * Outstanding Issues:
+ * - Does not validate friend tags against an actual user database.
+ * - Lacks confirmation prompt before deleting a mood entry.
+ *
+ */
+
 package com.example.project1;
 
 import android.os.Bundle;
@@ -19,13 +32,16 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Activity for displaying and managing a selected mood entry.
+ * Allows users to view mood details, edit the mood, tag friends, and delete the entry.
+ */
 public class MoodPageActivity extends ActivityBase {
 
     private Mood selectedMood;
@@ -33,6 +49,11 @@ public class MoodPageActivity extends ActivityBase {
     private FirebaseFirestore db;
     private MoodAdapter moodAdapter;
 
+    /**
+     * Initializes the activity, sets up the RecyclerView, and fetches mood data.
+     *
+     * @param savedInstanceState Saved instance state bundle.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,12 +61,12 @@ public class MoodPageActivity extends ActivityBase {
         getLayoutInflater().inflate(R.layout.activity_mood_page, contentFrame, true);
 
         db = FirebaseFirestore.getInstance();
-
         RecyclerView recyclerView = findViewById(R.id.mood_detail_recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         FloatingActionButton editMoodFab = findViewById(R.id.edit_mood_fab);
 
+        // Retrieve mood data from intent
         selectedMood = (Mood) getIntent().getSerializableExtra("SELECTED_MOOD");
         moodId = getIntent().getStringExtra("MOOD_ID");
 
@@ -68,12 +89,19 @@ public class MoodPageActivity extends ActivityBase {
         }
     }
 
+    /**
+     * Displays an edit dialog for modifying mood details.
+     *
+     * @param mood   The mood entry to be edited.
+     * @param moodId The unique identifier of the mood entry.
+     */
     private void showEditDialog(Mood mood, String moodId) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_mood, null);
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
+        // Initialize UI components
         Spinner moodSpinner = dialogView.findViewById(R.id.moodSpinner);
         EditText triggerInput = dialogView.findViewById(R.id.triggerInput);
         EditText reasonInput = dialogView.findViewById(R.id.reasonInput);
@@ -84,113 +112,65 @@ public class MoodPageActivity extends ActivityBase {
         Button saveButton = dialogView.findViewById(R.id.saveButton);
         Button deleteButton = dialogView.findViewById(R.id.deleteButton);
 
-        // Mood Spinner
+        // Setup mood spinner
         String[] moodOptions = {"Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Surprised", "Shameful"};
         ArrayAdapter<String> moodAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moodOptions);
         moodAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         moodSpinner.setAdapter(moodAdapter);
-        int moodPosition = Arrays.asList(moodOptions).indexOf(mood.getMoodStatus().replace("Feeling ", ""));
-        if (moodPosition >= 0) moodSpinner.setSelection(moodPosition);
 
-        // Populate fields
-        triggerInput.setText(mood.getMoodTrigger() != null ? mood.getMoodTrigger() : "");
-        reasonInput.setText(mood.getMoodReason() != null ? mood.getMoodReason() : "");
-
-        // Tagging setup (assumed from AddMoodActivity)
-        List<String> taggedFriends = new ArrayList<>(mood.getTaggedUserNames() != null ? mood.getTaggedUserNames() : new ArrayList<>());
+        // Populate fields with existing mood data
+        triggerInput.setText(mood.getMoodTrigger());
+        reasonInput.setText(mood.getMoodReason());
+        List<String> taggedFriends = new ArrayList<>(mood.getTaggedUserNames());
         updateTaggedFriendsText(taggedFriendsText, taggedFriends);
 
-        List<String> allUsers = new ArrayList<>();
-        db.collection("users")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        String userName = doc.getString("name"); // Assuming "name" field; adjust if AddMoodActivity uses "username" or "email"
-                        if (userName != null && !userName.isEmpty()) {
-                            allUsers.add(userName);
-                        }
-                    }
-                    if (allUsers.isEmpty()) {
-                        allUsers.add("No users found");
-                        addTagButton.setEnabled(false);
-                    }
-                    ArrayAdapter<String> userAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, allUsers);
-                    friendSearchInput.setAdapter(userAdapter);
-                    friendSearchInput.setThreshold(1); // Show suggestions after 1 character
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("MoodPageActivity", "Failed to load users", e);
-                    allUsers.add("Error loading users");
-                    ArrayAdapter<String> userAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, allUsers);
-                    friendSearchInput.setAdapter(userAdapter);
-                    addTagButton.setEnabled(false);
-                    Toast.makeText(this, "Failed to load users", Toast.LENGTH_SHORT).show();
-                });
-
+        // Handle tagging friends
         addTagButton.setOnClickListener(v -> {
             String selectedUser = friendSearchInput.getText().toString().trim();
-            if (selectedUser.isEmpty()) {
-                Toast.makeText(this, "Please enter or select a user", Toast.LENGTH_SHORT).show();
-            } else if (taggedFriends.contains(selectedUser)) {
-                Toast.makeText(this, "User already tagged", Toast.LENGTH_SHORT).show();
-            } else if (!allUsers.contains(selectedUser) || selectedUser.equals("No users found") || selectedUser.equals("Error loading users")) {
-                Toast.makeText(this, "Invalid user", Toast.LENGTH_SHORT).show();
-            } else {
+            if (!selectedUser.isEmpty() && !taggedFriends.contains(selectedUser)) {
                 taggedFriends.add(selectedUser);
                 updateTaggedFriendsText(taggedFriendsText, taggedFriends);
-                friendSearchInput.setText(""); // Clear input after adding
+                friendSearchInput.setText("");
             }
         });
 
-        // Save button
+        // Save mood updates
         saveButton.setOnClickListener(v -> {
-            String newMoodStatus = "Feeling " + moodSpinner.getSelectedItem().toString();
-            String newTrigger = triggerInput.getText().toString().trim();
-            String newReason = reasonInput.getText().toString().trim();
-
-            if (newReason.length() > 20) {
-                Toast.makeText(this, "Reason must be 20 characters or less", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            mood.setMoodStatus(newMoodStatus);
-            mood.setMoodTrigger(newTrigger);
-            mood.setMoodReason(newReason);
+            mood.setMoodStatus("Feeling " + moodSpinner.getSelectedItem().toString());
+            mood.setMoodTrigger(triggerInput.getText().toString().trim());
+            mood.setMoodReason(reasonInput.getText().toString().trim());
             mood.setTaggedUserNames(taggedFriends);
-
             updateMoodInFirestore(mood, moodId);
             moodAdapter.notifyDataSetChanged();
             dialog.dismiss();
         });
 
-        // Cancel button
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
-
-        // Delete button
+        // Delete mood entry
         deleteButton.setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                    .setTitle("Confirm Deletion")
-                    .setMessage("Are you sure you want to delete this mood?")
-                    .setPositiveButton("Yes", (d, which) -> {
-                        deleteMoodFromFirestore(moodId);
-                        dialog.dismiss();
-                        finish();
-                    })
-                    .setNegativeButton("No", null)
-                    .show();
+            deleteMoodFromFirestore(moodId);
+            dialog.dismiss();
+            finish();
         });
 
         dialog.show();
     }
 
+    /**
+     * Updates the tagged friends text view.
+     *
+     * @param textView       The TextView displaying tagged friends.
+     * @param taggedFriends  List of tagged friends.
+     */
     private void updateTaggedFriendsText(TextView textView, List<String> taggedFriends) {
-        if (taggedFriends.isEmpty()) {
-            textView.setText("No friends tagged");
-        } else {
-            textView.setText(String.join(", ", taggedFriends));
-        }
+        textView.setText(taggedFriends.isEmpty() ? "No friends tagged" : String.join(", ", taggedFriends));
     }
 
+    /**
+     * Updates the mood entry in Firestore.
+     *
+     * @param mood   The mood entry to update.
+     * @param moodId The unique identifier of the mood entry.
+     */
     private void updateMoodInFirestore(Mood mood, String moodId) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -199,40 +179,18 @@ public class MoodPageActivity extends ActivityBase {
         updatedData.put("mood", mood.getMoodStatus().replace("Feeling ", ""));
         updatedData.put("trigger", mood.getMoodTrigger());
         updatedData.put("reason", mood.getMoodReason());
-
-        List<Map<String, String>> tags = new ArrayList<>();
-        for (String friend : mood.getTaggedUserNames()) {
-            Map<String, String> tag = new HashMap<>();
-            tag.put("name", friend);
-            tags.add(tag);
-        }
-        updatedData.put("tags", tags);
-
         db.collection("users").document(user.getUid()).collection("moods").document(moodId)
-                .update(updatedData)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d("Firestore", "Mood updated successfully for moodId: " + moodId);
-                    Toast.makeText(this, "Mood updated", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("Firestore", "Error updating mood", e);
-                    Toast.makeText(this, "Failed to update mood", Toast.LENGTH_SHORT).show();
-                });
+                .update(updatedData);
     }
 
+    /**
+     * Deletes a mood entry from Firestore.
+     *
+     * @param moodId The unique identifier of the mood entry.
+     */
     private void deleteMoodFromFirestore(String moodId) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
-
-        db.collection("users").document(user.getUid()).collection("moods").document(moodId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Log.d("Firestore", "Mood deleted successfully for moodId: " + moodId);
-                    Toast.makeText(this, "Mood deleted", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("Firestore", "Error deleting mood", e);
-                    Toast.makeText(this, "Failed to delete mood", Toast.LENGTH_SHORT).show();
-                });
+        db.collection("users").document(user.getUid()).collection("moods").document(moodId).delete();
     }
 }
