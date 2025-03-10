@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/white">
+    android:background="@android:color/white"
+    android:fitsSystemWindows="true">
 
     <!-- Header (Custom Toolbar) -->
     <androidx.appcompat.widget.Toolbar
@@ -48,8 +50,8 @@
                 android:src="@drawable/ic_settings" />
         </LinearLayout>
     </androidx.appcompat.widget.Toolbar>
-    <!-- Footer (5 Icons Evenly Spaced with Padding and Margin) -->
 
+    <!-- Content -->
     <FrameLayout
         android:id="@+id/content_frame"
         android:layout_width="match_parent"
@@ -57,6 +59,7 @@
         android:layout_weight="1">
     </FrameLayout>
 
+    <!-- Footer (5 Icons Evenly Spaced with Padding and Margin) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -65,8 +68,6 @@
         android:orientation="horizontal"
         android:padding="3dp"
         android:weightSum="5">
-
-        <!-- Margin around each icon -->
 
         <ImageView
             android:id="@+id/home"

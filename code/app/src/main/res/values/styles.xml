@@ -40,5 +40,4 @@
         <!-- Optionally, force a blue background on the buttons -->
         <!-- <item name="android:background">@color/blue</item>-->
     </style>
-
 </resources>
