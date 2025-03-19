@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.project1"
+    namespace = "com.example.whimsy"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.project1"
+        applicationId = "com.example.whimsy"
         minSdk = 25
         targetSdk = 35
         versionCode = 1

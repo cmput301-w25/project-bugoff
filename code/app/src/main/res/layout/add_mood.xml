@@ -55,17 +55,6 @@
             </RelativeLayout>
         </FrameLayout>
 
-        <EditText
-            android:id="@+id/triggerInput"
-            android:layout_width="match_parent"
-            android:background="@drawable/input_field"
-            android:padding="15dp"
-            android:textColor="@color/black"
-            android:textColorHint="@color/gray"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="Add Trigger..." />
-
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -77,11 +66,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/input_field"
+                android:gravity="start|top"
+                android:hint="Add Reason..."
+                android:inputType="textMultiLine"
+                android:maxLength="200"
                 android:padding="15dp"
                 android:textColor="@color/black"
-                android:textColorHint="@color/gray"
-                android:hint="Add Reason..."
-                android:maxLength="20" />
+                android:textColorHint="@color/gray" />
 
             <TextView
                 android:id="@+id/reasonCharCountText"
@@ -89,7 +80,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
                 android:padding="4dp"
-                android:text="20"
+                android:text="200"
                 android:layout_marginEnd="5dp"
                 android:layout_marginBottom="2dp"
                 android:textSize="12sp"
@@ -163,5 +154,15 @@
             android:layout_marginTop="16dp"
             android:backgroundTint="#439DEB"
             android:text="Add Mood" />
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+         />
     </LinearLayout>
 </LinearLayout>
