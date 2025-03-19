@@ -22,6 +22,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.cardview.widget.CardView;
+import androidx.core.widget.TextViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import java.text.SimpleDateFormat;
@@ -126,11 +127,21 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         TypedArray a = context.obtainStyledAttributes(styleResId, R.styleable.MoodStyle);
         int cardBackgroundColor = a.getColor(R.styleable.MoodStyle_cardBackgroundColor, Color.WHITE);
         int textColor = a.getColor(R.styleable.MoodStyle_textColor, Color.BLACK);
+        int iconTint = a.getColor(R.styleable.MoodStyle_iconTint, Color.BLACK);
         int buttonBackgroundColor = a.getColor(R.styleable.MoodStyle_buttonBackgroundColor, Color.GRAY);
         a.recycle();
 
         CardView cardView = itemView.findViewById(R.id.card_view);
         cardView.setCardBackgroundColor(cardBackgroundColor);
+
+        TextView userLocation = itemView.findViewById(R.id.user_location);
+        userLocation.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
+
+        TextView userTime = itemView.findViewById(R.id.user_time);
+        userTime.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
+
+        TextView userGatheringStatus = itemView.findViewById(R.id.user_gathering_status);
+        userGatheringStatus.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
 
         TextView moodStatus = itemView.findViewById(R.id.mood_status);
         moodStatus.setTextColor(textColor);
@@ -138,10 +149,12 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         Button trackMoodButton = itemView.findViewById(R.id.track_mood_button);
         trackMoodButton.setTextColor(textColor); // Ensure text color is set
         trackMoodButton.setBackgroundTintList(ColorStateList.valueOf(buttonBackgroundColor));
+        trackMoodButton.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
 
         Button commentButton = itemView.findViewById(R.id.comment_button);
         commentButton.setTextColor(textColor); // Ensure text color is set
         commentButton.setBackgroundTintList(ColorStateList.valueOf(buttonBackgroundColor));
+        commentButton.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
     }
     private void setEmojiBasedOnMood(String moodFeeling, TextView moodStatus) {
         int emojiResId;
@@ -274,7 +287,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
          */
         void bind(Mood mood, MoodAdapter adapter) {
             userName.setText(mood.getUserName());
-            userId.setText(mood.getUserId());
+            userId.setText("@"+mood.getUserId());
             userLocation.setText(mood.getUserLocation());
             userTime.setText(adapter.formatDateString(mood.getUserTime())); // Format the date string
             userTime.setText(mood.getUserTime());

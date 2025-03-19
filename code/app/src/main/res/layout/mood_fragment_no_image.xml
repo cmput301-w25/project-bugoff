@@ -6,7 +6,7 @@
     android:layout_margin="5dp"
     app:cardElevation="3dp"
     app:cardCornerRadius="12dp"
-    android:backgroundTint="?attr/cardBackgroundColor">
+    android:background="?attr/cardBackgroundColor">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -43,7 +43,8 @@
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="2.5dp">
 
                     <TextView
                         android:id="@+id/user_name"
@@ -58,11 +59,12 @@
                         android:id="@+id/user_ID"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="fill_horizontal|center_vertical"
+                        android:layout_marginStart="6dp"
                         android:text="User_id"
-                        android:textStyle="bold|italic"
                         android:textColor="@android:color/darker_gray"
-                        android:layout_marginStart="8dp"
-                        android:textSize="16sp"/>
+                        android:textSize="14sp"
+                        android:textStyle="bold|italic" />
                 </LinearLayout>
 
                 <!-- Location/Time section unchanged -->
@@ -75,11 +77,12 @@
                         android:id="@+id/user_location"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:drawableLeft="@drawable/mood_location_icon"
                         android:drawablePadding="4dp"
                         android:text="Mountain View, US"
                         android:textSize="10dp"
-                        android:textColor="@android:color/darker_gray"/>
+                        android:textColor="@android:color/darker_gray"
+                        app:drawableStartCompat="@drawable/mood_location_icon"
+                        app:drawableTint="?attr/textColor" />
 
                     <TextView
                         android:id="@+id/user_time"
@@ -90,7 +93,8 @@
                         android:text="4:39 AM • 2025-02-11"
                         android:textSize="10dp"
                         android:textColor="@android:color/darker_gray"
-                        android:layout_marginStart="8dp"/>
+                        android:layout_marginStart="8dp"
+                        app:drawableTint="?attr/textColor" />
 
                     <TextView
                         android:id="@+id/user_gathering_status"
@@ -98,6 +102,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:drawableLeft="@drawable/mood_gather_icon"
+                        android:drawableTint="?attr/textColor"
                         android:drawablePadding="4dp"
                         android:text="With 1 other"
                         android:textColor="@android:color/darker_gray"
@@ -162,6 +167,7 @@
                 android:textSize="13dp"
                 android:text="Track Mood Event"
                 android:drawableLeft="@drawable/mood_heart_icon_tinted"
+                android:drawableTint="?attr/textColor"
                 android:textColor="?attr/textColor"
                 android:backgroundTint="?attr/buttonBackgroundColor"/>
 
@@ -173,6 +179,7 @@
                 android:layout_height="wrap_content"
                 android:text="Comment"
                 android:drawableLeft="@drawable/mood_comment_tinted"
+                android:drawableTint="?attr/textColor"
                 android:textColor="?attr/textColor"
                 android:backgroundTint="?attr/buttonBackgroundColor"
                 android:layout_marginStart="6dp"/>

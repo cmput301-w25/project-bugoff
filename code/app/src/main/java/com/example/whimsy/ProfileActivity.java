@@ -115,15 +115,8 @@ public class ProfileActivity extends ActivityBase {
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
-                        // If the edit profile dialog is showing, update its image view and store the URI.
-                        if (editProfileDialog != null && editProfileDialog.isShowing()) {
-                            ImageView profilePic = editProfileDialog.findViewById(R.id.edit_profile_image);
-                            profilePic.setImageURI(imageUri);
-                            pendingProfileImageUri = imageUri;
-                        } else {
-                            // Otherwise, update the main profile image immediately (if needed)
-                            profileImage.setImageURI(imageUri);
-                        }
+                        profileImage.setImageURI(imageUri);
+                        uploadImageToFirebase(imageUri); // Upload selected image
                     }
                 }
         );
@@ -675,12 +668,6 @@ public class ProfileActivity extends ActivityBase {
                 String newBio = editBio.getText().toString().trim();
                 String selectedGender = genderSpinner.getSelectedItem().toString();
 
-                // Only update the profile image if a new image has been selected.
-                if (pendingProfileImageUri != null) {
-                    uploadImageToFirebase(pendingProfileImageUri);
-                    pendingProfileImageUri = null; // Clear the pending URI after uploading.
-                }
-
                 saveUserProfile(newName, newBio, selectedGender);
                 editProfileDialog.dismiss();
             });
@@ -762,76 +749,37 @@ public class ProfileActivity extends ActivityBase {
      *
      * @param imageUri The URI of the selected new profile image.
      */
+    /**
+     * Uploads selected image to Firebase Storage and updates profile.
+     *
+     * @param imageUri The URI of the selected image
+     */
     private void uploadImageToFirebase(Uri imageUri) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
-            // First, retrieve the current profile picture URL from Firestore.
-            FirebaseFirestore.getInstance().collection("users").document(user.getUid())
-                    .get()
-                    .addOnSuccessListener(documentSnapshot -> {
-                        String previousUrl = documentSnapshot.getString("profilePictureUrl");
-                        // If a previous image exists and its URL indicates it's hosted in Firebase Storage, delete it.
-                        if (previousUrl != null && !previousUrl.isEmpty() &&
-                                previousUrl.startsWith("https://firebasestorage.googleapis.com/")) {
-                            StorageReference previousRef = FirebaseStorage.getInstance().getReferenceFromUrl(previousUrl);
-                            previousRef.delete()
-                                    .addOnSuccessListener(aVoid -> {
-                                        Log.d("Storage", "Old profile image deleted successfully");
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        Log.e("Storage", "Error deleting old profile image", e);
-                                    });
-                        }
-                        // Proceed with the new image upload.
-                        try {
-                            // Decode the image from the URI into a Bitmap.
-                            Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
-                            if (bitmap == null) {
-                                Toast.makeText(this, "Unable to decode image", Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                            // Compress the bitmap to a byte array under 64KB using ImageCompressor.
-                            byte[] compressedImageBytes = ImageCompressor.compressImage(bitmap, 65536);
+            StorageReference storageRef = FirebaseStorage.getInstance()
+                    .getReference("profile_pictures/" + user.getUid());
 
-                            // Generate a new, unique filename using a timestamp.
-                            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-                            StorageReference imageRef = FirebaseStorage.getInstance()
-                                    .getReference("profile_pictures/" + user.getUid() + "/" + timeStamp + ".jpg");
-
-                            // Upload the compressed byte array.
-                            imageRef.putBytes(compressedImageBytes)
-                                    .addOnSuccessListener(taskSnapshot -> imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                                        // Update the profile image view with the new URL.
-                                        Glide.with(this).load(uri).into(profileImage);
-                                        // Update the Firebase Authentication profile.
-                                        user.updateProfile(new UserProfileChangeRequest.Builder().setPhotoUri(uri).build());
-                                        // Update Firestore with the new profile picture URL.
-                                        FirebaseFirestore.getInstance()
-                                                .collection("users")
-                                                .document(user.getUid())
-                                                .update("profilePictureUrl", uri.toString())
-                                                .addOnSuccessListener(aVoid -> {
-                                                    Log.d("Firestore", "Profile picture updated successfully");
-                                                    if (editProfileDialog != null && editProfileDialog.isShowing()) {
-                                                        ImageView profilePic = editProfileDialog.findViewById(R.id.edit_profile_image);
-                                                        Glide.with(this).load(uri).into(profilePic);
-                                                    }
-                                                })
-                                                .addOnFailureListener(e -> Log.e("Firestore", "Error updating profile picture", e));
-                                    }))
-                                    .addOnFailureListener(e -> Log.e("Storage", "Error uploading new profile image", e));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Toast.makeText(this, "Error processing image", Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e("Firestore", "Error fetching user data", e);
-                        Toast.makeText(this, "Error fetching user data", Toast.LENGTH_SHORT).show();
-                    });
+            storageRef.putFile(imageUri)
+                    .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        Glide.with(this).load(uri).into(profileImage);
+                        user.updateProfile(new UserProfileChangeRequest.Builder().setPhotoUri(uri).build());
+                        FirebaseFirestore.getInstance()
+                                .collection("users")
+                                .document(user.getUid())
+                                .update("profilePictureUrl", uri.toString())
+                                .addOnSuccessListener(aVoid -> {
+                                    Log.d("Firestore", "Profile picture updated successfully");
+                                    if (editProfileDialog != null && editProfileDialog.isShowing()) {
+                                        ImageView profilePic = editProfileDialog.findViewById(R.id.edit_profile_image);
+                                        Glide.with(this).load(uri).into(profilePic);
+                                    }
+                                })
+                                .addOnFailureListener(e -> Log.e("Firestore", "Error updating profile picture", e));
+                    }))
+                    .addOnFailureListener(e -> Log.e("Storage", "Error uploading image", e));
         }
     }
-
 
     /**
      * Saves updated user profile information to Firebase.
