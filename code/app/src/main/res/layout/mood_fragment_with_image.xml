@@ -144,11 +144,10 @@
                     android:id="@+id/mood_reason"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
                     android:text="Couldn't Find Food!"
-                    android:textStyle="italic"
-                    android:textSize="14sp"
                     android:textColor="@android:color/darker_gray"
-                    android:layout_marginTop="2dp"/>
+                    android:textSize="14sp" />
                 <ImageView
                     android:id="@+id/mood_image"
                     android:layout_width="match_parent"
