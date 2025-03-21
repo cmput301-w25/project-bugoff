@@ -67,7 +67,6 @@ public class MoodPageActivity extends ActivityBase {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         FloatingActionButton editMoodFab = findViewById(R.id.edit_mood_fab);
-        // TODO: Change color of fab based on mood
 
         // Retrieve mood data from intent
         selectedMood = (Mood) getIntent().getSerializableExtra("SELECTED_MOOD");
@@ -114,7 +113,7 @@ public class MoodPageActivity extends ActivityBase {
                 break;
         }
         editMoodFab.setBackgroundTintList(ColorStateList.valueOf(colorBg));
-        editMoodFab.setColorFilter(colorFg);
+        editMoodFab.setImageTintList(ColorStateList.valueOf(colorFg));
 
         if (selectedMood != null && moodId != null) {
             List<Mood> moodList = new ArrayList<>();
