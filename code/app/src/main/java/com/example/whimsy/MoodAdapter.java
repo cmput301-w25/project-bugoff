@@ -9,6 +9,8 @@
  */
 package com.example.whimsy;
 
+import static android.view.View.GONE;
+
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
@@ -118,6 +120,21 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             case "feeling disgusted":
                 styleResId = R.style.DisgustStyle;
                 break;
+            case "feeling sad":
+                styleResId = R.style.SadStyle;
+                break;
+            case "feeling scared":
+                styleResId = R.style.ScaredStyle;
+                break;
+            case "feeling excited":
+                styleResId = R.style.ExcitedStyle;
+                break;
+            case "feeling ashamed":
+                styleResId = R.style.AshamedStyle;
+                break;
+            case "feeling confused":
+                styleResId = R.style.ConfusedStyle;
+                break;
             // Add more cases for other moods (e.g., "sad", "scared")
             default:
                 styleResId = R.style.AngerStyle; // Default style
@@ -168,7 +185,21 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             case "feeling disgusted":
                 emojiResId = R.drawable.disgust_emoji;
                 break;
-            // Add cases for other moods
+            case "feeling sad":
+                emojiResId = R.drawable.sad_emoji;
+                break;
+            case "feeling scared":
+                emojiResId = R.drawable.scared_emoji;
+                break;
+            case "feeling excited":
+                emojiResId = R.drawable.excited_emoji;
+                break;
+            case "feeling ashamed":
+                emojiResId = R.drawable.ashamed_emoji;
+                break;
+            case "feeling confused":
+                emojiResId = R.drawable.confused_emoji;
+                break;
             default:
                 emojiResId = R.drawable.anger_emoji; // Default emoji
                 break;
@@ -288,7 +319,11 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void bind(Mood mood, MoodAdapter adapter) {
             userName.setText(mood.getUserName());
             userId.setText("@"+mood.getUserId());
-            userLocation.setText(mood.getUserLocation());
+            if (mood.getUserLocation().equals("No location")) {
+                userLocation.setVisibility(GONE);
+            } else {
+                userLocation.setText(mood.getUserLocation());
+            }
             userTime.setText(adapter.formatDateString(mood.getUserTime())); // Format the date string
             userTime.setText(mood.getUserTime());
             userGatheringStatus.setText(mood.getUserGatheringStatus());

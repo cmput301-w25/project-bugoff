@@ -10,33 +10,33 @@
     <color name="anger_card">#FFFCFC</color>
     <color name="anger_text">#FF5B5B</color>
 
-    <color name="ashamed_background">#FFDDDD</color>
-    <color name="ashamed_card">#FFFCFC</color>
-    <color name="ashamed_text">#FF5B5B</color>
+    <color name="ashamed_background">#EBCCDF</color>
+    <color name="ashamed_card">#FFFAFD</color>
+    <color name="ashamed_text">#AF4F89</color>
 
-    <color name="confused_background">#FFDDDD</color>
-    <color name="confused_card">#FFFCFC</color>
-    <color name="confused_text">#FF5B5B</color>
+    <color name="confused_background">#D6D6D6</color>
+    <color name="confused_card">#F4F4F4</color>
+    <color name="confused_text">#545454</color>
 
     <color name="disgust_background">#D4EEC4</color>
     <color name="disgust_card">#FDFFFC</color>
     <color name="disgust_text">#77B255</color>
 
-    <color name="excited_background">#FFDDDD</color>
-    <color name="excited_card">#FFFCFC</color>
-    <color name="excited_text">#FF5B5B</color>
+    <color name="excited_background">#FFD2B1</color>
+    <color name="excited_card">#FFF8F6</color>
+    <color name="excited_text">#FF7A18</color>
 
     <color name="happy_background">#D3EEFF</color>
     <color name="happy_card">#F8FDFF</color>
     <color name="happy_text">#3BAADE</color>
 
-    <color name="sad_background">#FFDDDD</color>
-    <color name="sad_card">#FFFCFC</color>
-    <color name="sad_text">#FF5B5B</color>
+    <color name="sad_background">#FFE8AF</color>
+    <color name="sad_card">#FFFCF5</color>
+    <color name="sad_text">#EBAB0E</color>
 
-    <color name="scared_background">#FFDDDD</color>
-    <color name="scared_card">#FFFCFC</color>
-    <color name="scared_text">#FF5B5B</color>
+    <color name="scared_background">#EAE0FF</color>
+    <color name="scared_card">#FBF9FF</color>
+    <color name="scared_text">#9565F4</color>
 
     <color name="green_heat_text">#77B255</color>
     <color name="dark_green">#006400</color>

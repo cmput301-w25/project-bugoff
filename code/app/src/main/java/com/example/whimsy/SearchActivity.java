@@ -79,7 +79,7 @@ public class SearchActivity extends ActivityBase {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 // Trigger search as the user types in the search box
-                searchIcon.setColorFilter(getResources().getColor(R.color.black));
+                searchIcon.setColorFilter(getColor(R.color.black));
                 if (s.toString().isEmpty()) {
                     searchIcon.clearColorFilter();
                 }

@@ -64,7 +64,7 @@
                         android:text="User_id"
                         android:textColor="@android:color/darker_gray"
                         android:textSize="14sp"
-                        android:textStyle="bold|italic" />
+                        android:textStyle="italic" />
                 </LinearLayout>
 
                 <!-- Location/Time section unchanged -->
@@ -80,6 +80,8 @@
                         android:drawablePadding="4dp"
                         android:text="Mountain View, US"
                         android:textSize="10dp"
+                        android:visibility="visible"
+                        android:layout_marginEnd="8dp"
                         android:textColor="@android:color/darker_gray"
                         app:drawableStartCompat="@drawable/mood_location_icon"
                         app:drawableTint="?attr/textColor" />
@@ -93,14 +95,13 @@
                         android:text="4:39 AM • 2025-02-11"
                         android:textSize="10dp"
                         android:textColor="@android:color/darker_gray"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         app:drawableTint="?attr/textColor" />
 
                     <TextView
                         android:id="@+id/user_gathering_status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
                         android:drawableLeft="@drawable/mood_gather_icon"
                         android:drawableTint="?attr/textColor"
                         android:drawablePadding="4dp"

@@ -58,11 +58,52 @@
         <item name="buttonBackgroundColor">@color/happy_background</item>
     </style>
 
+    <!-- Disgusted Style -->
     <style name="DisgustStyle">
         <item name="cardBackgroundColor">@color/disgust_card</item>
         <item name="textColor">@color/disgust_text</item>
         <item name="iconTint">@color/disgust_text</item>
         <item name="buttonBackgroundColor">@color/disgust_background</item>
+    </style>
+
+    <!-- Excited Style -->
+    <style name="ExcitedStyle">
+        <item name="cardBackgroundColor">@color/excited_card</item>
+        <item name="textColor">@color/excited_text</item>
+        <item name="iconTint">@color/excited_text</item>
+        <item name="buttonBackgroundColor">@color/excited_background</item>
+    </style>
+
+    <!-- Sad Style -->
+    <style name="SadStyle">
+        <item name="cardBackgroundColor">@color/sad_card</item>
+        <item name="textColor">@color/sad_text</item>
+        <item name="iconTint">@color/sad_text</item>
+        <item name="buttonBackgroundColor">@color/sad_background</item>
+    </style>
+
+    <!-- Scared Style -->
+    <style name="ScaredStyle">
+        <item name="cardBackgroundColor">@color/scared_card</item>
+        <item name="textColor">@color/scared_text</item>
+        <item name="iconTint">@color/scared_text</item>
+        <item name="buttonBackgroundColor">@color/scared_background</item>
+    </style>
+
+    <!-- Ashamed Style -->
+    <style name="AshamedStyle">
+        <item name="cardBackgroundColor">@color/ashamed_card</item>
+        <item name="textColor">@color/ashamed_text</item>
+        <item name="iconTint">@color/ashamed_text</item>
+        <item name="buttonBackgroundColor">@color/ashamed_background</item>
+    </style>
+
+    <!-- Confused Style -->
+    <style name="ConfusedStyle">
+        <item name="cardBackgroundColor">@color/confused_card</item>
+        <item name="textColor">@color/confused_text</item>
+        <item name="iconTint">@color/confused_text</item>
+        <item name="buttonBackgroundColor">@color/confused_background</item>
     </style>
 </resources>
 

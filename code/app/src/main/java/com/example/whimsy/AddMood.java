@@ -231,7 +231,7 @@ public class AddMood extends ActivityBase {
         }
 
         // Setup Spinner: Use an array with "Select an Emotion" as the first item.
-        String[] moodOptions = {"Select an Emotion", "Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Surprised", "Shameful"};
+        String[] moodOptions = {"Select an Emotion", "Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Excited", "Ashamed"};
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moodOptions);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         moodSpinner.setAdapter(spinnerAdapter);
@@ -575,7 +575,7 @@ public class AddMood extends ActivityBase {
                     selectedLocation = null;
                     taggedUsers.clear();
                     tagIcon.clearColorFilter();
-                    showSnackbar("Mood added successfully");
+                    showSnackbar("Mood added successfully", false);
                 })
                 .addOnFailureListener(e -> {
                     progressBar.setVisibility(View.GONE);
@@ -598,6 +598,7 @@ public class AddMood extends ActivityBase {
         final AlertDialog dialog = builder.create();
 
         final EditText searchEditText = dialogView.findViewById(R.id.tag_search_edit_text);
+        final ImageView searchIcon = dialogView.findViewById(R.id.search_icon);
         final RecyclerView recyclerView = dialogView.findViewById(R.id.tag_search_results_recycler_view);
         Button applyButton = dialogView.findViewById(R.id.tag_apply_button);
         Button cancelButton = dialogView.findViewById(R.id.tag_cancel_button);
@@ -614,7 +615,9 @@ public class AddMood extends ActivityBase {
                     currentData.clear();
                     currentData.addAll(tempTaggedUsers);
                     adapter.notifyDataSetChanged();
+                    searchIcon.clearColorFilter();
                 } else {
+                    searchIcon.setColorFilter(getColor(R.color.black));
                     db.collection("users")
                             .orderBy("name")
                             .startAt(query)
