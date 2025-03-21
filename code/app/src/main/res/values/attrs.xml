@@ -3,5 +3,6 @@
         <attr name="cardBackgroundColor" format="color" />
         <attr name="textColor" format="color" />
         <attr name="buttonBackgroundColor" format="color" />
+        <attr name="iconTint" format="color" />
     </declare-styleable>
 </resources>

@@ -13,6 +13,7 @@
 
 package com.example.whimsy;
 
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -70,6 +71,49 @@ public class MoodPageActivity extends ActivityBase {
         // Retrieve mood data from intent
         selectedMood = (Mood) getIntent().getSerializableExtra("SELECTED_MOOD");
         moodId = getIntent().getStringExtra("MOOD_ID");
+
+        int colorBg = getColor(R.color.white);
+        int colorFg = getColor(R.color.black);
+        switch (selectedMood.getMoodStatus().toLowerCase()) {
+            case "feeling happy":
+                colorBg = getColor(R.color.happy_background);
+                colorFg = getColor(R.color.happy_text);
+                break;
+            case "feeling sad":
+                colorBg = getColor(R.color.sad_background);
+                colorFg = getColor(R.color.sad_text);
+                break;
+            case "feeling angry":
+                colorBg = getColor(R.color.anger_background);
+                colorFg = getColor(R.color.anger_text);
+                break;
+            case "feeling scared":
+                colorBg = getColor(R.color.scared_background);
+                colorFg = getColor(R.color.scared_text);
+                break;
+            case "feeling confused":
+                colorBg = getColor(R.color.confused_background);
+                colorFg = getColor(R.color.confused_text);
+                break;
+            case "feeling disgusted":
+                colorBg = getColor(R.color.disgust_background);
+                colorFg = getColor(R.color.disgust_text);
+                break;
+            case "feeling excited":
+                colorBg = getColor(R.color.excited_background);
+                colorFg = getColor(R.color.excited_text);
+                break;
+            case "feeling ashamed":
+                colorBg = getColor(R.color.ashamed_background);
+                colorFg = getColor(R.color.ashamed_text);
+                break;
+            default:
+                colorBg = getColor(R.color.white);
+                colorFg = getColor(R.color.black);
+                break;
+        }
+        editMoodFab.setBackgroundTintList(ColorStateList.valueOf(colorBg));
+        editMoodFab.setImageTintList(ColorStateList.valueOf(colorFg));
 
         if (selectedMood != null && moodId != null) {
             List<Mood> moodList = new ArrayList<>();

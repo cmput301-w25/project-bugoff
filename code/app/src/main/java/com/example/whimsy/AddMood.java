@@ -231,7 +231,7 @@ public class AddMood extends ActivityBase {
         }
 
         // Setup Spinner: Use an array with "Select an Emotion" as the first item.
-        String[] moodOptions = {"Select an Emotion", "Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Surprised", "Shameful"};
+        String[] moodOptions = {"Select an Emotion", "Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Excited", "Ashamed"};
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moodOptions);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         moodSpinner.setAdapter(spinnerAdapter);
@@ -278,10 +278,18 @@ public class AddMood extends ActivityBase {
         });
     }
 
-    // Helper method to show errors as a bottom Snackbar.
     private void showSnackbar(String message) {
+        showSnackbar(message, true);
+    }
+    // Helper method to show errors as a bottom Snackbar.
+    private void showSnackbar(String message, boolean isError) {
         View parentView = findViewById(R.id.content_frame);
-        Snackbar snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT).setBackgroundTint(Color.RED).setTextColor(Color.WHITE);
+        Snackbar snackbar;
+        if (isError) {
+            snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT).setBackgroundTint(Color.RED).setTextColor(Color.WHITE);
+        } else {
+            snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT).setBackgroundTint(getResources().getColor(R.color.dark_green)).setTextColor(Color.WHITE);
+        }
         View snackbarView = snackbar.getView();
         // Move the Snackbar up by 150 pixels.
         snackbarView.setTranslationY(-150);
@@ -290,11 +298,11 @@ public class AddMood extends ActivityBase {
 
     // --- LOCATION POPUP ---
     private void showLocationPopup() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomDialog);
         // Inflate your location popup layout (update dialog_location_selection.xml accordingly)
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_location_selection, null);
         builder.setView(dialogView);
-        final AlertDialog dialog = builder.create();
+        AlertDialog dialog = builder.create();
 
         Button btnUseCurrent = dialogView.findViewById(R.id.btn_use_current);
 
@@ -338,7 +346,7 @@ public class AddMood extends ActivityBase {
                                     selectedLocation = new DummyLocation(locName, location.getLatitude(), location.getLongitude());
                                     locationIcon.setColorFilter(Color.BLUE);
                                     updateSelectedLocationDisplay();
-                                    showSnackbar("Location selected: " + selectedLocation.getName());
+                                    showSnackbar("Location selected: " + selectedLocation.getName(), false);
                                 }
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -567,7 +575,7 @@ public class AddMood extends ActivityBase {
                     selectedLocation = null;
                     taggedUsers.clear();
                     tagIcon.clearColorFilter();
-                    showSnackbar("Mood added successfully");
+                    showSnackbar("Mood added successfully", false);
                 })
                 .addOnFailureListener(e -> {
                     progressBar.setVisibility(View.GONE);
@@ -584,12 +592,13 @@ public class AddMood extends ActivityBase {
         final List<User> currentData = new ArrayList<>();
         currentData.addAll(tempTaggedUsers);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomDialog);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_tag_users_rounded, null);
         builder.setView(dialogView);
         final AlertDialog dialog = builder.create();
 
         final EditText searchEditText = dialogView.findViewById(R.id.tag_search_edit_text);
+        final ImageView searchIcon = dialogView.findViewById(R.id.search_icon);
         final RecyclerView recyclerView = dialogView.findViewById(R.id.tag_search_results_recycler_view);
         Button applyButton = dialogView.findViewById(R.id.tag_apply_button);
         Button cancelButton = dialogView.findViewById(R.id.tag_cancel_button);
@@ -606,7 +615,9 @@ public class AddMood extends ActivityBase {
                     currentData.clear();
                     currentData.addAll(tempTaggedUsers);
                     adapter.notifyDataSetChanged();
+                    searchIcon.clearColorFilter();
                 } else {
+                    searchIcon.setColorFilter(getColor(R.color.black));
                     db.collection("users")
                             .orderBy("name")
                             .startAt(query)
