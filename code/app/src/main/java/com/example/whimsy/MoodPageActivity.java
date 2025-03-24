@@ -72,8 +72,8 @@ public class MoodPageActivity extends ActivityBase {
         selectedMood = (Mood) getIntent().getSerializableExtra("SELECTED_MOOD");
         moodId = getIntent().getStringExtra("MOOD_ID");
 
-        int colorBg = getColor(R.color.white);
-        int colorFg = getColor(R.color.black);
+        int colorBg;
+        int colorFg;
         switch (selectedMood.getMoodStatus().toLowerCase()) {
             case "feeling happy":
                 colorBg = getColor(R.color.happy_background);
@@ -122,13 +122,30 @@ public class MoodPageActivity extends ActivityBase {
             recyclerView.setAdapter(moodAdapter);
 
             FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-            if (user != null && selectedMood.getUserId().equals(user.getEmail())) {
-                editMoodFab.setVisibility(View.VISIBLE);
-                editMoodFab.setOnClickListener(v -> showEditDialog(selectedMood, moodId));
+            if (user != null) {
+                FirebaseFirestore db = FirebaseFirestore.getInstance();
+                // Fetch the username of the current user from Firestore
+                db.collection("users")
+                        .document(user.getUid())
+                        .get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            String username = documentSnapshot.getString("username");
+                            // Compare the selectedMood's userId (assumed to be the username) with the fetched username
+                            if (selectedMood.getUserId().equals(username)) {
+                                editMoodFab.setVisibility(View.VISIBLE);
+                                editMoodFab.setOnClickListener(v -> showEditDialog(selectedMood, moodId));
+                            } else {
+                                editMoodFab.setVisibility(View.GONE);
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e("TAG", "Error fetching username", e);
+                            editMoodFab.setVisibility(View.GONE);
+                        });
             } else {
                 editMoodFab.setVisibility(View.GONE);
             }
-        } else {
+    } else {
             Log.e("MoodPageActivity", "Missing mood or moodId, finishing activity");
             finish();
         }
