@@ -370,13 +370,14 @@ public class ProfileActivity extends ActivityBase {
             db.collection("users").document(userId).get()
                     .addOnSuccessListener(userDoc -> {
                         String profileImageUrl = userDoc.getString("profilePictureUrl");
+                        String username = userDoc.getString("username");
                         moodList.clear();
                         moodDocIds.clear();
 
                         db.collection("users").document(userId).collection("moods")
                                 .orderBy("timestamp", Query.Direction.DESCENDING)
                                 .get()
-                                .addOnSuccessListener(queryDocumentSnapshots -> processMoodDocuments(queryDocumentSnapshots, user, profileImageUrl))
+                                .addOnSuccessListener(queryDocumentSnapshots -> processMoodDocuments(queryDocumentSnapshots, user, username, profileImageUrl))
                                 .addOnFailureListener(e -> handleMoodLoadFailure(e));
                     })
                     .addOnFailureListener(e -> handleProfileLoadFailure(e));
@@ -390,10 +391,10 @@ public class ProfileActivity extends ActivityBase {
      * @param user The current Firebase user
      * @param profileImageUrl The user's profile image URL
      */
-    private void processMoodDocuments(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots, FirebaseUser user, String profileImageUrl) {
+    private void processMoodDocuments(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots, FirebaseUser user, String username, String profileImageUrl) {
         if (!queryDocumentSnapshots.isEmpty()) {
             for (DocumentSnapshot document : queryDocumentSnapshots) {
-                Mood moodObj = createMoodObject(document, user, profileImageUrl);
+                Mood moodObj = createMoodObject(document, user, username, profileImageUrl);
                 moodList.add(moodObj);
                 moodDocIds.add(document.getId());
             }
@@ -411,7 +412,7 @@ public class ProfileActivity extends ActivityBase {
      * @param profileImageUrl The user's profile image URL
      * @return A new Mood object
      */
-    private Mood createMoodObject(DocumentSnapshot document, FirebaseUser user, String profileImageUrl) {
+    private Mood createMoodObject(DocumentSnapshot document, FirebaseUser user, String username, String profileImageUrl) {
         String mood = document.getString("mood");
         String locationName = document.getString("locationName");
         String timestampStr = document.getString("timestamp");
@@ -425,7 +426,7 @@ public class ProfileActivity extends ActivityBase {
 
         return new Mood(
                 user.getDisplayName(),
-                user.getEmail(),
+                username,
                 locationName != null ? locationName : "No location",
                 timestampStr,
                 timestampStr,
@@ -519,6 +520,7 @@ public class ProfileActivity extends ActivityBase {
             db.collection("users").document(userId).get()
                     .addOnSuccessListener(userDoc -> {
                         String profileImageUrl = userDoc.getString("profilePictureUrl");
+                        String username = userDoc.getString("username");
                         moodList.clear();
                         moodDocIds.clear();
 
@@ -527,7 +529,7 @@ public class ProfileActivity extends ActivityBase {
                         db.collection("users").document(userId).collection("moods")
                                 .orderBy("timestamp", Query.Direction.DESCENDING)
                                 .get()
-                                .addOnSuccessListener(queryDocumentSnapshots -> processFilteredMoods(queryDocumentSnapshots, user, profileImageUrl, days, moodFilter, searchFilter, cutoffTimestamp))
+                                .addOnSuccessListener(queryDocumentSnapshots -> processFilteredMoods(queryDocumentSnapshots, user, username, profileImageUrl, days, moodFilter, searchFilter, cutoffTimestamp))
                                 .addOnFailureListener(e -> handleMoodLoadFailure(e));
                     })
                     .addOnFailureListener(e -> handleProfileLoadFailure(e));
@@ -557,11 +559,11 @@ public class ProfileActivity extends ActivityBase {
      * @param searchFilter Search filter
      * @param cutoffTimestamp Cutoff timestamp for date filtering
      */
-    private void processFilteredMoods(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots, FirebaseUser user, String profileImageUrl, int days, String moodFilter, String searchFilter, long cutoffTimestamp) {
+    private void processFilteredMoods(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots, FirebaseUser user, String username, String profileImageUrl, int days, String moodFilter, String searchFilter, long cutoffTimestamp) {
         if (!queryDocumentSnapshots.isEmpty()) {
             for (DocumentSnapshot document : queryDocumentSnapshots) {
                 if (shouldIncludeMood(document, days, moodFilter, searchFilter, cutoffTimestamp)) {
-                    Mood moodObj = createMoodObject(document, user, profileImageUrl);
+                    Mood moodObj = createMoodObject(document, user, username, profileImageUrl);
                     moodList.add(moodObj);
                     moodDocIds.add(document.getId());
                 }
