@@ -13,9 +13,11 @@
 
 package com.example.whimsy;
 
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -23,14 +25,28 @@ import android.widget.Toast;
 import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.WriteBatch;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
+
+import com.google.firebase.firestore.DocumentReference;
 
 public class OtherProfileActivity extends ActivityBase {
 
@@ -41,13 +57,13 @@ public class OtherProfileActivity extends ActivityBase {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private String currentUserId;
+    private TextView followersCount, followingCount;
+    private RecyclerView moodsRecyclerView;
+    private MoodAdapter moodAdapter;
+    private List<Mood> moodList = new ArrayList<>();
+    private List<String> moodDocIds = new ArrayList<>();
+    private TextView moodCountText;
 
-    /**
-     * Called when the activity is first created.
-     * Initializes Firebase, sets up navigation buttons, and loads user data.
-     *
-     * @param savedInstanceState The saved instance state bundle.
-     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,16 +92,14 @@ public class OtherProfileActivity extends ActivityBase {
 
         if (searchedUserId != null && !searchedUserId.isEmpty()) {
             loadUserData(searchedUserId);
+            setupFollowCounts(searchedUserId);
+            loadMoods(searchedUserId);
         } else {
             Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
             finish();
         }
     }
 
-    /**
-     * Initializes the user interface components like profile image, text fields,
-     * and buttons for following and navigating back.
-     */
     private void initUI() {
         profileImage = findViewById(R.id.other_profile_image);
         profileName = findViewById(R.id.other_profile_name);
@@ -94,16 +108,21 @@ public class OtherProfileActivity extends ActivityBase {
         followButton = findViewById(R.id.follow_btn);
         backButton = findViewById(R.id.back_button);
 
-        // Set click listeners
+        followersCount = findViewById(R.id.other_followers_count);
+        followingCount = findViewById(R.id.other_following_count);
+        moodCountText = findViewById(R.id.other_moods_count);
+
         backButton.setOnClickListener(v -> finish());
         followButton.setOnClickListener(v -> followUser());
+
+        moodsRecyclerView = findViewById(R.id.other_moods_recycler_view);
+        moodsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        moodList = new ArrayList<>();
+        moodDocIds = new ArrayList<>();
+        moodAdapter = new MoodAdapter(moodList);
+        moodsRecyclerView.setAdapter(moodAdapter);
     }
 
-    /**
-     * Loads the data for the searched user and populates the profile UI.
-     *
-     * @param userId The user ID to load the data for.
-     */
     private void loadUserData(String userId) {
         // Fetch user profile data
         db.collection("users").document(userId)
@@ -141,10 +160,159 @@ public class OtherProfileActivity extends ActivityBase {
                 .addOnFailureListener(e -> Log.e("OtherProfileActivity", "Error fetching user data", e));
     }
 
+    private void setupFollowCounts(String userId) {
+        followersCount.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FollowingActivity.class);
+            intent.putExtra("type", "followers");
+            intent.putExtra("userId", userId);
+            startActivity(intent);
+        });
+
+        followingCount.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FollowingActivity.class);
+            intent.putExtra("type", "following");
+            intent.putExtra("userId", userId);
+            startActivity(intent);
+        });
+
+        db.collection("users").document(userId).collection("followers")
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        followersCount.setText(String.valueOf(querySnapshot.size())))
+                .addOnFailureListener(e -> {
+                    Log.e("OtherProfileActivity", "Error fetching followers count", e);
+                    followersCount.setText("0");
+                });
+
+        db.collection("users").document(userId).collection("following")
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        followingCount.setText(String.valueOf(querySnapshot.size())))
+                .addOnFailureListener(e -> {
+                    Log.e("OtherProfileActivity", "Error fetching following count", e);
+                    followingCount.setText("0");
+                });
+    }
+
+    private void loadMoods(String userId) {
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(userDoc -> {
+                    String profileImageUrl = userDoc.getString("profilePictureUrl");
+                    String name = userDoc.getString("name");
+                    String username = userDoc.getString("username");
+                    moodList.clear();
+                    moodDocIds.clear();
+
+                    db.collection("users").document(userId).collection("moods")
+                            .orderBy("timestamp", Query.Direction.DESCENDING)
+                            .get()
+                            .addOnSuccessListener(querySnapshot -> {
+                                if (!querySnapshot.isEmpty()) {
+                                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                                        // Pass the retrieved name and username instead of a FirebaseUser
+                                        Mood moodObj = createMoodObject(document, name, username, profileImageUrl);
+                                        moodList.add(moodObj);
+                                        moodDocIds.add(document.getId());
+                                    }
+                                    sortAndUpdateMoods();
+                                } else {
+                                    updateMoodCount();
+                                }
+                            })
+                            .addOnFailureListener(e -> handleMoodLoadFailure(e));
+                });
+    }
+
+    // Updated createMoodObject: uses name and username strings
+    private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl) {
+        String mood = document.getString("mood");
+        String locationName = document.getString("locationName");
+        String timestampStr = document.getString("timestamp");
+        String trigger = document.getString("trigger");
+        String reason = document.getString("reason");
+        String imageUrl = document.getString("imageUrl");
+
+        List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
+        List<String> taggedUserNames = extractTaggedUserNames(tags);
+        String gatheringStatus = calculateGatheringStatus(tags);
+
+        return new Mood(
+                name,               // Using the provided name
+                username,           // Provided username
+                locationName != null ? locationName : "No location",
+                timestampStr,
+                timestampStr,
+                gatheringStatus,
+                "Feeling " + mood,
+                trigger,
+                reason,
+                imageUrl,
+                profileImageUrl,
+                taggedUserNames
+        );
+    }
     /**
-     * Allows the current user to follow the searched user by adding them to both
-     * users' follower/following subcollections in Firestore.
+     * Calculates gathering status based on number of tagged users.
+     *
+     * @param tags List of tag maps from Firestore
+     * @return A string representing the gathering status
      */
+    private String calculateGatheringStatus(List<Map<String, Object>> tags) {
+        if (tags == null || tags.isEmpty()) return "Alone";
+        int tagCount = tags.size();
+        if (tagCount == 1) return "With 1 other";
+        if (tagCount <= 5) return "With " + tagCount + " others";
+        return "With a crowd";
+    }
+    private List<String> extractTaggedUserNames(List<Map<String, Object>> tags) {
+        List<String> taggedUserNames = new ArrayList<>();
+        if (tags != null) {
+            for (Map<String, Object> tag : tags) {
+                String username = (String) tag.get("name");
+                if (username != null) {
+                    taggedUserNames.add(username);
+                }
+            }
+        }
+        return taggedUserNames;
+    }
+
+    private long convertTimestampToMillis(String timestampStr) {
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a - MMMM dd, yyyy", Locale.ENGLISH);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            Date date = sdf.parse(timestampStr);
+            return date != null ? date.getTime() : 0;
+        } catch (ParseException e) {
+            Log.e("OtherProfileActivity", "Error parsing timestamp: " + timestampStr, e);
+            return 0;
+        }
+    }
+
+    private void sortAndUpdateMoods() {
+        Collections.sort(moodList, (m1, m2) ->
+                Long.compare(convertTimestampToMillis(m2.getTimestamp()), convertTimestampToMillis(m1.getTimestamp())));
+        moodAdapter.notifyDataSetChanged();
+        updateMoodCount();
+    }
+
+    private void updateMoodCount() {
+        moodCountText.setText(String.valueOf(moodList.size()));
+        TextView emptyMoodText = findViewById(R.id.emptyMoodText);
+        if (moodList.isEmpty()) {
+            emptyMoodText.setVisibility(View.VISIBLE);
+        } else {
+            emptyMoodText.setVisibility(View.GONE);
+        }
+    }  // <-- Added missing closing brace here
+
+    private void handleMoodLoadFailure(Exception e) {
+        Log.e("OtherProfileActivity", "Error loading moods", e);
+        Toast.makeText(this, "Error loading moods", Toast.LENGTH_SHORT).show();
+        updateMoodCount();
+    }
+
     private void followUser() {
         // Validate user IDs
         if (currentUserId == null || searchedUserId == null || currentUserId.equals(searchedUserId)) {
@@ -152,24 +320,20 @@ public class OtherProfileActivity extends ActivityBase {
             return;
         }
 
-        // Create a batch write for atomic updates
         WriteBatch batch = db.batch();
 
-        // Reference to the follower's document in searched user's followers subcollection
         DocumentReference followerRef = db.collection("users")
                 .document(searchedUserId)
                 .collection("followers")
                 .document(currentUserId);
         batch.set(followerRef, new HashMap<String, Object>());
 
-        // Reference to the following document in current user's following subcollection
         DocumentReference followingRef = db.collection("users")
                 .document(currentUserId)
                 .collection("following")
                 .document(searchedUserId);
         batch.set(followingRef, new HashMap<String, Object>());
 
-        // Commit the batch write
         batch.commit()
                 .addOnSuccessListener(aVoid -> {
                     followButton.setText("Following");
