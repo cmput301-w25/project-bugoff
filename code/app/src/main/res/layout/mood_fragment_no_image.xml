@@ -162,14 +162,14 @@
             <Button
                 android:id="@+id/track_mood_button"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:textSize="13dp"
-                android:text="Track Mood Event"
+                android:layout_weight="1"
+                android:backgroundTint="?attr/buttonBackgroundColor"
                 android:drawableLeft="@drawable/mood_heart_icon_tinted"
                 android:drawableTint="?attr/textColor"
+                android:text="Endorse"
                 android:textColor="?attr/textColor"
-                android:backgroundTint="?attr/buttonBackgroundColor"/>
+                android:textSize="13dp" />
 
             <Button
                 android:id="@+id/comment_button"
