@@ -145,7 +145,7 @@ public class MoodPageActivity extends ActivityBase {
             } else {
                 editMoodFab.setVisibility(View.GONE);
             }
-    } else {
+        } else {
             Log.e("MoodPageActivity", "Missing mood or moodId, finishing activity");
             finish();
         }
