@@ -248,7 +248,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
          */
         void bind(Mood mood, MoodAdapter adapter) {
             userName.setText(mood.getUserName());
-            userId.setText(mood.getUserId());
+            userId.setText("@"+ mood.getUserId());
             userLocation.setText(mood.getUserLocation());
             userTime.setText(adapter.formatDateString(mood.getUserTime())); // Format the date string
             userGatheringStatus.setText(mood.getUserGatheringStatus());

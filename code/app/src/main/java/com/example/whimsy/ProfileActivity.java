@@ -96,9 +96,6 @@ public class ProfileActivity extends ActivityBase {
     private TextView followingCount;        // Displays number of following
     public TextView moodCountText;          // Displays total mood count
 
-    private Uri pendingProfileImageUri = null; // URI for pending profile image
-
-
     /**
      * Called when the activity is first created.
      * Initializes UI components, Firebase, and mood list.
@@ -121,7 +118,6 @@ public class ProfileActivity extends ActivityBase {
                     }
                 }
         );
-
 
         // Inflate profile page layout into content frame
         getLayoutInflater().inflate(R.layout.profile_page, findViewById(R.id.content_frame), true);
