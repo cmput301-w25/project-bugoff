@@ -472,7 +472,10 @@ public class ProfileActivity extends ActivityBase {
         String trigger = document.getString("trigger");
         String reason = document.getString("reason");
         String imageUrl = document.getString("imageUrl");
-        boolean isPrivate = document.getBoolean("isPrivate");
+        Boolean isPrivate = document.getBoolean("isPrivate");
+        if (isPrivate == null) {
+            isPrivate = false; // or any default value you prefer
+        }
 
         List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
         List<String> taggedUserNames = extractTaggedUserNames(tags);
