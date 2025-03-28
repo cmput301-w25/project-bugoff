@@ -23,6 +23,8 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Looper;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -59,6 +61,9 @@ import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -95,6 +100,45 @@ public class ProfileActivity extends ActivityBase {
     private TextView followersCount;        // Displays number of followers
     private TextView followingCount;        // Displays number of following
     public TextView moodCountText;          // Displays total mood count
+    private Uri selectedProfileImageUri = null;  // Holds the new image URI (if selected)
+    private ImageView activeProfileImageView = null; // Points to the ImageView in the edit dialog
+
+    private Bitmap decodeSampledBitmapFromUri(Uri uri, int reqWidth, int reqHeight) throws IOException {
+        // First decode with inJustDecodeBounds=true to get image dimensions.
+        InputStream input = getContentResolver().openInputStream(uri);
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeStream(input, null, options);
+        input.close();
+
+        // Calculate inSampleSize
+        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+
+        // Decode bitmap with inSampleSize set
+        options.inJustDecodeBounds = false;
+        input = getContentResolver().openInputStream(uri);
+        Bitmap sampledBitmap = BitmapFactory.decodeStream(input, null, options);
+        input.close();
+        return sampledBitmap;
+    }
+
+    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // Increase inSampleSize until both dimensions are smaller than the requested dimensions.
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
+    }
+
 
     /**
      * Called when the activity is first created.
@@ -113,11 +157,16 @@ public class ProfileActivity extends ActivityBase {
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
-                        profileImage.setImageURI(imageUri);
-                        uploadImageToFirebase(imageUri); // Upload selected image
+                        // Save the URI for later use (when Save is tapped)
+                        selectedProfileImageUri = imageUri;
+                        // Update the dialog's image view if it exists
+                        if (activeProfileImageView != null) {
+                            activeProfileImageView.setImageURI(imageUri);
+                        }
                     }
                 }
         );
+
 
         // Inflate profile page layout into content frame
         getLayoutInflater().inflate(R.layout.profile_page, findViewById(R.id.content_frame), true);
@@ -654,6 +703,8 @@ public class ProfileActivity extends ActivityBase {
      */
     private void setupEditProfileDialog(View view) {
         ImageView profilePic = view.findViewById(R.id.edit_profile_image);
+        activeProfileImageView = profilePic;
+        profilePic.setOnClickListener(v -> selectImageFromGallery());
         EditText editName = view.findViewById(R.id.edit_name);
         EditText editBio = view.findViewById(R.id.edit_bio);
         Spinner genderSpinner = view.findViewById(R.id.gender_spinner);
@@ -673,17 +724,111 @@ public class ProfileActivity extends ActivityBase {
             });
 
             btnSave.setOnClickListener(v -> {
-                String newName = editName.getText().toString().trim();
-                String newBio = editBio.getText().toString().trim();
-                String selectedGender = genderSpinner.getSelectedItem().toString();
+                final String newName = editName.getText().toString().trim();
+                final String newBio = editBio.getText().toString().trim();
+                final String selectedGender = genderSpinner.getSelectedItem().toString();
 
-                saveUserProfile(newName, newBio, selectedGender);
-                editProfileDialog.dismiss();
+                if (selectedProfileImageUri != null) {
+                    new Thread(() -> {
+                        try {
+                            // Decode a scaled-down bitmap from the URI
+                            Bitmap bitmap = decodeSampledBitmapFromUri(selectedProfileImageUri, 1024, 1024);
+                            // Compress the image using your ImageCompressor (max 64KB)
+                            byte[] compressedBytes = ImageCompressor.compressImage(bitmap, 65536);
+                            runOnUiThread(() -> {
+                                // Upload the image bytes with a completion callback
+                                uploadImageBytesToFirebase(compressedBytes, () -> {
+                                    // Once upload completes, update the profile and then delay refresh
+                                    saveUserProfile(newName, newBio, selectedGender);
+                                    if (editProfileDialog != null && editProfileDialog.isShowing()) {
+                                        editProfileDialog.dismiss();
+                                    }
+                                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                                        if (!isFinishing() && !isDestroyed()) {
+                                            refreshActivity();
+                                        }
+                                    }, 100);
+                                });
+                            });
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            runOnUiThread(() -> {
+                                showSnackbar("Failed to compress and upload profile image.");
+                                if (editProfileDialog != null && editProfileDialog.isShowing()) {
+                                    editProfileDialog.dismiss();
+                                }
+                            });
+                        }
+                        selectedProfileImageUri = null;
+                    }).start();
+                } else {
+                    // No new image; update profile directly
+                    saveUserProfile(newName, newBio, selectedGender);
+                    if (editProfileDialog != null && editProfileDialog.isShowing()) {
+                        editProfileDialog.dismiss();
+                    }
+                    // Delay refresh for safety
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                        if (!isFinishing() && !isDestroyed()) {
+                            refreshActivity();
+                        }
+                    }, 100);
+                }
             });
+
 
             btnCancel.setOnClickListener(v -> editProfileDialog.dismiss());
         }
     }
+
+    private void uploadImageBytesToFirebase(byte[] imageBytes, Runnable onComplete) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            StorageReference storageRef = FirebaseStorage.getInstance()
+                    .getReference("profile_pictures/" + user.getUid());
+            storageRef.putBytes(imageBytes)
+                    .addOnSuccessListener(taskSnapshot ->
+                            storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                                // Update the main profile image with Glide.
+                                Glide.with(this).load(uri).into(profileImage);
+                                // Update Firebase Auth profile.
+                                user.updateProfile(new UserProfileChangeRequest.Builder().setPhotoUri(uri).build());
+                                // Update Firestore with the new profile picture URL.
+                                FirebaseFirestore.getInstance()
+                                        .collection("users")
+                                        .document(user.getUid())
+                                        .update("profilePictureUrl", uri.toString())
+                                        .addOnSuccessListener(aVoid -> {
+                                            Log.d("Firestore", "Profile picture updated successfully");
+                                            if (editProfileDialog != null && editProfileDialog.isShowing()) {
+                                                ImageView profilePic = editProfileDialog.findViewById(R.id.edit_profile_image);
+                                                Glide.with(this).load(uri).into(profilePic);
+                                            }
+                                            if (onComplete != null) {
+                                                onComplete.run();
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e("Firestore", "Error updating profile picture", e);
+                                            if (onComplete != null) {
+                                                onComplete.run();
+                                            }
+                                        });
+                            }))
+                    .addOnFailureListener(e -> {
+                        Log.e("Storage", "Error uploading image", e);
+                        if (onComplete != null) {
+                            onComplete.run();
+                        }
+                    });
+        }
+    }
+
+    private void refreshActivity() {
+        finish();
+        startActivity(getIntent());
+    }
+
 
     /**
      * Loads existing profile data into the edit dialog.
@@ -729,65 +874,6 @@ public class ProfileActivity extends ActivityBase {
     private void selectImageFromGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         selectImageLauncher.launch(intent);
-    }
-
-    /**
-     * Handles activity result for image selection (legacy method).
-     *
-     * @param requestCode The request code
-     * @param resultCode The result code
-     * @param data The returned data
-     */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 100 && resultCode == RESULT_OK && data != null) {
-            Uri imageUri = data.getData();
-            profileImage.setImageURI(imageUri);
-            uploadImageToFirebase(imageUri);
-        }
-    }
-
-    /**
-     * Uploads the selected image to Firebase Storage using the ImageCompressor for compression,
-     * and updates the user's profile picture in Firebase Authentication and Firestore.
-     * <p>
-     * Before uploading the new image, this method checks Firestore for an existing profile picture URL.
-     * If one exists and is hosted on Firebase Storage, it attempts to delete that file.
-     * </p>
-     *
-     * @param imageUri The URI of the selected new profile image.
-     */
-    /**
-     * Uploads selected image to Firebase Storage and updates profile.
-     *
-     * @param imageUri The URI of the selected image
-     */
-    private void uploadImageToFirebase(Uri imageUri) {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            StorageReference storageRef = FirebaseStorage.getInstance()
-                    .getReference("profile_pictures/" + user.getUid());
-
-            storageRef.putFile(imageUri)
-                    .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        Glide.with(this).load(uri).into(profileImage);
-                        user.updateProfile(new UserProfileChangeRequest.Builder().setPhotoUri(uri).build());
-                        FirebaseFirestore.getInstance()
-                                .collection("users")
-                                .document(user.getUid())
-                                .update("profilePictureUrl", uri.toString())
-                                .addOnSuccessListener(aVoid -> {
-                                    Log.d("Firestore", "Profile picture updated successfully");
-                                    if (editProfileDialog != null && editProfileDialog.isShowing()) {
-                                        ImageView profilePic = editProfileDialog.findViewById(R.id.edit_profile_image);
-                                        Glide.with(this).load(uri).into(profilePic);
-                                    }
-                                })
-                                .addOnFailureListener(e -> Log.e("Firestore", "Error updating profile picture", e));
-                    }))
-                    .addOnFailureListener(e -> Log.e("Storage", "Error uploading image", e));
-        }
     }
 
     /**
