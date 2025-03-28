@@ -1,6 +1,6 @@
 /**
  * The `AddMood` class is an activity that allows users to log their current mood, along with
- * optional details such as triggers, reasons, location, tags, and an image. The mood data is
+ * optional details such as reasons, location, tags, and an image. The mood data is
  * stored in Firebase Firestore, and images are uploaded to Firebase Storage. The activity integrates
  * with the Google Places API for location selection and supports tagging other users from the app.
  *
@@ -24,7 +24,6 @@ package com.example.whimsy;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.res.AssetFileDescriptor;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
@@ -46,6 +45,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -81,6 +81,7 @@ import java.util.Map;
 public class AddMood extends ActivityBase {
 
     private Spinner moodSpinner;
+    private Switch privacySwitch;
     private EditText reasonInput;
     private TextView timestampText;
     private Button addMoodButton;
@@ -187,8 +188,6 @@ public class AddMood extends ActivityBase {
         }
     }
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -206,6 +205,7 @@ public class AddMood extends ActivityBase {
 
         // Initialize UI elements from your provided XML
         moodSpinner = findViewById(R.id.moodSpinner);
+        privacySwitch = findViewById(R.id.privacySwitch);
         reasonInput = findViewById(R.id.reasonInput);
         timestampText = findViewById(R.id.timestampText);
         addMoodButton = findViewById(R.id.addMoodButton);
@@ -490,6 +490,9 @@ public class AddMood extends ActivityBase {
         moodData.put("mood", mood);
         moodData.put("reason", reason);
         moodData.put("timestamp", timestamp);
+
+        boolean isPrivate = privacySwitch.isChecked();
+        moodData.put("isPrivate", isPrivate);
 
         if (selectedLocation != null) {
             moodData.put("locationName", selectedLocation.getName());
