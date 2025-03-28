@@ -16,13 +16,16 @@ package com.example.whimsy;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
@@ -30,7 +33,9 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class OtherProfileActivity extends ActivityBase {
 
@@ -92,10 +97,6 @@ public class OtherProfileActivity extends ActivityBase {
         profileUsername = findViewById(R.id.other_profile_email);
         profileBio = findViewById(R.id.other_profile_bio);
         followButton = findViewById(R.id.follow_btn);
-        backButton = findViewById(R.id.back_button);
-
-        // Set click listeners
-        backButton.setOnClickListener(v -> finish());
         followButton.setOnClickListener(v -> followUser());
     }
 
@@ -175,10 +176,117 @@ public class OtherProfileActivity extends ActivityBase {
                     followButton.setText("Following");
                     followButton.setEnabled(false);
                     Toast.makeText(this, "Followed successfully!", Toast.LENGTH_SHORT).show();
+
+                    // Call suggestion function
+                    showSuggestedUsers();
                 })
                 .addOnFailureListener(e -> {
                     Log.e("FollowUser", "Error following user", e);
                     Toast.makeText(this, "Failed to follow.", Toast.LENGTH_SHORT).show();
                 });
+
+    }
+    private void showSuggestedUsers() {
+        db.collection("users")
+                .limit(10) // Increased limit to get more users before filtering
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    ArrayList<User> suggestions = new ArrayList<>();
+
+                    // Fetch the current user's following list
+                    db.collection("users").document(currentUserId)
+                            .collection("following")
+                            .get()
+                            .addOnSuccessListener(followingDocs -> {
+                                List<String> followingList = new ArrayList<>();
+                                for (var doc : followingDocs) {
+                                    followingList.add(doc.getId());
+                                }
+
+                                for (var doc : queryDocumentSnapshots) {
+                                    String uid = doc.getId();
+
+                                    // Exclude self, searched user, and users already followed
+                                    if (!uid.equals(currentUserId) &&
+                                            !uid.equals(searchedUserId) &&
+                                            !followingList.contains(uid)) {
+
+                                        User user = new User(
+                                                uid,
+                                                doc.getString("name"),
+                                                doc.getString("username"),
+                                                doc.getString("profilePictureUrl")
+                                        );
+                                        suggestions.add(user);
+                                    }
+                                }
+
+                                if (!suggestions.isEmpty()) {
+                                    displaySuggestions(suggestions);
+                                }
+                            })
+                            .addOnFailureListener(e -> Log.e("Suggestions", "Error fetching following list", e));
+                })
+                .addOnFailureListener(e -> Log.e("Suggestions", "Error fetching users", e));
+    }
+
+    private void displaySuggestions(ArrayList<User> users) {
+        LinearLayout suggestionsContainer = findViewById(R.id.suggestions_container);
+        TextView suggestionsTitle = findViewById(R.id.suggestions_title);
+        View suggestionsScroll = findViewById(R.id.suggestions_scroll);
+        suggestionsContainer.removeAllViews(); // clear existing suggestions
+        suggestionsContainer.setVisibility(View.VISIBLE); // make visible
+        suggestionsTitle.setVisibility(View.VISIBLE);
+        suggestionsScroll.setVisibility(View.VISIBLE);
+
+        for (User user : users) {
+            View userView = getLayoutInflater().inflate(R.layout.item_suggestion_user, null);
+
+            TextView nameText = userView.findViewById(R.id.suggestion_name);
+            ImageView profilePic = userView.findViewById(R.id.suggestion_image);
+            Button followBtn = userView.findViewById(R.id.suggestion_follow_btn);
+
+            nameText.setText(user.getName());
+            String imageUrl = user.getProfilePictureUrl();
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                Glide.with(this).load(imageUrl).into(profilePic);
+            } else {
+                profilePic.setImageResource(R.drawable.ic_profile);
+            }
+
+            followBtn.setOnClickListener(v -> followSuggestedUser(user.getId(), followBtn));
+
+            userView.setOnClickListener(v -> {
+                Intent intent = new Intent(this, OtherProfileActivity.class);
+                intent.putExtra("USER_ID", user.getId()); // Pass the user ID
+                startActivity(intent);
+            });
+
+            suggestionsContainer.addView(userView);
+        }
+    }
+
+    private void followSuggestedUser(String userId, Button button) {
+        WriteBatch batch = db.batch();
+
+        DocumentReference followerRef = db.collection("users")
+                .document(userId)
+                .collection("followers")
+                .document(currentUserId);
+        batch.set(followerRef, new HashMap<>());
+
+        DocumentReference followingRef = db.collection("users")
+                .document(currentUserId)
+                .collection("following")
+                .document(userId);
+        batch.set(followingRef, new HashMap<>());
+
+        batch.commit()
+                .addOnSuccessListener(aVoid -> {
+                    button.setText("Following");
+                    button.setEnabled(false);
+                    Toast.makeText(this, "Followed!", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> Log.e("FollowSuggestedUser", "Failed", e));
     }
 }

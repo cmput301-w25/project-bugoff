@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -8,7 +9,7 @@
 
     <LinearLayout
         android:layout_width="344dp"
-        android:layout_height="587dp"
+        android:layout_height="720dp"
         android:gravity="center"
         android:orientation="vertical">
 
@@ -17,10 +18,10 @@
             android:layout_width="90dp"
             android:layout_height="90dp"
             android:layout_gravity="center_horizontal"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_profile"
+            android:background="@drawable/circular_background"
             android:clipToOutline="true"
-            android:background="@drawable/circular_background"/>
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_profile" />
 
         <FrameLayout
             android:id="@+id/spinnerFrame"
@@ -39,18 +40,18 @@
                     android:id="@+id/moodSpinner"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
                     android:background="@android:color/transparent"
+                    android:gravity="center"
                     android:hint="Click to Select a Mood"
-                    android:prompt="@string/select_mood"/>
+                    android:prompt="@string/select_mood" />
 
                 <!-- Dropdown Icon -->
                 <ImageView
                     android:id="@+id/spinner_icon"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_centerVertical="true"
                     android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
                     android:src="@drawable/ic_dropdown" />
             </RelativeLayout>
         </FrameLayout>
@@ -59,12 +60,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="25dp">
+            android:layout_marginBottom="30dp">
 
             <EditText
                 android:id="@+id/reasonInput"
                 android:layout_width="match_parent"
-                android:layout_height="125dp"
+                android:layout_height="146dp"
                 android:background="@drawable/input_field"
                 android:gravity="start|top"
                 android:hint="Add Reason..."
@@ -79,12 +80,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
-                android:padding="4dp"
-                android:text="200"
                 android:layout_marginEnd="5dp"
                 android:layout_marginBottom="2dp"
-                android:textSize="12sp"
-                android:textColor="@color/gray" />
+                android:padding="4dp"
+                android:text="200"
+                android:textColor="@color/gray"
+                android:textSize="12sp" />
         </FrameLayout>
 
         <!-- Display Selected Location and number of tags -->
@@ -92,9 +93,9 @@
             android:id="@+id/selectedLocationText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:padding="8dp"
             android:textColor="#439DEB"
-            android:gravity="center_horizontal"
             android:textSize="14sp"
             android:visibility="gone" />
 
@@ -119,6 +120,14 @@
                 android:layout_height="24dp"
                 android:layout_marginEnd="14dp"
                 android:src="@drawable/location_icon"
+                app:tint="#878787" />
+
+            <ImageView
+                android:id="@+id/visibilityIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="14dp"
+                android:src="@drawable/ic_eye_open"
                 app:tint="#878787" />
 
             <ImageView
@@ -162,7 +171,6 @@
             android:layout_height="40dp"
             android:layout_gravity="center"
             android:layout_marginTop="16dp"
-            android:visibility="gone"
-         />
+            android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

@@ -8,38 +8,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HomePageActivityTest {
+public class MapActivityTest {
 
-    // Hypothetical test for gatheringStatus logic
     @Test
-    public void testGatheringStatusLogic() {
-        // Case 1: Tags are null
+    public void testDetermineGatheringStatus() {
+        // Case 1: No tags
         List<Map<String, Object>> tagsNull = null;
-        String status1 = determineGatheringStatus(tagsNull);
-        assertEquals("Alone", status1);
+        assertEquals("Alone", determineGatheringStatus(tagsNull));
 
-        // Case 2: Tags are empty
+        // Case 2: Empty list
         List<Map<String, Object>> tagsEmpty = new ArrayList<>();
-        String status2 = determineGatheringStatus(tagsEmpty);
-        assertEquals("Alone", status2);
+        assertEquals("Alone", determineGatheringStatus(tagsEmpty));
 
-        // Case 3: 1 tag
+        // Case 3: One person
         List<Map<String, Object>> tags1 = createTags(1);
-        String status3 = determineGatheringStatus(tags1);
-        assertEquals("With 1 other", status3);
+        assertEquals("With 1 other", determineGatheringStatus(tags1));
 
-        // Case 4: 3 tags
+        // Case 4: Three people
         List<Map<String, Object>> tags3 = createTags(3);
-        String status4 = determineGatheringStatus(tags3);
-        assertEquals("With 3 others", status4);
+        assertEquals("With 3 others", determineGatheringStatus(tags3));
 
-        // Case 5: 6 tags
+        // Case 5: Six people
         List<Map<String, Object>> tags6 = createTags(6);
-        String status5 = determineGatheringStatus(tags6);
-        assertEquals("With a crowd", status5);
+        assertEquals("With a crowd", determineGatheringStatus(tags6));
     }
 
-    // Hypothetical helper method (not in original code)
     private String determineGatheringStatus(List<Map<String, Object>> tags) {
         if (tags == null || tags.isEmpty()) {
             return "Alone";
@@ -55,7 +48,6 @@ public class HomePageActivityTest {
         }
     }
 
-    // Helper to create dummy tags
     private List<Map<String, Object>> createTags(int count) {
         List<Map<String, Object>> tags = new ArrayList<>();
         for (int i = 0; i < count; i++) {
@@ -66,7 +58,6 @@ public class HomePageActivityTest {
         return tags;
     }
 
-    // Test Mood object construction (requires Mood class visibility)
     @Test
     public void testMoodObjectCreation() {
         Mood mood = new Mood(
@@ -81,8 +72,7 @@ public class HomePageActivityTest {
                 "Reason",
                 "image.jpg",
                 "profile.jpg",
-                new ArrayList<>(),
-                false
+                new ArrayList<>()
         );
 
         assertEquals("User1", mood.getUserName());

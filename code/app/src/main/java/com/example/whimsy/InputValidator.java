@@ -1,0 +1,36 @@
+package com.example.whimsy;
+
+/**
+ * The {@code InputValidator} class provides static methods for validating user input
+ * in the AddMood functionality. It ensures that mood selections and textual inputs meet
+ * the required criteria.
+ */
+public class InputValidator {
+
+    /**
+     * Validates that the provided mood is valid.
+     * <p>
+     * Assumes that the first spinner option is "Select an Emotion" which is considered invalid.
+     * </p>
+     *
+     * @param mood the mood selected by the user.
+     * @return {@code true} if the mood is valid; {@code false} otherwise.
+     */
+    public static boolean isValidMood(String mood) {
+        return mood != null && !mood.trim().isEmpty() && !mood.equals("Select an Emotion");
+    }
+
+    /**
+     * Validates the reason text input.
+     *
+     * @param reason the reason text provided by the user.
+     * @return {@code null} if the reason is valid; otherwise, returns a descriptive error message.
+     */
+    public static String validateReason(String reason) {
+        if (reason == null) return null;
+        if (reason.length() > 200) {
+            return "Reason exceeds 200 characters limit";
+        }
+        return null;
+    }
+}

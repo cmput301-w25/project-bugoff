@@ -24,7 +24,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.cardview.widget.CardView;
-import androidx.core.widget.TextViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import java.text.SimpleDateFormat;
@@ -154,6 +153,12 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         TextView userLocation = itemView.findViewById(R.id.user_location);
         userLocation.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
 
+        View moodVisibilityBg = itemView.findViewById(R.id.moodVisibilityBg);
+        moodVisibilityBg.setBackgroundTintList(ColorStateList.valueOf(buttonBackgroundColor));
+
+        ImageView moodVisibility = itemView.findViewById(R.id.moodVisibility);
+        moodVisibility.setColorFilter(iconTint);
+
         TextView userTime = itemView.findViewById(R.id.user_time);
         userTime.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
 
@@ -224,6 +229,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static class MoodWithImageViewHolder extends RecyclerView.ViewHolder {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
         private ImageView moodImage, profileImage;
+        private View moodVisibilityBg;
 
         MoodWithImageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -237,7 +243,8 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodReason = itemView.findViewById(R.id.mood_reason);
             moodImage = itemView.findViewById(R.id.mood_image);
             // Corrected ID: image_profile instead of profile_image
-            profileImage = itemView.findViewById(R.id.image_profile); // <-- Fix here
+            profileImage = itemView.findViewById(R.id.image_profile);
+            moodVisibilityBg = itemView.findViewById(R.id.moodVisibilityBg);
         }
 
 
@@ -248,13 +255,20 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
          */
         void bind(Mood mood, MoodAdapter adapter) {
             userName.setText(mood.getUserName());
-            userId.setText(mood.getUserId());
+            userId.setText("@"+ mood.getUserId());
             userLocation.setText(mood.getUserLocation());
             userTime.setText(adapter.formatDateString(mood.getUserTime())); // Format the date string
             userGatheringStatus.setText(mood.getUserGatheringStatus());
             moodStatus.setText(mood.getMoodStatus());
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
+
+            if (mood.isPrivateMood()) {
+                moodVisibilityBg.setVisibility(View.VISIBLE);
+            } else {
+                moodVisibilityBg.setVisibility(View.GONE);
+            }
+
             adapter.applyStyle(itemView, mood.getMoodStatus());
             adapter.setEmojiBasedOnMood(mood.getMoodStatus(), moodStatus);
 
@@ -292,6 +306,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static class MoodNoImageViewHolder extends RecyclerView.ViewHolder {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
         private ImageView profileImage;
+        private View moodVisibilityBg;
 
         /**
          * Constructor for the ViewHolder that holds views for moods without images.
@@ -309,6 +324,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodTrigger = itemView.findViewById(R.id.mood_trigger);
             moodReason = itemView.findViewById(R.id.mood_reason);
             profileImage = itemView.findViewById(R.id.image_profile);
+            moodVisibilityBg = itemView.findViewById(R.id.moodVisibilityBg);
         }
 
         /**
@@ -331,6 +347,13 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodReason.setText(mood.getMoodReason());
             adapter.applyStyle(itemView, mood.getMoodStatus());
             moodStatus.setText(mood.getMoodStatus());
+
+            if (mood.isPrivateMood()) {
+                moodVisibilityBg.setVisibility(View.VISIBLE);
+            } else {
+                moodVisibilityBg.setVisibility(View.GONE);
+            }
+
             adapter.setEmojiBasedOnMood(mood.getMoodStatus(), moodStatus);
 
             String pUrl = mood.getProfileImageUrl();

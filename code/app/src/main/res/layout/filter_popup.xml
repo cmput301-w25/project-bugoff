@@ -13,7 +13,7 @@
         android:layout_centerInParent="true"
         android:background="@drawable/input_field"
         android:elevation="10dp"
-        android:padding="16dp">
+        android:padding="20dp">
 
         <!-- Filter Icon and Heading -->
         <LinearLayout
@@ -28,7 +28,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_marginEnd="8dp"
-                android:src="@drawable/filter_icon"/>
+                android:src="@drawable/filter_icon" />
 
             <TextView
                 android:id="@+id/filter_title"
@@ -55,7 +55,7 @@
         <FrameLayout
             android:id="@+id/search_box_wrapper"
             android:layout_width="264dp"
-            android:layout_height="40dp"
+            android:layout_height="46dp"
             android:layout_below="@id/filter_header"
             android:layout_marginTop="7dp"
             android:elevation="6dp">  <!-- Elevation for shadow -->
@@ -83,6 +83,7 @@
                     android:id="@+id/search_button"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
+                    android:layout_gravity="fill_horizontal|center_vertical"
                     android:clickable="true"
                     android:focusable="true"
                     android:padding="4dp"
@@ -99,9 +100,9 @@
             android:layout_below="@id/search_box_wrapper"
             android:layout_marginTop="10dp"
             android:text="Filter by:"
+            android:textColor="#000000"
             android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#000000" />
+            android:textStyle="bold" />
 
         <!-- RadioGroup for "This Week" and "This Month" -->
         <RadioGroup
@@ -133,7 +134,7 @@
         <FrameLayout
             android:id="@+id/spinner_wrapper"
             android:layout_width="264dp"
-            android:layout_height="48dp"
+            android:layout_height="40dp"
             android:layout_below="@id/filter_options"
             android:layout_marginTop="12dp"
             android:elevation="6dp">
@@ -148,20 +149,20 @@
                     android:id="@+id/spinner_emotional_state"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="36dp"
+                    android:background="@android:color/transparent"
                     android:gravity="center"
-                    android:background="@android:color/transparent" />
+                    android:paddingStart="16dp"
+                    android:paddingEnd="36dp" />
 
                 <!-- Dropdown Icon -->
                 <ImageView
                     android:id="@+id/spinner_icon"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_centerVertical="true"
                     android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
                     android:layout_marginEnd="12dp"
-                    android:src="@drawable/ic_add" />
+                    android:src="@drawable/ic_dropdown" />
             </RelativeLayout>
         </FrameLayout>
 
@@ -171,8 +172,8 @@
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_marginBottom="16dp"
-            android:orientation="horizontal"
-            android:gravity="center">
+            android:gravity="center"
+            android:orientation="horizontal">
 
             <!-- Reset Button -->
 
@@ -182,9 +183,9 @@
                 android:layout_width="112dp"
                 android:layout_height="48dp"
                 android:layout_marginEnd="10dp"
-                android:backgroundTint="#FDBEBE"
+                android:backgroundTint="#EF7B7B"
                 android:text="Reset"
-                android:textColor="#ABA9A9"
+                android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -192,9 +193,9 @@
                 android:id="@+id/apply_button"
                 android:layout_width="112dp"
                 android:layout_height="48dp"
-                android:backgroundTint="#D9F1FF"
+                android:backgroundTint="#68B1EB"
                 android:text="Apply"
-                android:textColor="#ABA9A9"
+                android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>

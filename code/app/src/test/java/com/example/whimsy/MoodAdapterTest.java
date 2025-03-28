@@ -12,9 +12,9 @@ public class MoodAdapterTest {
     public void testGetItemCount() {
         List<Mood> moodList = new ArrayList<>();
         moodList.add(new Mood("John", "JohnDoe@example.com", "Edmonton", "timestamp1", "time1", "Alone",
-                "Feeling Lonely", "trigger1", "reason1", "http://example.com/image1.jpg", "profileImageUrl1", new ArrayList<>()));
+                "Feeling Lonely", "trigger1", "reason1", "http://example.com/image1.jpg", "profileImageUrl1", new ArrayList<>(), false));
         moodList.add(new Mood("Jane", "JaneDoe@example.com", "Lost City", "timestamp2", "time2", "With Friends",
-                "Feeling Sad", "trigger2", "reason2", "", "profileImageUrl2", new ArrayList<>()));
+                "Feeling Sad", "trigger2", "reason2", "", "profileImageUrl2", new ArrayList<>(), false));
 
         MoodAdapter adapter = new MoodAdapter(moodList);
         assertEquals("Item count should match the number of moods", 2, adapter.getItemCount());
@@ -24,7 +24,7 @@ public class MoodAdapterTest {
     public void testGetItemViewTypeWithImage() {
         List<Mood> moodList = new ArrayList<>();
         Mood moodWithImage = new Mood("John", "JohnDoe@example.com", "Edmonton", "timestamp", "time", "Alone",
-                "Feeling Lonely", "trigger", "reason", "http://example.com/image.jpg", "profileImageUrl", new ArrayList<>());
+                "Feeling Lonely", "trigger", "reason", "http://example.com/image.jpg", "profileImageUrl", new ArrayList<>(), false);
         moodList.add(moodWithImage);
 
         MoodAdapter adapter = new MoodAdapter(moodList);
@@ -36,7 +36,7 @@ public class MoodAdapterTest {
     public void testGetItemViewTypeNoImage() {
         List<Mood> moodList = new ArrayList<>();
         Mood moodNoImage = new Mood("Jane", "JaneDoe@example.com", "Lost City", "timestamp", "time", "With Friends",
-                "Feeling Sad", "trigger", "reason", "", "profileImageUrl", new ArrayList<>());
+                "Feeling Sad", "trigger", "reason", "", "profileImageUrl", new ArrayList<>(), false);
         moodList.add(moodNoImage);
 
         MoodAdapter adapter = new MoodAdapter(moodList);

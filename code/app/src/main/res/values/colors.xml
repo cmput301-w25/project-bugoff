@@ -41,4 +41,6 @@
     <color name="green_heat_text">#77B255</color>
     <color name="dark_green">#006400</color>
 
+    <color name="default_marker_color">#0000FF</color> <!-- Blue -->
+
 </resources>

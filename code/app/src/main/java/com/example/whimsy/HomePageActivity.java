@@ -19,6 +19,7 @@ package com.example.whimsy;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -86,22 +87,31 @@ public class HomePageActivity extends ActivityBase {
         }
 
         // Handle item touch events to open the selected mood's details
+        final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return true;
+            }
+        });
+
         recyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
             @Override
             public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
                 View child = rv.findChildViewUnder(e.getX(), e.getY());
-                if (child != null && e.getAction() == MotionEvent.ACTION_UP) {
+                if (child != null && gestureDetector.onTouchEvent(e)) {
                     int position = rv.getChildAdapterPosition(child);
                     if (position != RecyclerView.NO_POSITION) {
                         Intent intent = new Intent(HomePageActivity.this, MoodPageActivity.class);
                         intent.putExtra("SELECTED_MOOD", moodList.get(position));
                         intent.putExtra("MOOD_ID", moodDocIds.get(position));
                         startActivity(intent);
+                        return true;
                     }
                 }
                 return false;
             }
         });
+
     }
 
     /**
@@ -155,6 +165,7 @@ public class HomePageActivity extends ActivityBase {
                                         String trigger = doc.getString("trigger");
                                         String reason = doc.getString("reason");
                                         String imageUrl = doc.getString("imageUrl");
+                                        boolean isPrivate = Boolean.TRUE.equals(doc.getBoolean("isPrivate"));
 
                                         // Extract tagged users
                                         List<Map<String, Object>> tags = (List<Map<String, Object>>) doc.get("tags");
@@ -193,7 +204,8 @@ public class HomePageActivity extends ActivityBase {
                                                 reason,
                                                 imageUrl,
                                                 profileImageUrl,
-                                                taggedUserNames
+                                                taggedUserNames,
+                                                isPrivate
                                         );
                                         moodList.add(mood);
                                         moodDocIds.add(doc.getId());
