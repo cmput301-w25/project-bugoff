@@ -95,7 +95,7 @@ public class OtherProfileActivity extends ActivityBase {
         if (searchedUserId != null && !searchedUserId.isEmpty()) {
             loadUserData(searchedUserId);
             setupFollowCounts(searchedUserId);
-            loadMoods(searchedUserId);
+//            loadMoods(searchedUserId);
         } else {
             Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
             finish();
@@ -158,29 +158,17 @@ public class OtherProfileActivity extends ActivityBase {
                                     if (followSnapshot.exists()) {
                                         followButton.setText("Following");
                                         followButton.setEnabled(false);
-                                        loadMoods(searchedUserId);
+                                        loadMoods(searchedUserId); // Load moods if already following
                                     } else {
-                                        // For not following, check if a follow request exists // NEW:
-                                        db.collection("users").document(searchedUserId)
-                                                .collection("followRequests")
-                                                .document(currentUserId)
-                                                .get()
-                                                .addOnSuccessListener(requestSnapshot -> {
-                                                    if (requestSnapshot.exists()) {
-                                                        followButton.setText("Requested"); // NEW: set button text if request exists
-                                                        followButton.setEnabled(true);
-                                                    } else {
-                                                        followButton.setText("Follow");
-                                                        followButton.setEnabled(true);
-                                                    }
-                                                });
-                                        // If account is private, don't load moods and show message // NEW:
+                                        followButton.setText("Follow");
+                                        followButton.setEnabled(true);
+                                        // NEW: If account is private and not followed, do not load moods
                                         if (isPrivate) {
                                             TextView emptyMoodText = findViewById(R.id.emptyMoodText);
                                             emptyMoodText.setText("This account is private. Follow to view their moods"); // NEW: Changed text
                                             emptyMoodText.setVisibility(View.VISIBLE);
                                         } else {
-                                            loadMoods(searchedUserId);
+                                            loadMoods(searchedUserId); // Load moods for public accounts
                                         }
                                     }
                                 })
@@ -195,6 +183,7 @@ public class OtherProfileActivity extends ActivityBase {
                     Log.e("OtherProfileActivity", "Error fetching user data", e);
                 });
     }
+
     private void setupFollowCounts(String userId) {
         followersCount.setOnClickListener(v -> {
             Intent intent = new Intent(this, FollowingActivity.class);
@@ -340,8 +329,7 @@ public class OtherProfileActivity extends ActivityBase {
         } else {
             emptyMoodText.setVisibility(View.GONE);
         }
-    }  // <-- Added missing closing brace here
-
+    }
     private void handleMoodLoadFailure(Exception e) {
         Log.e("OtherProfileActivity", "Error loading moods", e);
         Toast.makeText(this, "Error loading moods", Toast.LENGTH_SHORT).show();
