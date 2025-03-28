@@ -49,8 +49,6 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
@@ -85,7 +83,8 @@ public class AddMood extends ActivityBase {
     // UI Components
     private Spinner moodSpinner;
     private MoodRepository moodRepository;
-    private Switch privacySwitch;
+    private ImageView visibilityIcon;
+    private boolean isPrivate = false; // default state of a mood is public
     private EditText reasonInput;
     private TextView timestampText;
     private Button addMoodButton;
@@ -220,7 +219,24 @@ public class AddMood extends ActivityBase {
 
         // Bind UI elements to their corresponding views in the layout.
         moodSpinner = findViewById(R.id.moodSpinner);
-        privacySwitch = findViewById(R.id.privacySwitch);
+
+        visibilityIcon = findViewById(R.id.visibilityIcon);
+        visibilityIcon.setOnClickListener(v -> {
+            // Toggle the state.
+            isPrivate = !isPrivate;
+            if (isPrivate) {
+                // Set crossed-eye icon and change tint to blue.
+                visibilityIcon.setImageResource(R.drawable.ic_eye_closed);
+                visibilityIcon.setColorFilter(Color.BLUE);
+                showSnackbar("Mood set to Private", false);
+            } else {
+                // Set open-eye icon and reset tint.
+                visibilityIcon.setImageResource(R.drawable.ic_eye_open);
+                visibilityIcon.clearColorFilter();
+                showSnackbar("Mood set to Public", false);
+            }
+        });
+
         reasonInput = findViewById(R.id.reasonInput);
         timestampText = findViewById(R.id.timestampText);
         addMoodButton = findViewById(R.id.addMoodButton);
@@ -573,7 +589,6 @@ public class AddMood extends ActivityBase {
         moodData.put("reason", reason);
         moodData.put("timestamp", timestamp);
 
-        boolean isPrivate = privacySwitch.isChecked();
         moodData.put("isPrivate", isPrivate);
 
         if (selectedLocation != null) {

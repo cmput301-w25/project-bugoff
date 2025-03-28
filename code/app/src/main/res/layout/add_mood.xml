@@ -56,34 +56,6 @@
             </RelativeLayout>
         </FrameLayout>
 
-        <!-- Privacy Switch Layout -->
-        <LinearLayout
-            android:layout_width="264dp"
-            android:layout_height="35dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="2dp"
-            android:background="@drawable/input_field"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="18dp"
-            android:paddingEnd="6dp">
-
-            <TextView
-                android:layout_width="222dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Make Private"
-                android:textColor="@color/black"
-                android:textSize="16sp" />
-
-            <Switch
-                android:id="@+id/privacySwitch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="false"
-                tools:ignore="UseSwitchCompatOrMaterialXml" />
-        </LinearLayout>
-
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -148,6 +120,14 @@
                 android:layout_height="24dp"
                 android:layout_marginEnd="14dp"
                 android:src="@drawable/location_icon"
+                app:tint="#878787" />
+
+            <ImageView
+                android:id="@+id/visibilityIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="14dp"
+                android:src="@drawable/ic_eye_open"
                 app:tint="#878787" />
 
             <ImageView
