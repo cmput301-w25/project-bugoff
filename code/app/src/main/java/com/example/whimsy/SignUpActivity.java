@@ -368,6 +368,7 @@ public class SignUpActivity extends AppCompatActivity {
         user.put("username", username);
         user.put("email", email);
         user.put("dob", dob);
+        user.put("isPrivate", false);
 
         db.collection("users").document(userId)
                 .set(user)
