@@ -424,6 +424,7 @@ public class ProfileActivity extends ActivityBase {
         String trigger = document.getString("trigger");
         String reason = document.getString("reason");
         String imageUrl = document.getString("imageUrl");
+        boolean isPrivate = document.getBoolean("isPrivate");
 
         List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
         List<String> taggedUserNames = extractTaggedUserNames(tags);
@@ -441,7 +442,8 @@ public class ProfileActivity extends ActivityBase {
                 reason,
                 imageUrl,
                 profileImageUrl,
-                taggedUserNames
+                taggedUserNames,
+                isPrivate
         );
     }
 

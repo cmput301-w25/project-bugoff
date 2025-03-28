@@ -165,6 +165,7 @@ public class HomePageActivity extends ActivityBase {
                                         String trigger = doc.getString("trigger");
                                         String reason = doc.getString("reason");
                                         String imageUrl = doc.getString("imageUrl");
+                                        boolean isPrivate = Boolean.TRUE.equals(doc.getBoolean("isPrivate"));
 
                                         // Extract tagged users
                                         List<Map<String, Object>> tags = (List<Map<String, Object>>) doc.get("tags");
@@ -203,7 +204,8 @@ public class HomePageActivity extends ActivityBase {
                                                 reason,
                                                 imageUrl,
                                                 profileImageUrl,
-                                                taggedUserNames
+                                                taggedUserNames,
+                                                isPrivate
                                         );
                                         moodList.add(mood);
                                         moodDocIds.add(doc.getId());

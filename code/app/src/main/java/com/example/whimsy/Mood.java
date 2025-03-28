@@ -26,6 +26,7 @@ public class Mood implements Serializable {
     private String profileImageUrl;
     private List<String> taggedUserNames;
     private String timestamp;
+    private boolean isPrivate = false;
     
     /**
      * Constructor for initializing the Mood object with all its attributes.
@@ -40,7 +41,7 @@ public class Mood implements Serializable {
      * @param moodReason        The reason behind the mood
      * @param moodImage         An optional image representing the mood
      */
-    public Mood(String userName, String userId, String userLocation, String timestamp, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames) {
+    public Mood(String userName, String userId, String userLocation, String timestamp, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames, boolean isPrivate) {
         this.userName = userName;
         this.userId = userId;
         this.userLocation = userLocation;
@@ -53,12 +54,13 @@ public class Mood implements Serializable {
         this.profileImageUrl = profileImageUrl;
         this.taggedUserNames = taggedUserNames;
         this.timestamp = timestamp;
+        this.isPrivate = isPrivate;
     }
 
     public Mood() {
     }
 
-    public Mood(String s, String s1, String s2, String timestampStr, String gatheringStatus, String s3, String trigger, String reason, String imageUrl, String profileImageUrl, List<String> taggedUserNames) {
+    public Mood(String s, String s1, String s2, String timestampStr, String gatheringStatus, String s3, String trigger, String reason, String imageUrl, String profileImageUrl, List<String> taggedUserNames, boolean isPrivate) {
     }
 
     public List<String> getTaggedUserNames() {
@@ -187,12 +189,14 @@ public class Mood implements Serializable {
     public String getTimestamp() {
         return timestamp;
     }
-
-
-
     public void setMoodImage(String moodImage) {
         this.moodImage = moodImage;
     }
+    public boolean isPrivateMood() {
+        return isPrivate;
+    }
 
-
+    public void setPrivate(boolean privateMood) {
+        this.isPrivate = privateMood;
+    }
 }

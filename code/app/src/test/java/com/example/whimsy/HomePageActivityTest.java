@@ -81,7 +81,8 @@ public class HomePageActivityTest {
                 "Reason",
                 "image.jpg",
                 "profile.jpg",
-                new ArrayList<>()
+                new ArrayList<>(),
+                false
         );
 
         assertEquals("User1", mood.getUserName());
