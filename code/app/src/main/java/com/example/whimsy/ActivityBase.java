@@ -63,6 +63,11 @@ public class ActivityBase extends AppCompatActivity {
         searchButton = findViewById(R.id.search);
         addMoodButton = findViewById(R.id.add);
 
+        ImageView heartButton = findViewById(R.id.heart); // NEW
+        heartButton.setOnClickListener(v -> {            // NEW
+            startActivity(new Intent(this, FollowRequestsActivity.class)); // NEW
+        });
+
         // Set click listeners to navigate to the respective activity
         homeButton.setOnClickListener(v -> {
             startActivity(new Intent(this, HomePageActivity.class)); // Navigate to Home Page
