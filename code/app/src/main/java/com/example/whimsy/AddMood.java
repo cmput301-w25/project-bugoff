@@ -47,7 +47,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.core.app.ActivityCompat;
@@ -58,7 +57,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -66,7 +64,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -228,7 +225,7 @@ public class AddMood extends ActivityBase {
                 // Set crossed-eye icon and change tint to blue.
                 visibilityIcon.setImageResource(R.drawable.ic_eye_closed);
                 visibilityIcon.setColorFilter(Color.BLUE);
-                showSnackbar("Mood set to Private", false);
+                showSnackbar("Mood set to Private", getColor(R.color.excited_text));
             } else {
                 // Set open-eye icon and reset tint.
                 visibilityIcon.setImageResource(R.drawable.ic_eye_open);
@@ -306,39 +303,6 @@ public class AddMood extends ActivityBase {
             }
             saveMoodToFirebase();
         });
-    }
-
-    /**
-     * Displays a Snackbar with the specified message.
-     *
-     * @param message The message to display.
-     */
-    private void showSnackbar(String message) {
-        showSnackbar(message, true);
-    }
-
-    /**
-     * Helper method to display a Snackbar at the bottom of the screen with an optional error style.
-     *
-     * @param message The message to display.
-     * @param isError If {@code true}, the Snackbar is styled as an error; otherwise, it is styled as a success message.
-     */
-    private void showSnackbar(String message, boolean isError) {
-        View parentView = findViewById(R.id.content_frame);
-        Snackbar snackbar;
-        if (isError) {
-            snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT)
-                    .setBackgroundTint(Color.RED)
-                    .setTextColor(Color.WHITE);
-        } else {
-            snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT)
-                    .setBackgroundTint(getResources().getColor(R.color.dark_green))
-                    .setTextColor(Color.WHITE);
-        }
-        View snackbarView = snackbar.getView();
-        // Adjust the Snackbar position by moving it up by 150 pixels.
-        snackbarView.setTranslationY(-150);
-        snackbar.show();
     }
 
     // --- LOCATION POPUP ---
