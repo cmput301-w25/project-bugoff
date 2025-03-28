@@ -40,7 +40,6 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -218,7 +217,7 @@ public class ProfileActivity extends ActivityBase {
 
         editProfileButton.setOnClickListener(v -> {
             if (isNetworkAvailable()) {
-                Toast.makeText(this, "Cannot edit profile while offline", Toast.LENGTH_SHORT).show();
+                showSnackbar("Cannot edit profile while offline");
                 return;
             }
             showEditProfileDialog();
@@ -388,7 +387,7 @@ public class ProfileActivity extends ActivityBase {
         searchQuery = "";
         loadMoods();
         filterDialog.dismiss();
-        Toast.makeText(this, "Filters reset", Toast.LENGTH_SHORT).show();
+        showSnackbar("Filters reset",false);
     }
 
     /**
@@ -546,7 +545,7 @@ public class ProfileActivity extends ActivityBase {
      */
     private void handleMoodLoadFailure(Exception e) {
         Log.e("ProfileActivity", "Error loading moods", e);
-        Toast.makeText(this, "Error loading moods", Toast.LENGTH_SHORT).show();
+        showSnackbar("Error loading moods");
         updateMoodCount();
     }
 
@@ -557,7 +556,7 @@ public class ProfileActivity extends ActivityBase {
      */
     private void handleProfileLoadFailure(Exception e) {
         Log.e("ProfileActivity", "Error fetching user profile", e);
-        Toast.makeText(this, "Error loading user profile", Toast.LENGTH_SHORT).show();
+        showSnackbar("Error loading user profile");
     }
 
     /**
@@ -626,7 +625,7 @@ public class ProfileActivity extends ActivityBase {
             }
             sortAndUpdateMoods();
         } else {
-            Toast.makeText(this, "No moods found for the selected filter", Toast.LENGTH_SHORT).show();
+            showSnackbar("No moods found for the selected filter");
             updateMoodCount();
         }
     }
@@ -704,7 +703,6 @@ public class ProfileActivity extends ActivityBase {
     private void setupEditProfileDialog(View view) {
         ImageView profilePic = view.findViewById(R.id.edit_profile_image);
         activeProfileImageView = profilePic;
-        profilePic.setOnClickListener(v -> selectImageFromGallery());
         EditText editName = view.findViewById(R.id.edit_name);
         EditText editBio = view.findViewById(R.id.edit_bio);
         Spinner genderSpinner = view.findViewById(R.id.gender_spinner);
@@ -719,8 +717,8 @@ public class ProfileActivity extends ActivityBase {
 
             btnResetPassword.setOnClickListener(v -> {
                 FirebaseAuth.getInstance().sendPasswordResetEmail(user.getEmail())
-                        .addOnSuccessListener(aVoid -> Toast.makeText(this, "Password reset email sent", Toast.LENGTH_SHORT).show())
-                        .addOnFailureListener(e -> Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                        .addOnSuccessListener(aVoid -> showSnackbar("Password reset email sent", false))
+                        .addOnFailureListener(e -> showSnackbar("Failed: " + e.getMessage(), true));
             });
 
             btnSave.setOnClickListener(v -> {
@@ -743,11 +741,6 @@ public class ProfileActivity extends ActivityBase {
                                     if (editProfileDialog != null && editProfileDialog.isShowing()) {
                                         editProfileDialog.dismiss();
                                     }
-                                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                                        if (!isFinishing() && !isDestroyed()) {
-                                            refreshActivity();
-                                        }
-                                    }, 100);
                                 });
                             });
                         } catch (IOException e) {
@@ -767,12 +760,6 @@ public class ProfileActivity extends ActivityBase {
                     if (editProfileDialog != null && editProfileDialog.isShowing()) {
                         editProfileDialog.dismiss();
                     }
-                    // Delay refresh for safety
-                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                        if (!isFinishing() && !isDestroyed()) {
-                            refreshActivity();
-                        }
-                    }, 100);
                 }
             });
 
@@ -822,11 +809,6 @@ public class ProfileActivity extends ActivityBase {
                         }
                     });
         }
-    }
-
-    private void refreshActivity() {
-        finish();
-        startActivity(getIntent());
     }
 
 
@@ -909,11 +891,11 @@ public class ProfileActivity extends ActivityBase {
                                         String updatedBio = documentSnapshot.getString("bio");
                                         profileName.setText(updatedName);
                                         profileBio.setText(updatedBio);
-                                        Toast.makeText(this, "Profile Updated!", Toast.LENGTH_SHORT).show();
+                                        showSnackbar("Profile Updated!",false);
                                     }
                                 });
                     })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Update Failed!", Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e -> showSnackbar("Update Failed!"));
         }
     }
 
