@@ -124,8 +124,9 @@ public class OtherProfileActivity extends ActivityBase {
         moodsRecyclerView.setAdapter(moodAdapter);
     }
 
+    // In OtherProfileActivity.java
+
     private void loadUserData(String userId) {
-        // Fetch user profile data
         db.collection("users").document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -134,12 +135,20 @@ public class OtherProfileActivity extends ActivityBase {
                         profileUsername.setText("@" + documentSnapshot.getString("username"));
                         profileBio.setText(documentSnapshot.getString("bio"));
 
+                        // NEW: Retrieve the isPrivate flag
+                        boolean isPrivate;
+                        if(documentSnapshot.contains("isPrivate")) {
+                            isPrivate = documentSnapshot.getBoolean("isPrivate");
+                        } else {
+                            isPrivate = false;
+                        }
+
                         String imageUrl = documentSnapshot.getString("profilePictureUrl");
                         if (imageUrl != null && !imageUrl.isEmpty()) {
                             Glide.with(this).load(imageUrl).into(profileImage);
                         }
 
-                        // Check if current user is already following this user
+                        // Check if current user follows this account
                         db.collection("users").document(searchedUserId)
                                 .collection("followers")
                                 .document(currentUserId)
@@ -148,18 +157,34 @@ public class OtherProfileActivity extends ActivityBase {
                                     if (followSnapshot.exists()) {
                                         followButton.setText("Following");
                                         followButton.setEnabled(false);
+                                        // If followed, load moods normally
+                                        loadMoods(searchedUserId);
                                     } else {
                                         followButton.setText("Follow");
                                         followButton.setEnabled(true);
+                                        // NEW: If account is private and not followed, display message instead of loading moods
+                                        if (isPrivate) {
+                                            TextView emptyMoodText = findViewById(R.id.emptyMoodText);
+                                            emptyMoodText.setText("This account is private. Follow to view their moods"); // NEW: Changed text
+                                            emptyMoodText.setVisibility(View.VISIBLE);
+                                        } else {
+                                            // For public accounts, load moods normally
+                                            loadMoods(searchedUserId);
+                                        }
                                     }
                                 })
-                                .addOnFailureListener(e -> Log.e("OtherProfileActivity", "Error checking follow status", e));
+                                .addOnFailureListener(e -> {
+                                    Log.e("OtherProfileActivity", "Error checking follow status", e);
+                                });
                     } else {
                         Toast.makeText(this, "User profile not found.", Toast.LENGTH_SHORT).show();
                     }
                 })
-                .addOnFailureListener(e -> Log.e("OtherProfileActivity", "Error fetching user data", e));
+                .addOnFailureListener(e -> {
+                    Log.e("OtherProfileActivity", "Error fetching user data", e);
+                });
     }
+
 
     private void setupFollowCounts(String userId) {
         followersCount.setOnClickListener(v -> {
