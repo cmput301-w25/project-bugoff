@@ -36,6 +36,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.WriteBatch;
 
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -135,9 +136,9 @@ public class OtherProfileActivity extends ActivityBase {
                         profileUsername.setText("@" + documentSnapshot.getString("username"));
                         profileBio.setText(documentSnapshot.getString("bio"));
 
-                        // NEW: Retrieve the isPrivate flag
-                        boolean isPrivate;
-                        if(documentSnapshot.contains("isPrivate")) {
+                        // NEW: Retrieve the isPrivate flag from user document
+                        boolean isPrivate; // default
+                        if (documentSnapshot.contains("isPrivate")) {
                             isPrivate = documentSnapshot.getBoolean("isPrivate");
                         } else {
                             isPrivate = false;
@@ -157,18 +158,28 @@ public class OtherProfileActivity extends ActivityBase {
                                     if (followSnapshot.exists()) {
                                         followButton.setText("Following");
                                         followButton.setEnabled(false);
-                                        // If followed, load moods normally
                                         loadMoods(searchedUserId);
                                     } else {
-                                        followButton.setText("Follow");
-                                        followButton.setEnabled(true);
-                                        // NEW: If account is private and not followed, display message instead of loading moods
+                                        // For not following, check if a follow request exists // NEW:
+                                        db.collection("users").document(searchedUserId)
+                                                .collection("followRequests")
+                                                .document(currentUserId)
+                                                .get()
+                                                .addOnSuccessListener(requestSnapshot -> {
+                                                    if (requestSnapshot.exists()) {
+                                                        followButton.setText("Requested"); // NEW: set button text if request exists
+                                                        followButton.setEnabled(true);
+                                                    } else {
+                                                        followButton.setText("Follow");
+                                                        followButton.setEnabled(true);
+                                                    }
+                                                });
+                                        // If account is private, don't load moods and show message // NEW:
                                         if (isPrivate) {
                                             TextView emptyMoodText = findViewById(R.id.emptyMoodText);
                                             emptyMoodText.setText("This account is private. Follow to view their moods"); // NEW: Changed text
                                             emptyMoodText.setVisibility(View.VISIBLE);
                                         } else {
-                                            // For public accounts, load moods normally
                                             loadMoods(searchedUserId);
                                         }
                                     }
@@ -184,8 +195,6 @@ public class OtherProfileActivity extends ActivityBase {
                     Log.e("OtherProfileActivity", "Error fetching user data", e);
                 });
     }
-
-
     private void setupFollowCounts(String userId) {
         followersCount.setOnClickListener(v -> {
             Intent intent = new Intent(this, FollowingActivity.class);
@@ -351,31 +360,41 @@ public class OtherProfileActivity extends ActivityBase {
                         isPrivate = documentSnapshot.getBoolean("isPrivate");
                     }
                     if (isPrivate) {
-                        // NEW: For private accounts, send a follow request
+                        // For private accounts, check if a follow request exists // NEW:
                         db.collection("users").document(searchedUserId)
                                 .collection("followRequests").document(currentUserId)
                                 .get()
                                 .addOnSuccessListener(requestDoc -> {
                                     if (requestDoc.exists()) {
-                                        Toast.makeText(this, "Follow request already sent", Toast.LENGTH_SHORT).show();
-                                    } else {
-                                        db.collection("users").document(searchedUserId)
-                                                .collection("followRequests").document(currentUserId)
-                                                .set(new HashMap<String, Object>() {{
-                                                    put("timestamp", FieldValue.serverTimestamp()); // NEW: added timestamp
-                                                }})
+                                        // If request exists, cancel the follow request // NEW:
+                                        requestDoc.getReference().delete()
                                                 .addOnSuccessListener(aVoid -> {
-                                                    followButton.setText("Requested"); // NEW: show request pending
-                                                    followButton.setEnabled(false);
-                                                    Toast.makeText(this, "Follow request sent", Toast.LENGTH_SHORT).show();
+                                                    followButton.setText("Follow"); // NEW: Updated text for cancelled request
+                                                    followButton.setEnabled(true);
+                                                    Toast.makeText(OtherProfileActivity.this, "Follow request cancelled", Toast.LENGTH_SHORT).show();
                                                 })
                                                 .addOnFailureListener(e -> {
-                                                    Toast.makeText(this, "Error sending follow request", Toast.LENGTH_SHORT).show();
+                                                    Toast.makeText(OtherProfileActivity.this, "Error cancelling follow request", Toast.LENGTH_SHORT).show();
+                                                });
+                                    } else {
+                                        // If no request exists, send a follow request // NEW:
+                                        Map<String, Object> requestData = new HashMap<>();
+                                        requestData.put("timestamp", FieldValue.serverTimestamp()); // NEW: added timestamp
+                                        db.collection("users").document(searchedUserId)
+                                                .collection("followRequests").document(currentUserId)
+                                                .set(requestData)
+                                                .addOnSuccessListener(aVoid -> {
+                                                    followButton.setText("Requested"); // NEW: show request pending
+                                                    followButton.setEnabled(true); // Allow cancellation if needed
+                                                    Toast.makeText(OtherProfileActivity.this, "Follow request sent", Toast.LENGTH_SHORT).show();
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    Toast.makeText(OtherProfileActivity.this, "Error sending follow request", Toast.LENGTH_SHORT).show();
                                                 });
                                     }
                                 });
                     } else {
-                        // EDITED: For public accounts, follow immediately.
+                        // For public accounts, follow immediately. // EDITED:
                         WriteBatch batch = db.batch();
                         batch.set(db.collection("users").document(searchedUserId)
                                 .collection("followers").document(currentUserId), new HashMap<>());
@@ -385,10 +404,10 @@ public class OtherProfileActivity extends ActivityBase {
                                 .addOnSuccessListener(aVoid -> {
                                     followButton.setText("Following");
                                     followButton.setEnabled(false);
-                                    Toast.makeText(this, "Followed successfully!", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(OtherProfileActivity.this, "Followed successfully!", Toast.LENGTH_SHORT).show();
                                 })
                                 .addOnFailureListener(e -> {
-                                    Toast.makeText(this, "Failed to follow.", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(OtherProfileActivity.this, "Failed to follow.", Toast.LENGTH_SHORT).show();
                                 });
                     }
                 })
