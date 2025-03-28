@@ -1,24 +1,26 @@
 /**
- * The `AddMood` class is an activity that allows users to log their current mood, along with
- * optional details such as reasons, location, tags, and an image. The mood data is
- * stored in Firebase Firestore, and images are uploaded to Firebase Storage. The activity integrates
- * with the Google Places API for location selection and supports tagging other users from the app.
+ * The {@code AddMood} class is an activity that enables users to log their current mood along with
+ * optional details such as reasons, location, tags, and an image. Mood data is stored in Firebase Firestore,
+ * while images are uploaded to Firebase Storage. This activity integrates with the Google Places API for location
+ * selection and supports tagging other users in the app.
  *
- * Key Features:
- * - Mood selection via a spinner.
- * - Optional reason with character limits.
- * - Location selection using current location or Google Places autocomplete.
- * - Image upload from the camera or gallery.
- * - Tagging other users in the mood entry.
- * - Validation and error handling for user inputs.
- * - Integration with Firebase for data storage and retrieval.
+ * <p><b>Key Features:</b></p>
+ * <ul>
+ *     <li>Mood selection via a spinner control.</li>
+ *     <li>Optional reason input with character limits (200 characters).</li>
+ *     <li>Location selection using the current location or Google Places autocomplete.</li>
+ *     <li>Image upload from either the camera or the gallery.</li>
+ *     <li>User tagging functionality for mood entries.</li>
+ *     <li>Input validation and error handling with user feedback.</li>
+ *     <li>Integration with Firebase for persistent data storage and retrieval.</li>
+ * </ul>
  *
- * Outstanding Issues:
- * - The image size validation logic may need optimization for handling large files.
- * - The location permission handling could be improved for better user experience.
- *
+ * <p><b>Outstanding Issues:</b></p>
+ * <ul>
+ *     <li>The image size validation logic may require optimization to efficiently handle large files.</li>
+ *     <li>The location permission handling could be refined to enhance user experience.</li>
+ * </ul>
  */
-
 package com.example.whimsy;
 
 import android.Manifest;
@@ -80,7 +82,9 @@ import java.util.Map;
 
 public class AddMood extends ActivityBase {
 
+    // UI Components
     private Spinner moodSpinner;
+    private MoodRepository moodRepository;
     private Switch privacySwitch;
     private EditText reasonInput;
     private TextView timestampText;
@@ -90,85 +94,87 @@ public class AddMood extends ActivityBase {
     private FirebaseAuth auth;
     private FirebaseStorage storage;
     private StorageReference storageRef;
-    // Instead of a Place, we use a custom LocationWrapper to store location info.
+
+    // Instead of a Place, a custom LocationWrapper is used to store location details.
     private LocationWrapper selectedLocation;
     private Uri selectedImageUri;
     private String currentPhotoPath;
-
     private TextView selectedLocationText;
 
-    // For the live character counter on the Reason field.
+    // For live character counting in the reason input field.
     private TextView reasonCharCountText;
 
-    // Request codes
+    // Request codes for activity results and permissions.
     private static final int REQUEST_IMAGE_CAPTURE = 2;
     private static final int REQUEST_IMAGE_PICK = 3;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
-    // Global list for tagged users (this list is maintained internally)
+    // Global list for tagged users (managed internally).
     private List<User> taggedUsers = new ArrayList<>();
 
-    // For current location
+    // For acquiring current location data.
     private FusedLocationProviderClient fusedLocationClient;
     private ProgressBar progressBar;
 
     /**
-     * The `LocationWrapper` interface provides a contract for wrapping location information,
-     * including the location name and its geographical coordinates (latitude and longitude).
-     * This interface is used to abstract the source of location data, allowing for flexibility
-     * in how location information is retrieved and displayed.
+     * The {@code LocationWrapper} interface abstracts location information.
+     * It defines methods to retrieve a location's name and geographical coordinates.
+     * This abstraction allows flexibility in sourcing location data.
      */
     public interface LocationWrapper {
         /**
-         * Returns the name of the location (e.g., a place name or address).
+         * Retrieves the location's name (for example, a city name or address).
          *
-         * @return The name of the location as a String.
+         * @return A {@code String} representing the location name.
          */
         String getName();
+
         /**
-         * Returns the geographical coordinates of the location as a `LatLng` object.
+         * Retrieves the geographical coordinates (latitude and longitude) of the location.
          *
-         * @return The latitude and longitude of the location.
+         * @return A {@code LatLng} object representing the location coordinates.
          */
         LatLng getLatLng();
     }
 
-    // DummyLocation: simple implementation of LocationWrapper.
     /**
-     * A simple implementation of the `LocationWrapper` interface. This class is used to store
-     * location information when the user selects a location using the Google Places API or
-     * their current location.
+     * The {@code DummyLocation} class is a simple implementation of the {@code LocationWrapper} interface.
+     * It is used to store location information when a user selects a location either via the Google Places API
+     * or by using their current location.
      */
     private class DummyLocation implements LocationWrapper {
         private final String name;
         private final LatLng latLng;
+
         /**
-         * Constructs a new `DummyLocation` object with the specified name and coordinates.
+         * Constructs a new {@code DummyLocation} instance with the specified name and coordinates.
          *
          * @param name The name of the location.
-         * @param lat  The latitude of the location.
-         * @param lng  The longitude of the location.
+         * @param lat  The latitude coordinate of the location.
+         * @param lng  The longitude coordinate of the location.
          */
         public DummyLocation(String name, double lat, double lng) {
             this.name = name;
             this.latLng = new LatLng(lat, lng);
         }
+
         /**
-         * Returns the name of the location.
-         *
-         * @return The name of the location.
+         * {@inheritDoc}
          */
         @Override
         public String getName() { return name; }
+
         /**
-         * Returns the geographical coordinates of the location.
-         *
-         * @return The latitude and longitude of the location.
+         * {@inheritDoc}
          */
         @Override
         public LatLng getLatLng() { return latLng; }
     }
 
+    /**
+     * Updates the display text that shows the selected location and/or tagged user count.
+     * Depending on what information is available, it shows location details, tag count, or both.
+     */
     private void updateSelectedLocationDisplay() {
         String displayText = "";
         if (selectedLocation != null && !taggedUsers.isEmpty()) {
@@ -188,22 +194,31 @@ public class AddMood extends ActivityBase {
         }
     }
 
+    /**
+     * Called when the activity is first created. This method inflates the layout, initializes UI components,
+     * configures Firebase and location services, sets up event listeners, and loads user profile data.
+     *
+     * @param savedInstanceState If the activity is being re-initialized after previously being shut down, this Bundle contains the data it most recently supplied.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Inflate your provided add_mood.xml layout into the content frame
+        // Inflate the add_mood.xml layout into the content frame.
         getLayoutInflater().inflate(R.layout.add_mood, findViewById(R.id.content_frame), true);
 
-        // Initialize Firebase components
+        // Initialize the MoodRepository to handle database operations.
+        moodRepository = new MoodRepository(this);
+
+        // Initialize Firebase components.
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
 
-        // Initialize FusedLocationProviderClient for current location
+        // Initialize FusedLocationProviderClient for acquiring the current location.
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        // Initialize UI elements from your provided XML
+        // Bind UI elements to their corresponding views in the layout.
         moodSpinner = findViewById(R.id.moodSpinner);
         privacySwitch = findViewById(R.id.privacySwitch);
         reasonInput = findViewById(R.id.reasonInput);
@@ -218,8 +233,7 @@ public class AddMood extends ActivityBase {
         selectedLocationText = findViewById(R.id.selectedLocationText);
         progressBar = findViewById(R.id.progress_bar);
 
-
-        // Load logged in user's profile image (rounded via XML)
+        // Load the logged-in user's profile image using Glide. If not available, use a default image.
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser != null && currentUser.getPhotoUrl() != null) {
             Glide.with(this)
@@ -230,18 +244,18 @@ public class AddMood extends ActivityBase {
             profileImage.setImageResource(R.drawable.ic_profile);
         }
 
-        // Setup Spinner: Use an array with "Select an Emotion" as the first item.
+        // Configure the mood spinner with available mood options.
         String[] moodOptions = {"Select an Emotion", "Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Excited", "Ashamed"};
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moodOptions);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         moodSpinner.setAdapter(spinnerAdapter);
         moodSpinner.setSelection(0);
 
-        // Set current timestamp.
+        // Set the current timestamp in the designated TextView.
         SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
         timestampText.setText(sdf.format(new Date()));
 
-        // Setup Reason input: Limit to 200 characters and show remaining count.
+        // Set up the reason input field: enforce a 200-character limit and update the live character counter.
         reasonInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(200)});
         reasonInput.addTextChangedListener(new TextWatcher() {
             @Override
@@ -255,18 +269,18 @@ public class AddMood extends ActivityBase {
             public void afterTextChanged(Editable s) { }
         });
 
-        // Location icon: open the location popup.
+        // Set up click listener for the location icon to show the location selection popup.
         locationIcon.setOnClickListener(v -> showLocationPopup());
 
-        // Image import icon: open image picker.
+        // Set up click listener for the image import icon to open the image picker.
         importImageIcon.setOnClickListener(v -> showImagePickerDialog());
 
-        // Tag icon: open the tagging popup.
+        // Set up click listener for the tag icon to open the tagging popup.
         tagIcon.setOnClickListener(v -> showTagUsersDialog());
 
-        // Add Mood button: Validate inputs and then save.
+        // Set up click listener for the Add Mood button to validate inputs and initiate mood saving.
         addMoodButton.setOnClickListener(v -> {
-            // Show the progress bar while saving the mood
+            // Show the progress bar while saving the mood.
             progressBar.setVisibility(View.VISIBLE);
 
             if (moodSpinner.getSelectedItemPosition() == 0) {
@@ -278,38 +292,57 @@ public class AddMood extends ActivityBase {
         });
     }
 
+    /**
+     * Displays a Snackbar with the specified message.
+     *
+     * @param message The message to display.
+     */
     private void showSnackbar(String message) {
         showSnackbar(message, true);
     }
-    // Helper method to show errors as a bottom Snackbar.
+
+    /**
+     * Helper method to display a Snackbar at the bottom of the screen with an optional error style.
+     *
+     * @param message The message to display.
+     * @param isError If {@code true}, the Snackbar is styled as an error; otherwise, it is styled as a success message.
+     */
     private void showSnackbar(String message, boolean isError) {
         View parentView = findViewById(R.id.content_frame);
         Snackbar snackbar;
         if (isError) {
-            snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT).setBackgroundTint(Color.RED).setTextColor(Color.WHITE);
+            snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(Color.RED)
+                    .setTextColor(Color.WHITE);
         } else {
-            snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT).setBackgroundTint(getResources().getColor(R.color.dark_green)).setTextColor(Color.WHITE);
+            snackbar = Snackbar.make(parentView, message, Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(getResources().getColor(R.color.dark_green))
+                    .setTextColor(Color.WHITE);
         }
         View snackbarView = snackbar.getView();
-        // Move the Snackbar up by 150 pixels.
+        // Adjust the Snackbar position by moving it up by 150 pixels.
         snackbarView.setTranslationY(-150);
         snackbar.show();
     }
 
     // --- LOCATION POPUP ---
+    /**
+     * Displays a popup dialog that allows the user to select a location.
+     * The dialog provides options to use the current location, remove the current location,
+     * or cancel the selection.
+     */
     private void showLocationPopup() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomDialog);
-        // Inflate your location popup layout (update dialog_location_selection.xml accordingly)
+        // Inflate the custom layout for the location popup.
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_location_selection, null);
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
         Button btnUseCurrent = dialogView.findViewById(R.id.btn_use_current);
-
         Button btnRemoveLocation = dialogView.findViewById(R.id.btn_remove_location);
         Button btnCancel = dialogView.findViewById(R.id.btn_cancel_location);
 
-        // Show the Remove button only if a location is already attached.
+        // Only show the Remove Location button if a location has already been selected.
         btnRemoveLocation.setVisibility(selectedLocation == null ? View.GONE : View.VISIBLE);
 
         btnUseCurrent.setOnClickListener(v -> {
@@ -320,7 +353,7 @@ public class AddMood extends ActivityBase {
                 showSnackbar("Location permission required");
                 return;
             }
-            // Use getCurrentLocation() to actively get the location.
+            // Obtain the current location with high accuracy.
             fusedLocationClient.getCurrentLocation(
                             com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null)
                     .addOnSuccessListener(location -> {
@@ -330,7 +363,7 @@ public class AddMood extends ActivityBase {
                                 List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
                                 if (addresses != null && !addresses.isEmpty()) {
                                     Address address = addresses.get(0);
-                                    // Get City and Country from the address.
+                                    // Extract city and country information from the address.
                                     String city = address.getLocality();
                                     String country = address.getCountryCode();
                                     String locName;
@@ -367,20 +400,24 @@ public class AddMood extends ActivityBase {
         });
 
         btnCancel.setOnClickListener(v -> dialog.dismiss());
-
         dialog.show();
     }
 
-
     // --- IMAGE SELECTION METHODS ---
+    /**
+     * Initiates the image picker dialog to allow the user to select an image.
+     */
     private void showImagePickerDialog() {
         openGallery();
     }
 
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 2001;
 
+    /**
+     * Dispatches an intent to capture an image using the device camera.
+     * Checks for necessary camera permissions before launching the camera.
+     */
     private void dispatchTakePictureIntent() {
-        // Check for camera permission.
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
@@ -389,7 +426,6 @@ public class AddMood extends ActivityBase {
             return;
         }
 
-        // If permission granted, proceed to initialize the camera.
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             File photoFile = null;
@@ -408,20 +444,31 @@ public class AddMood extends ActivityBase {
         }
     }
 
+    /**
+     * Callback for the result from requesting permissions. Handles camera permission results.
+     *
+     * @param requestCode  The request code passed in {@link ActivityCompat#requestPermissions}.
+     * @param permissions  The requested permissions.
+     * @param grantResults The grant results for the corresponding permissions.
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted: initialize camera.
                 dispatchTakePictureIntent();
             } else {
-                // Permission denied: show a snackbar.
                 showSnackbar("Camera permission denied");
             }
         }
     }
 
+    /**
+     * Creates a temporary file to store an image captured by the camera.
+     *
+     * @return A {@code File} object representing the temporary image file.
+     * @throws IOException if an error occurs while creating the file.
+     */
     private File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
@@ -431,12 +478,23 @@ public class AddMood extends ActivityBase {
         return image;
     }
 
+    /**
+     * Opens the device's image gallery for the user to pick an image.
+     */
     private void openGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         startActivityForResult(intent, REQUEST_IMAGE_PICK);
     }
 
     // --- ON ACTIVITY RESULT ---
+    /**
+     * Handles results from launched activities (camera capture and image picking).
+     * Displays the selected image and updates UI elements accordingly.
+     *
+     * @param requestCode The integer request code originally supplied to startActivityForResult().
+     * @param resultCode  The integer result code returned by the child activity.
+     * @param data        An {@code Intent} that carries the result data.
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -453,13 +511,20 @@ public class AddMood extends ActivityBase {
         }
     }
 
-    // --- DISPLAY SELECTED IMAGE ---
+    /**
+     * Displays the selected image in the UI.
+     *
+     * @param uri The {@code Uri} of the image to display.
+     */
     private void displaySelectedImage(Uri uri) {
         selectedImageView.setImageURI(uri);
         selectedImageView.setVisibility(View.VISIBLE);
     }
 
-    // --- SETUP IMAGE REMOVAL ---
+    /**
+     * Sets up a click listener on the displayed image to allow the user to remove it.
+     * A confirmation dialog is shown before removal.
+     */
     private void setupImageRemoval() {
         selectedImageView.setOnClickListener(v -> {
             new AlertDialog.Builder(AddMood.this)
@@ -476,16 +541,33 @@ public class AddMood extends ActivityBase {
     }
 
     // --- SAVE MOOD TO FIRESTORE ---
+    /**
+     * Validates user inputs and assembles mood data into a map.
+     * Delegates the process of saving mood data (and optionally an image) to the MoodRepository.
+     */
     private void saveMoodToFirebase() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             showSnackbar("User not logged in");
             return;
         }
-        String mood = moodSpinner.getSelectedItem().toString();
-        String reason = reasonInput.getText().toString().trim();
-        String timestamp = timestampText.getText().toString();
 
+        String mood = moodSpinner.getSelectedItem().toString();
+        if (!InputValidator.isValidMood(mood)) {
+            showSnackbar("Please select a valid emotion.");
+            progressBar.setVisibility(View.GONE);
+            return;
+        }
+
+        String reason = reasonInput.getText().toString().trim();
+        String reasonError = InputValidator.validateReason(reason);
+        if (reasonError != null) {
+            showSnackbar(reasonError);
+            progressBar.setVisibility(View.GONE);
+            return;
+        }
+
+        String timestamp = timestampText.getText().toString();
         Map<String, Object> moodData = new HashMap<>();
         moodData.put("mood", mood);
         moodData.put("reason", reason);
@@ -512,84 +594,37 @@ public class AddMood extends ActivityBase {
             moodData.put("tags", tags);
         }
 
-        if (selectedImageUri != null) {
-            uploadImageToFirebase(selectedImageUri, moodData);
-        } else {
-            addMoodToFirestore(moodData);
-        }
-    }
-
-    // --- UPLOAD IMAGE USING COMPRESSION ---
-    private void uploadImageToFirebase(Uri imageUri, Map<String, Object> moodData) {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user != null) {
-            try {
-                // Decode the image from the Uri into a Bitmap
-                Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
-                if (bitmap == null) {
-                    showSnackbar("Unable to decode image");
-                    return;
-                }
-
-                // Compress the bitmap to a byte array under 64KB using the ImageCompressor class
-                byte[] compressedImageBytes = ImageCompressor.compressImage(bitmap, 65536);
-
-                // Generate a timestamp-based file name
-                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-                StorageReference imageRef = FirebaseStorage.getInstance()
-                        .getReference("mood_images/" + user.getUid() + "/" + timeStamp + ".jpg");
-
-                // Upload the compressed byte array
-                UploadTask uploadTask = imageRef.putBytes(compressedImageBytes);
-                uploadTask.addOnSuccessListener(taskSnapshot -> {
-                    imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        moodData.put("imageUrl", uri.toString());
-                        addMoodToFirestore(moodData);
-                    });
-                }).addOnFailureListener(e -> {
-                    Log.e("Storage", "Error uploading image", e);
-                    addMoodToFirestore(moodData);
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-                showSnackbar("Error processing image");
+        // Delegate the save operation to the MoodRepository.
+        moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
+            @Override
+            public void onSuccess() {
+                progressBar.setVisibility(View.GONE);
+                // Clear the UI upon successful save.
+                reasonInput.setText("");
+                selectedImageView.setVisibility(View.GONE);
+                selectedImageUri = null;
+                importImageIcon.clearColorFilter();
+                locationIcon.clearColorFilter();
+                selectedLocation = null;
+                taggedUsers.clear();
+                tagIcon.clearColorFilter();
+                showSnackbar("Mood added successfully", false);
             }
-        }
-    }
 
-
-    // --- ADD MOOD DATA TO FIRESTORE ---
-    private void addMoodToFirestore(Map<String, Object> moodData) {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) {
-            progressBar.setVisibility(View.GONE);
-            return;
-        }
-        db.collection("users").document(user.getUid()).collection("moods")
-                .add(moodData)
-                .addOnSuccessListener(documentReference -> {
-                    progressBar.setVisibility(View.GONE);
-                    // Clear UI upon success.
-                    reasonInput.setText("");
-                    selectedImageView.setVisibility(View.GONE);
-                    selectedImageUri = null;
-                    importImageIcon.clearColorFilter();
-                    locationIcon.clearColorFilter();
-                    selectedLocation = null;
-                    taggedUsers.clear();
-                    tagIcon.clearColorFilter();
-                    showSnackbar("Mood added successfully", false);
-                })
-                .addOnFailureListener(e -> {
-                    progressBar.setVisibility(View.GONE);
-                    Log.e("Firestore", "Error adding mood", e);
-                    showSnackbar("Error adding mood");
-                });
+            @Override
+            public void onFailure(Exception e) {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("Error adding mood: " + e.getMessage());
+            }
+        });
     }
 
     // --- TAGGING FUNCTIONALITY ---
-    // The tagging popup still allows the user to add or remove tags,
-    // but the main UI will not display removable chips.
+    /**
+     * Displays a tagging dialog that allows users to add or remove tags.
+     * The dialog includes a search bar to query users and a RecyclerView to display matching results.
+     * Selected users are maintained in the global taggedUsers list.
+     */
     private void showTagUsersDialog() {
         final ArrayList<User> tempTaggedUsers = new ArrayList<>(taggedUsers);
         final List<User> currentData = new ArrayList<>();
@@ -650,7 +685,7 @@ public class AddMood extends ActivityBase {
             } else {
                 tagIcon.clearColorFilter();
             }
-            // Update the selected location display to include the tag count.
+            // Update the display to reflect the current tag count.
             updateSelectedLocationDisplay();
             dialog.dismiss();
         });
@@ -660,11 +695,19 @@ public class AddMood extends ActivityBase {
         dialog.show();
     }
 
-    // RecyclerView Adapter for tagging dialog.
+    /**
+     * RecyclerView Adapter for displaying user search results in the tagging dialog.
+     */
     private class TagUsersAdapter extends RecyclerView.Adapter<TagUsersAdapter.ViewHolder> {
         private List<User> users;
         private List<User> selectedUsers;
 
+        /**
+         * Constructs a new {@code TagUsersAdapter} with the provided lists.
+         *
+         * @param users         The list of users to display.
+         * @param selectedUsers The list of currently selected users.
+         */
         TagUsersAdapter(List<User> users, List<User> selectedUsers) {
             this.users = users;
             this.selectedUsers = selectedUsers;
@@ -685,7 +728,7 @@ public class AddMood extends ActivityBase {
         public void onBindViewHolder(TagUsersAdapter.ViewHolder holder, int position) {
             User user = users.get(position);
             holder.nameText.setText(user.getName());
-            holder.usernameText.setText("@"+user.getUsername());
+            holder.usernameText.setText("@" + user.getUsername());
             Glide.with(holder.profileImage.getContext())
                     .load(user.getProfilePictureUrl())
                     .placeholder(R.drawable.default_profile)
@@ -710,6 +753,12 @@ public class AddMood extends ActivityBase {
             });
         }
 
+        /**
+         * Checks whether a given user is currently selected.
+         *
+         * @param user The user to check.
+         * @return {@code true} if the user is selected; {@code false} otherwise.
+         */
         private boolean isUserSelected(User user) {
             for (User u : selectedUsers) {
                 if (u.getId().equals(user.getId())) {
@@ -719,9 +768,18 @@ public class AddMood extends ActivityBase {
             return false;
         }
 
+        /**
+         * ViewHolder class for the RecyclerView items in the tagging dialog.
+         */
         class ViewHolder extends RecyclerView.ViewHolder {
             ImageView profileImage;
             TextView nameText, usernameText;
+
+            /**
+             * Constructs a new {@code ViewHolder} and binds UI elements.
+             *
+             * @param itemView The view of the item.
+             */
             ViewHolder(View itemView) {
                 super(itemView);
                 profileImage = itemView.findViewById(R.id.profile_image);

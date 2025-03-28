@@ -93,7 +93,7 @@
             <EditText
                 android:id="@+id/reasonInput"
                 android:layout_width="match_parent"
-                android:layout_height="125dp"
+                android:layout_height="146dp"
                 android:background="@drawable/input_field"
                 android:gravity="start|top"
                 android:hint="Add Reason..."
