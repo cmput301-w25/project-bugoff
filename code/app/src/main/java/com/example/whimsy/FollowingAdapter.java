@@ -22,16 +22,19 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
 
     private final List<User> userList;
     private final String currentUserId;
+    private final boolean isSelf;
 
     /**
      * Constructor to initialize the adapter with user list and current user ID.
      *
      * @param userList      List of users to be displayed
      * @param currentUserId ID of the logged-in user
+     * @param isSelf
      */
-    public FollowingAdapter(List<User> userList, String currentUserId) {
+    public FollowingAdapter(List<User> userList, String currentUserId, boolean isSelf) {
         this.userList = userList;
         this.currentUserId = currentUserId;
+        this.isSelf = isSelf;
     }
 
     @NonNull
@@ -55,6 +58,7 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
                 .into(holder.profilePicture);
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+
         db.collection("users")
                 .document(currentUserId)
                 .collection("following")
@@ -71,12 +75,12 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
         holder.followButton.setOnClickListener(v -> {
             int currentPosition = holder.getAdapterPosition();
             if (currentPosition == RecyclerView.NO_POSITION) return;
-            User currentUser = userList.get(currentPosition);
+            User currentItem = userList.get(currentPosition);
 
             db.collection("users")
                     .document(currentUserId)
                     .collection("following")
-                    .document(currentUser.getId())
+                    .document(currentItem.getId())
                     .get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
@@ -84,36 +88,38 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
                             db.collection("users")
                                     .document(currentUserId)
                                     .collection("following")
-                                    .document(currentUser.getId())
+                                    .document(currentItem.getId())
                                     .delete();
                             db.collection("users")
-                                    .document(currentUser.getId())
+                                    .document(currentItem.getId())
                                     .collection("followers")
                                     .document(currentUserId)
                                     .delete();
                             holder.followButton.setText("Follow");
 
                             // Remove user from the list and update UI
-                            if (userList.contains(currentUser)) {
-                                userList.remove(currentPosition);
-                                notifyItemRemoved(currentPosition);
-                                notifyItemRangeChanged(currentPosition, userList.size());
+                            if (isSelf) {
+                                if (userList.contains(currentItem)) {
+                                    userList.remove(currentPosition);
+                                    notifyItemRemoved(currentPosition);
+                                    notifyItemRangeChanged(currentPosition, userList.size());
+                                }
                             }
                         } else {
-                            // Follow logic
+                            // Follow: Add to following and followers subcollections
                             Map<String, Object> followData = new HashMap<>();
                             followData.put("followed", true);
                             db.collection("users")
-                                    .document(currentUserId)
+                                    .document(currentUserId)  // NEW: using currentUserId here
                                     .collection("following")
-                                    .document(currentUser.getId())
+                                    .document(currentItem.getId())
                                     .set(followData);
                             Map<String, Object> followerData = new HashMap<>();
                             followerData.put("follower", true);
                             db.collection("users")
-                                    .document(currentUser.getId())
+                                    .document(currentItem.getId())
                                     .collection("followers")
-                                    .document(currentUserId)
+                                    .document(currentUserId)  // NEW: using currentUserId here
                                     .set(followerData);
                             holder.followButton.setText("Following");
                         }

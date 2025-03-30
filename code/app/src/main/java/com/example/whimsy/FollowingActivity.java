@@ -19,6 +19,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
@@ -74,8 +76,11 @@ public class FollowingActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerViewFollowing);
         recyclerView.setLayoutManager(new LinearLayoutManager(this)); // Set layout manager for list display
         userList = new ArrayList<>();
-        adapter = new FollowingAdapter(userList, userId);
-        recyclerView.setAdapter(adapter); // Attach adapter to RecyclerView
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        boolean isSelf = userId.equals(currentUserId);
+        adapter = new FollowingAdapter(userList, currentUserId, isSelf);
+        recyclerView.setAdapter(adapter);
+
 
         // Fetch the user list from Firestore
         fetchUsersList(type, userId);
