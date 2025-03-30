@@ -33,7 +33,8 @@ public class MoodPageTest {
                 "reason",
                 "imageUrl",
                 "profileImageUrl",
-                new ArrayList<>()
+                new ArrayList<>(),
+                false
         );
         boolean result = MoodPageUtil.shouldShowEditFab(mood, "test@example.com");
         assertTrue("Edit FAB should be visible when mood userId matches current user email", result);
@@ -59,7 +60,8 @@ public class MoodPageTest {
                 "reason",
                 "imageUrl",
                 "profileImageUrl",
-                new ArrayList<>()
+                new ArrayList<>(),
+                false
         );
         boolean result = MoodPageUtil.shouldShowEditFab(mood, null);
         assertEquals("Edit FAB should not be visible when current user email is null", false, result);
@@ -79,7 +81,8 @@ public class MoodPageTest {
                 "reason",
                 "imageUrl",
                 "profileImageUrl",
-                new ArrayList<>()
+                new ArrayList<>(),
+                false
         );
         boolean result = MoodPageUtil.shouldShowEditFab(mood, "other@example.com");
         assertEquals("Edit FAB should not be visible when mood userId does not match current user email", false, result);

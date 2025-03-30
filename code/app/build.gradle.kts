@@ -88,4 +88,5 @@ dependencies {
     implementation ("com.google.android.gms:play-services-basement:18.3.0")
     implementation ("com.google.firebase:firebase-bom:32.8.0")
     implementation ("com.google.android.gms:play-services-base:18.3.0")
+    implementation("com.google.android.gms:play-services-maps:18.1.0")
 }

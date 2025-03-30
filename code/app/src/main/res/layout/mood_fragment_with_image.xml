@@ -65,6 +65,30 @@
                         android:textColor="@android:color/darker_gray"
                         android:textSize="14sp"
                         android:textStyle="italic" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <FrameLayout
+                        android:id="@+id/moodVisibilityBg"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="2dp"
+                        android:visibility="gone"
+                        android:layout_gravity="center_vertical|center_horizontal"
+                        android:background="@drawable/rounded_background"
+                        android:backgroundTint="?attr/buttonBackgroundColor">
+
+                        <ImageView
+                            android:id="@+id/moodVisibility"
+                            android:layout_width="16sp"
+                            android:layout_height="16sp"
+                            android:layout_gravity="center_vertical|center_horizontal"
+                            android:src="@drawable/ic_eye_closed"
+                            app:tint="?attr/textColor" />
+                    </FrameLayout>
                 </LinearLayout>
 
                 <!-- Location/Time section unchanged -->
@@ -173,13 +197,13 @@
             <Button
                 android:id="@+id/track_mood_button"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:textSize="13dp"
-                android:text="Track Mood Event"
+                android:layout_weight="1"
+                android:backgroundTint="?attr/buttonBackgroundColor"
                 android:drawableLeft="@drawable/mood_heart_icon_tinted"
+                android:text="Endorse"
                 android:textColor="?attr/textColor"
-                android:backgroundTint="?attr/buttonBackgroundColor"/>
+                android:textSize="13dp" />
 
             <Button
                 android:id="@+id/comment_button"
