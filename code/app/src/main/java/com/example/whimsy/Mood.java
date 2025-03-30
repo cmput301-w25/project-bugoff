@@ -27,7 +27,9 @@ public class Mood implements Serializable {
     private List<String> taggedUserNames;
     private String timestamp;
     private boolean isPrivate = false;
-    
+    private String ownerUid;          // Firebase UID of the mood's owner
+    private String moodId;
+
     /**
      * Constructor for initializing the Mood object with all its attributes.
      *
@@ -199,4 +201,8 @@ public class Mood implements Serializable {
     public void setPrivate(boolean privateMood) {
         this.isPrivate = privateMood;
     }
+    public String getOwnerUid() { return ownerUid; }
+    public void setOwnerUid(String ownerUid) { this.ownerUid = ownerUid; }
+    public String getMoodId() { return moodId; }
+    public void setMoodId(String moodId) { this.moodId = moodId; }
 }

@@ -1,15 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/transparent"
-    android:gravity="center">  <!-- Semi-transparent background -->
+    android:gravity="center">
 
-    <!-- Centered Rectangle -->
     <RelativeLayout
         android:id="@+id/filter_popup_container"
-        android:layout_width="298dp"
-        android:layout_height="384dp"
+        android:layout_width="321dp"
+        android:layout_height="484dp"
         android:layout_centerInParent="true"
         android:background="@drawable/input_field"
         android:elevation="10dp"
@@ -46,19 +44,44 @@
             android:layout_width="24dp"
             android:layout_height="27dp"
             android:layout_alignParentEnd="true"
-            android:layout_alignParentRight="true"
             android:layout_marginEnd="1dp"
-            android:layout_toEndOf="@+id/filter_header"
             android:src="@drawable/close_button" />
+
+        <!-- New RadioGroup for Mood Source -->
+        <RadioGroup
+            android:id="@+id/mood_source_filter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/filter_header"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/show_all_moods"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="All Moods"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+            <RadioButton
+                android:id="@+id/show_followed_moods"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Followed Moods"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+        </RadioGroup>
 
         <!-- Search Box -->
         <FrameLayout
             android:id="@+id/search_box_wrapper"
             android:layout_width="264dp"
             android:layout_height="46dp"
-            android:layout_below="@id/filter_header"
+            android:layout_below="@id/mood_source_filter"
             android:layout_marginTop="7dp"
-            android:elevation="6dp">  <!-- Elevation for shadow -->
+            android:elevation="6dp">
 
             <LinearLayout
                 android:id="@+id/search_layout"
@@ -83,13 +106,10 @@
                     android:id="@+id/search_button"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_gravity="fill_horizontal|center_vertical"
-                    android:clickable="true"
-                    android:focusable="true"
+                    android:layout_gravity="center_vertical"
                     android:padding="4dp"
                     android:src="@drawable/ic_search" />
             </LinearLayout>
-
         </FrameLayout>
 
         <!-- Filter Options Label -->
@@ -104,7 +124,7 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <!-- RadioGroup for "This Week" and "This Month" -->
+        <!-- RadioGroup for Time Filters -->
         <RadioGroup
             android:id="@+id/filter_options"
             android:layout_width="match_parent"
@@ -130,7 +150,7 @@
                 android:textSize="14sp" />
         </RadioGroup>
 
-        <!-- Spinner (with placeholder for Emotional State) -->
+        <!-- Spinner for Emotional State -->
         <FrameLayout
             android:id="@+id/spinner_wrapper"
             android:layout_width="264dp"
@@ -144,7 +164,6 @@
                 android:layout_height="match_parent"
                 android:background="@drawable/box_shadow">
 
-                <!-- Spinner -->
                 <Spinner
                     android:id="@+id/spinner_emotional_state"
                     android:layout_width="match_parent"
@@ -154,7 +173,6 @@
                     android:paddingStart="16dp"
                     android:paddingEnd="36dp" />
 
-                <!-- Dropdown Icon -->
                 <ImageView
                     android:id="@+id/spinner_icon"
                     android:layout_width="24dp"
@@ -166,7 +184,7 @@
             </RelativeLayout>
         </FrameLayout>
 
-        <!-- Button Container for Apply and Reset Buttons -->
+        <!-- Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -175,9 +193,6 @@
             android:gravity="center"
             android:orientation="horizontal">
 
-            <!-- Reset Button -->
-
-            <!-- Apply Button -->
             <Button
                 android:id="@+id/reset_button"
                 android:layout_width="112dp"

@@ -16,6 +16,7 @@ package com.example.whimsy;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -151,7 +152,7 @@ public class OtherProfileActivity extends ActivityBase {
                                         // NEW: If account is private and not followed, do not load moods
                                         if (isPrivate) {
                                             TextView emptyMoodText = findViewById(R.id.emptyMoodText);
-                                            emptyMoodText.setText("This account is private. Follow to view their moods"); // NEW: Changed text
+                                            emptyMoodText.setText(Html.fromHtml("<b>This account is private.</b><br>Follow to view their moods"));
                                             emptyMoodText.setVisibility(View.VISIBLE);
                                         } else {
                                             loadMoods(searchedUserId); // Load moods for public accounts
