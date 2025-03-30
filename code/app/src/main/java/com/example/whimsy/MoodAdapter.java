@@ -60,6 +60,14 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onFollowClick(Mood mood, boolean isFollowing, Button button);
     }
 
+    public interface OnCommentButtonClickListener {
+        void onCommentButtonClick();
+    }
+    private OnCommentButtonClickListener onCommentButtonClickListener;
+
+    public void setOnCommentButtonClickListener(OnCommentButtonClickListener listener) {
+        this.onCommentButtonClickListener = listener;
+    }
     public interface OnShowFollowersListener {
         void onShowFollowers(Mood mood);
     }
@@ -257,6 +265,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private ImageView moodImage, profileImage;
         private View moodVisibilityBg;
         private Button trackMoodButton;
+        private Button commentButton;
 
         MoodWithImageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -273,6 +282,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             profileImage = itemView.findViewById(R.id.image_profile);
             moodVisibilityBg = itemView.findViewById(R.id.moodVisibilityBg);
             trackMoodButton = itemView.findViewById(R.id.track_mood_button);
+            commentButton = itemView.findViewById(R.id.comment_button);
         }
 
 
@@ -291,12 +301,18 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
 
+
             if (mood.isPrivateMood()) {
                 moodVisibilityBg.setVisibility(View.VISIBLE);
             } else {
                 moodVisibilityBg.setVisibility(View.GONE);
             }
 
+            commentButton.setOnClickListener(v -> {
+                if (adapter.onCommentButtonClickListener != null) {
+                    adapter.onCommentButtonClickListener.onCommentButtonClick();
+                }
+            });
             adapter.applyStyle(itemView, mood.getMoodStatus());
             adapter.setEmojiBasedOnMood(mood.getMoodStatus(), moodStatus);
 
@@ -355,6 +371,8 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private View moodVisibilityBg;
         private Button trackMoodButton;
 
+        private Button commentButton;
+
         /**
          * Constructor for the ViewHolder that holds views for moods without images.
          *
@@ -373,6 +391,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             profileImage = itemView.findViewById(R.id.image_profile);
             moodVisibilityBg = itemView.findViewById(R.id.moodVisibilityBg);
             trackMoodButton = itemView.findViewById(R.id.track_mood_button);
+            commentButton = itemView.findViewById(R.id.comment_button);
         }
 
         /**
@@ -395,6 +414,12 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodReason.setText(mood.getMoodReason());
             adapter.applyStyle(itemView, mood.getMoodStatus());
             moodStatus.setText(mood.getMoodStatus());
+
+            commentButton.setOnClickListener(v -> {
+                if (adapter.onCommentButtonClickListener != null) {
+                    adapter.onCommentButtonClickListener.onCommentButtonClick();
+                }
+            });
 
             if (mood.isPrivateMood()) {
                 moodVisibilityBg.setVisibility(View.VISIBLE);

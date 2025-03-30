@@ -112,7 +112,7 @@ public class HomePageActivity extends ActivityBase {
                         Intent intent = new Intent(HomePageActivity.this, MoodPageActivity.class);
                         intent.putExtra("SELECTED_MOOD", moodList.get(position));
                         intent.putExtra("MOOD_ID", moodDocIds.get(position));
-                        intent.putExtra("OWNER_UID", moodList.get(position).getOwnerUid());
+                        intent.putExtra("OWNER_UID", moodList.get(position).getUserId());
                         startActivity(intent);
                         return true;
                     }
@@ -183,7 +183,7 @@ public class HomePageActivity extends ActivityBase {
                                         boolean matchesSearch = (searchFilter == null || searchFilter.isEmpty()) ||
                                                 (reason != null && reason.toLowerCase().contains(searchFilter.toLowerCase()));
 
-                                        if (withinTimeRange && matchesMood && matchesSearch) {
+                                        if (!isPrivate && withinTimeRange && matchesMood && matchesSearch) {
                                             Mood mood = new Mood(
                                                     displayName != null ? displayName : "Unknown",
                                                     username != null ? username : "Unknown",
@@ -270,7 +270,7 @@ public class HomePageActivity extends ActivityBase {
                                                         boolean matchesSearch = (searchFilter == null || searchFilter.isEmpty()) ||
                                                                 (reason != null && reason.toLowerCase().contains(searchFilter.toLowerCase()));
 
-                                                        if (withinTimeRange && matchesMood && matchesSearch) {
+                                                        if (!isPrivate && withinTimeRange && matchesMood && matchesSearch) {
                                                             Mood mood = new Mood(
                                                                     displayName != null ? displayName : "Unknown",
                                                                     username != null ? username : "Unknown",

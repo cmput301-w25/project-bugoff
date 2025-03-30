@@ -42,6 +42,10 @@ public class Mood implements Serializable {
      * @param moodTrigger       The trigger for the mood
      * @param moodReason        The reason behind the mood
      * @param moodImage         An optional image representing the mood
+     * @param profileImageUrl   The URL of the user's profile image
+     * @param taggedUserNames   The list of tagged user names
+     * @param isPrivate         The privacy status of the mood
+     * @param timestamp         The timestamp of the mood
      */
     public Mood(String userName, String userId, String userLocation, String timestamp, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames, boolean isPrivate) {
         this.userName = userName;

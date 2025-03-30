@@ -86,7 +86,6 @@ public class MoodPageActivity extends ActivityBase {
         FrameLayout contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.activity_mood_page, contentFrame, true);
 
-        FloatingActionButton editMoodFab = findViewById(R.id.edit_mood_fab);
 
         // Retrieve mood data from intent
         selectedMood = (Mood) getIntent().getSerializableExtra("SELECTED_MOOD");
@@ -138,6 +137,8 @@ public class MoodPageActivity extends ActivityBase {
                 break;
         }
         editMoodFab = findViewById(R.id.edit_mood_fab); // Initialize the FAB properly
+        editMoodFab.setBackgroundTintList(ColorStateList.valueOf(colorBg));
+        editMoodFab.setImageTintList(ColorStateList.valueOf(colorFg));
         RecyclerView moodRecyclerView = findViewById(R.id.mood_detail_recycler_view);
         moodRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -149,7 +150,13 @@ public class MoodPageActivity extends ActivityBase {
 
 // Initialize comment input components
         commentInput = findViewById(R.id.comment_input);
+        commentInput.setBackgroundTintList(ColorStateList.valueOf(colorBg));
+        commentInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(200)});
+        commentInput.setTextColor(colorFg);
+
         commentConfirmButton = findViewById(R.id.comment_confirm_button);
+        commentConfirmButton.setBackgroundTintList(ColorStateList.valueOf(colorBg));
+        commentConfirmButton.setTextColor(colorFg);
         commentLayout = findViewById(R.id.comment_layout);
         commentLayout.setVisibility(View.GONE); // Initially hidden
         commentConfirmButton.setOnClickListener(v -> postComment());
@@ -175,13 +182,9 @@ public class MoodPageActivity extends ActivityBase {
                 }
             }
         });
+
+        FloatingActionButton editMoodFab = findViewById(R.id.edit_mood_fab);
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null && ownerUid.equals(user.getUid())) {
-            editMoodFab.setVisibility(View.VISIBLE);
-            editMoodFab.setOnClickListener(v -> showEditDialog(selectedMood, moodId));
-        } else {
-            editMoodFab.setVisibility(View.GONE);
-        }
 
         if (selectedMood != null && moodId != null) {
             selectedMood.setOwnerUid(ownerUid);
@@ -191,11 +194,36 @@ public class MoodPageActivity extends ActivityBase {
             moodAdapter = new MoodAdapter(moodList);
 
             FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
+            if (user != null) {
+                db.collection("users")
+                        .document(user.getUid())
+                        .get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            String username = documentSnapshot.getString("username");
+                            if (selectedMood.getUserId().equals(username)) {
+                                editMoodFab.setVisibility(View.VISIBLE);
+                                editMoodFab.setOnClickListener(v -> showEditDialog(selectedMood, moodId));
+                            } else {
+                                editMoodFab.setVisibility(View.GONE);
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            editMoodFab.setVisibility(View.GONE);
+                        });
+            } else {
+                editMoodFab.setVisibility(View.GONE);
+            }
+
             if (currentUser != null) {
                 String currentUserId = currentUser.getUid();
-                db.collection("users").document(currentUserId).collection("followedMoods")
+                db.collection("users")
+                        .document(currentUserId)
+                        .collection("followedMoods")
                         .get()
                         .addOnSuccessListener(querySnapshot -> {
+
+
                             for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                                 String ownerUidDoc = doc.getString("ownerUid");
                                 String moodIdDoc = doc.getString("moodId");
@@ -324,14 +352,26 @@ public class MoodPageActivity extends ActivityBase {
                         Toast.makeText(this, "Error loading comments", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    comments.clear();
                     if (snapshots != null) {
+                        // Clear the list to avoid duplicates
+                        comments.clear();
                         for (DocumentSnapshot doc : snapshots.getDocuments()) {
                             Comment comment = doc.toObject(Comment.class);
                             comments.add(comment);
                         }
+                        // Update the UI on the main thread
+                        runOnUiThread(() -> {
+                            // Notify the adapter of data changes
+                            commentAdapter.notifyDataSetChanged();
+                            // Update visibility of "No Comments Yet" TextView
+                            TextView noCommentsText = findViewById(R.id.no_comments_text);
+                            if (comments.isEmpty()) {
+                                noCommentsText.setVisibility(View.VISIBLE);
+                            } else {
+                                noCommentsText.setVisibility(View.GONE);
+                            }
+                        });
                     }
-                    runOnUiThread(() -> commentAdapter.notifyDataSetChanged());
                 });
     }
 
@@ -451,6 +491,21 @@ public class MoodPageActivity extends ActivityBase {
         });
 
         moodAdapter.setOnShowFollowersListener(mood -> showFollowers(mood.getOwnerUid(), mood.getMoodId()));
+
+        moodAdapter.setOnCommentButtonClickListener(() -> {
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null) {
+                Toast.makeText(this, "Please log in to comment", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Toggle comment layout visibility
+            commentLayout.setVisibility(
+                    commentLayout.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
+            );
+            if (commentLayout.getVisibility() == View.VISIBLE) {
+                commentInput.requestFocus();
+            }
+        });
     }
 
     private void followMood(String ownerUid, String moodId, String currentUserId, Button button) {

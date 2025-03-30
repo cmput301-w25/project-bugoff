@@ -18,6 +18,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -26,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.FrameLayout;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -112,6 +115,29 @@ public class OtherProfileActivity extends ActivityBase {
             Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
             finish();
         }
+
+
+        // Add touch listener to RecyclerView for mood item selection
+        final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return true;
+            }
+        });
+        moodsRecyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                View child = rv.findChildViewUnder(e.getX(), e.getY());
+                if (child != null && gestureDetector.onTouchEvent(e)) {
+                    int position = rv.getChildAdapterPosition(child);
+                    if (position != RecyclerView.NO_POSITION) {
+                        navigateToMoodPage(position);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
     }
 
     private void loadUserData(String userId) {
@@ -226,6 +252,7 @@ public class OtherProfileActivity extends ActivityBase {
                                         Boolean isPrivate = document.getBoolean("isPrivate");
                                         if (isPrivate == null || !isPrivate) {
                                             Mood moodObj = createMoodObject(document, name, username, profileImageUrl);
+                                            moodObj.setMoodId(document.getId());
                                             moodList.add(moodObj);
                                             moodDocIds.add(document.getId());
                                             count++;
@@ -310,6 +337,14 @@ public class OtherProfileActivity extends ActivityBase {
             Log.e("OtherProfileActivity", "Error parsing timestamp: " + timestampStr, e);
             return 0;
         }
+    }
+
+    private void navigateToMoodPage(int position) {
+        Intent intent = new Intent(this, MoodPageActivity.class);
+        intent.putExtra("SELECTED_MOOD", moodList.get(position));
+        intent.putExtra("MOOD_ID", moodDocIds.get(position));
+        intent.putExtra("OWNER_UID", moodList.get(position).getUserId());
+        startActivity(intent);
     }
 
     private void sortAndUpdateMoods() {
