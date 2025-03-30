@@ -56,6 +56,7 @@ import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -315,10 +316,11 @@ public class ProfileActivity extends ActivityBase {
      * @param position The position of the selected mood in the list
      */
     private void navigateToMoodPage(int position) {
+        Mood selectedMood = moodList.get(position);
         Intent intent = new Intent(this, MoodPageActivity.class);
-        intent.putExtra("SELECTED_MOOD", moodList.get(position));
-        intent.putExtra("MOOD_ID", moodDocIds.get(position));
-        intent.putExtra("OWNER_UID", moodList.get(position).getUserId());
+        intent.putExtra("SELECTED_MOOD", selectedMood);
+        intent.putExtra("MOOD_ID", selectedMood.getMoodId()); // Use getMoodId from Mood object
+        intent.putExtra("OWNER_UID", selectedMood.getOwnerUid());
         startActivity(intent);
     }
 
@@ -425,8 +427,7 @@ public class ProfileActivity extends ActivityBase {
                     .addOnSuccessListener(userDoc -> {
                         String profileImageUrl = userDoc.getString("profilePictureUrl");
                         String username = userDoc.getString("username");
-                        moodList.clear();
-                        moodDocIds.clear();
+                        moodList.clear(); // Clear the mood list before loading new data
 
                         db.collection("users").document(userId).collection("moods")
                                 .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -445,12 +446,13 @@ public class ProfileActivity extends ActivityBase {
      * @param user The current Firebase user
      * @param profileImageUrl The user's profile image URL
      */
-    private void processMoodDocuments(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots, FirebaseUser user, String username, String profileImageUrl) {
+    private void processMoodDocuments(QuerySnapshot queryDocumentSnapshots, FirebaseUser user, String username, String profileImageUrl) {
         if (!queryDocumentSnapshots.isEmpty()) {
-            for (DocumentSnapshot document : queryDocumentSnapshots) {
-                Mood moodObj = createMoodObject(document, user, username, profileImageUrl);
+            for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
+                Mood moodObj = createMoodObject(document, user, username, profileImageUrl); // Assumed helper method
+                moodObj.setMoodId(document.getId()); // Store the document ID in the Mood object
+                moodObj.setOwnerUid(user.getUid());  // Set the owner UID
                 moodList.add(moodObj);
-                moodDocIds.add(document.getId());
             }
             sortAndUpdateMoods();
         } else {
@@ -475,14 +477,14 @@ public class ProfileActivity extends ActivityBase {
         String imageUrl = document.getString("imageUrl");
         Boolean isPrivate = document.getBoolean("isPrivate");
         if (isPrivate == null) {
-            isPrivate = false; // or any default value you prefer
+            isPrivate = false;
         }
 
         List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
         List<String> taggedUserNames = extractTaggedUserNames(tags);
         String gatheringStatus = calculateGatheringStatus(tags);
 
-        return new Mood(
+        Mood moodObj = new Mood(
                 user.getDisplayName(),
                 username,
                 locationName != null ? locationName : "No location",
@@ -497,6 +499,11 @@ public class ProfileActivity extends ActivityBase {
                 taggedUserNames,
                 isPrivate
         );
+        Log.d("Firestore", "User ID: " + user.getUid());
+        moodObj.setOwnerUid(user.getUid()); // Set ownerUid to current user's UID
+        Log.d("Firestore", "Mood ID: " + document.getId());
+        moodObj.setMoodId(document.getId()); // Set moodId to Firestore document ID
+        return moodObj;
     }
 
     /**

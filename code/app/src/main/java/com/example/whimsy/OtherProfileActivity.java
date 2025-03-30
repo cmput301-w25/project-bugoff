@@ -238,12 +238,12 @@ public class OtherProfileActivity extends ActivityBase {
                     String profileImageUrl = userDoc.getString("profilePictureUrl");
                     String name = userDoc.getString("name");
                     String username = userDoc.getString("username");
-                    moodList.clear();
-                    moodDocIds.clear();
+
+                    moodList.clear(); // Always clear the list before loading new data
 
                     db.collection("users").document(userId).collection("moods")
                             .orderBy("timestamp", Query.Direction.DESCENDING)
-                            .limit(10) // Fetch more than 3 to account for private moods
+                            .limit(10)
                             .get()
                             .addOnSuccessListener(querySnapshot -> {
                                 if (!querySnapshot.isEmpty()) {
@@ -251,15 +251,14 @@ public class OtherProfileActivity extends ActivityBase {
                                     for (DocumentSnapshot document : querySnapshot.getDocuments()) {
                                         Boolean isPrivate = document.getBoolean("isPrivate");
                                         if (isPrivate == null || !isPrivate) {
-                                            Mood moodObj = createMoodObject(document, name, username, profileImageUrl);
-                                            moodObj.setMoodId(document.getId());
+                                            Mood moodObj = createMoodObject(document, name, username, profileImageUrl, userDoc.getId());
+                                            moodObj.setMoodId(document.getId()); // Store ID in the Mood object
                                             moodList.add(moodObj);
-                                            moodDocIds.add(document.getId());
                                             count++;
-                                            if (count == 3) break; // Stop after adding 3 non-private moods
+                                            if (count == 3) break; // Stop after 3 non-private moods
                                         }
                                     }
-                                    sortAndUpdateMoods();
+                                    sortAndUpdateMoods(); // Update UI with sorted moods
                                 } else {
                                     updateMoodCount();
                                 }
@@ -269,7 +268,7 @@ public class OtherProfileActivity extends ActivityBase {
     }
 
     // Updated createMoodObject: uses name and username strings
-    private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl) {
+    private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl, String ownerUid) {
         String mood = document.getString("mood");
         String locationName = document.getString("locationName");
         String timestampStr = document.getString("timestamp");
@@ -285,7 +284,7 @@ public class OtherProfileActivity extends ActivityBase {
         List<String> taggedUserNames = extractTaggedUserNames(tags);
         String gatheringStatus = calculateGatheringStatus(tags);
 
-        return new Mood(
+        Mood moodObj = new Mood(
                 name,
                 username,
                 locationName != null ? locationName : "No location",
@@ -300,6 +299,8 @@ public class OtherProfileActivity extends ActivityBase {
                 taggedUserNames,
                 isPrivate
         );
+        moodObj.setOwnerUid(ownerUid); // Set ownerUid to user document ID
+        return moodObj;
     }
     /**
      * Calculates gathering status based on number of tagged users.
@@ -340,10 +341,11 @@ public class OtherProfileActivity extends ActivityBase {
     }
 
     private void navigateToMoodPage(int position) {
+        Mood selectedMood = moodList.get(position);
         Intent intent = new Intent(this, MoodPageActivity.class);
-        intent.putExtra("SELECTED_MOOD", moodList.get(position));
-        intent.putExtra("MOOD_ID", moodDocIds.get(position));
-        intent.putExtra("OWNER_UID", moodList.get(position).getUserId());
+        intent.putExtra("SELECTED_MOOD", selectedMood);
+        intent.putExtra("MOOD_ID", selectedMood.getMoodId()); // Pass the moodId from the Mood object
+        intent.putExtra("OWNER_UID", selectedMood.getOwnerUid()); // Assuming Mood has this field
         startActivity(intent);
     }
 

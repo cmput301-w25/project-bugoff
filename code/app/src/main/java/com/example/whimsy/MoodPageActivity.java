@@ -576,4 +576,12 @@ public class MoodPageActivity extends ActivityBase {
                 });
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (commentsListener != null) {
+            commentsListener.remove();
+        }
+    }
+
 }
