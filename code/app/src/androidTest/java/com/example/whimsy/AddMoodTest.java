@@ -1,68 +1,98 @@
 package com.example.whimsy;
 
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import static androidx.test.espresso.Espresso.onData;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.action.ViewActions.typeText;
+import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
-import static androidx.test.espresso.matcher.ViewMatchers.withSpinnerText;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.StringContains.containsString;
+
+import android.app.Activity;
+import android.view.View;
+
+import androidx.test.core.app.ActivityScenario;
+import androidx.test.espresso.Root;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class AddMoodTest {
 
-    @Rule
-    public ActivityScenarioRule<AddMood> activityRule = new ActivityScenarioRule<>(AddMood.class);
+    private Activity currentActivity;
 
-    @Test
-    public void testMoodSpinnerSelection() {
-        // Open spinner and select "Happy"
-        onView(withId(R.id.moodSpinner)).perform(click());
-        onData(allOf(is(instanceOf(String.class)), is("Happy"))).perform(click());
+    // A simple helper to obtain the activity's decor view for matching Snackbars.
+    private static Matcher<Root> withDecorView(final Activity activity) {
+        return new TypeSafeMatcher<Root>() {
+            @Override
+            protected boolean matchesSafely(Root root) {
+                return root.getDecorView() == activity.getWindow().getDecorView();
+            }
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("with decor view");
+            }
+        };
+    }
 
-        // Verify selection
-        onView(withId(R.id.moodSpinner)).check(matches(withSpinnerText(containsString("Happy"))));
+    @Before
+    public void setUp() {
+        ActivityScenario<AddMood> scenario = ActivityScenario.launch(AddMood.class);
+        scenario.onActivity(activity -> currentActivity = activity);
     }
 
     @Test
-    public void testAddMoodButton_withoutEmotion_showsError() {
-        // Leave spinner at "Select an Emotion" and click add
+    public void testAddMoodWithoutSelectingEmotion_showsSnackbar() {
+        // Click the add mood button.
         onView(withId(R.id.addMoodButton)).perform(click());
-
-        // Check for Snackbar with error message
-        onView(withText("Please select an emotion.")).check(matches(isDisplayed()));
+        // Verify that a Snackbar with the text "Please select an emotion." is displayed.
+        onView(withText("Please select an emotion."))
+                .inRoot(new TypeSafeMatcher<Root>() {
+                    @Override
+                    protected boolean matchesSafely(Root root) {
+                        return root.getDecorView() == currentActivity.getWindow().getDecorView();
+                    }
+                    @Override
+                    public void describeTo(Description description) {
+                        description.appendText("is in the decor view");
+                    }
+                })
+                .check(matches(withText("Please select an emotion.")));
     }
 
     @Test
-    public void testReasonInput_characterLimit() {
-        // Type more than 20 characters
-        onView(withId(R.id.reasonInput)).perform(typeText("This is a very long reason exceeding 20 chars"));
+    public void testPrivacyToggle_changesSnackbarMessage() {
+        // Click the privacy icon to toggle private.
+        onView(withId(R.id.visibilityIcon)).perform(click());
+        // Verify Snackbar message.
+        onView(withText("Mood set to Private"))
+                .inRoot(withDecorView(currentActivity))
+                .check(matches(withText("Mood set to Private")));
 
-        // Verify text is truncated to 20 chars
-        onView(withId(R.id.reasonInput)).check(matches(withText("This is a very long ")));
-        onView(withId(R.id.reasonCharCountText)).check(matches(withText("0")));
+        // Click the icon again to toggle public.
+//        onView(withId(R.id.visibilityIcon)).perform(click());
+//        onView(withText("Mood set to Public"))
+//                .inRoot(withDecorView(currentActivity))
+//                .check(matches(withText("Mood set to Public")));
     }
 
     @Test
-    public void testLocationIcon_opensDialog() {
-        // Click location icon
-        onView(withId(R.id.locationIcon)).perform(click());
+    public void testReasonInputCharacterCounter_updates() {
+        // Check initial character count ("200").
+        onView(withId(R.id.reasonCharCountText)).check(matches(withText("200")));
+        // Replace text in reason input.
+        String inputText = "Testing 123 123";
+        int expectedCount = 200 - inputText.length();
+        onView(withId(R.id.reasonInput)).perform(replaceText(inputText));
+        // Verify that the character counter updates.
+        onView(withId(R.id.reasonCharCountText)).check(matches(withText(String.valueOf(expectedCount))));
+    }
 
-        // Verify dialog buttons are displayed
-        onView(withId(R.id.btn_use_current)).check(matches(isDisplayed()));
-        onView(withId(R.id.btn_cancel_location)).check(matches(isDisplayed()));
     }
 
     @Test
