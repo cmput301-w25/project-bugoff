@@ -59,7 +59,7 @@ public class OtherProfileActivity extends ActivityBase {
 
     private ImageView profileImage;
     private TextView profileName, profileUsername, profileBio;
-    private Button followButton, backButton;
+    private Button followButton;
     private String searchedUserId;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -74,40 +74,10 @@ public class OtherProfileActivity extends ActivityBase {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        initializeNavigation();
+        getLayoutInflater().inflate(R.layout.activity_other_profile, findViewById(R.id.content_frame), true);
 
-        // Load the base layout with header and footer
-        setContentView(R.layout.activity_base);
-
-        // Inflate the profile layout inside the content frame
-        FrameLayout contentFrame = findViewById(R.id.content_frame);
-        getLayoutInflater().inflate(R.layout.activity_other_profile, contentFrame, true);
-
-        // Initialize Firebase instances
-        db = FirebaseFirestore.getInstance();
-        auth = FirebaseAuth.getInstance();
-        currentUserId = auth.getCurrentUser().getUid();
-
-        // Set up bottom navigation
-        findViewById(R.id.home).setOnClickListener(v -> startActivity(new Intent(this, HomePageActivity.class)));
-        findViewById(R.id.search).setOnClickListener(v -> startActivity(new Intent(this, SearchActivity.class)));
-        findViewById(R.id.profile_button).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
-
-        initUI();
-
-        // Get the searched user ID from Intent
-        searchedUserId = getIntent().getStringExtra("USER_ID");
-
-        if (searchedUserId != null && !searchedUserId.isEmpty()) {
-            loadUserData(searchedUserId);
-            setupFollowCounts(searchedUserId);
-//            loadMoods(searchedUserId);
-        } else {
-            Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
-            finish();
-        }
-    }
-
-    private void initUI() {
+        // Initialize UI components
         profileImage = findViewById(R.id.other_profile_image);
         profileName = findViewById(R.id.other_profile_name);
         profileUsername = findViewById(R.id.other_profile_email);
@@ -116,19 +86,32 @@ public class OtherProfileActivity extends ActivityBase {
         followersCount = findViewById(R.id.other_followers_count);
         followingCount = findViewById(R.id.other_following_count);
         moodCountText = findViewById(R.id.other_moods_count);
-
-        backButton.setOnClickListener(v -> finish());
-        followButton.setOnClickListener(v -> followUser());
-
         moodsRecyclerView = findViewById(R.id.other_moods_recycler_view);
+
+        // Set up RecyclerView
         moodsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         moodList = new ArrayList<>();
         moodDocIds = new ArrayList<>();
         moodAdapter = new MoodAdapter(moodList);
         moodsRecyclerView.setAdapter(moodAdapter);
-    }
+        followButton.setOnClickListener(v -> followUser());
 
-    // In OtherProfileActivity.java
+        // Initialize Firebase instances
+        db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
+        currentUserId = auth.getCurrentUser().getUid();
+
+        // Get the searched user ID from Intent
+        searchedUserId = getIntent().getStringExtra("USER_ID");
+
+        if (searchedUserId != null && !searchedUserId.isEmpty()) {
+            loadUserData(searchedUserId);
+            setupFollowCounts(searchedUserId);
+        } else {
+            Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+    }
 
     private void loadUserData(String userId) {
         db.collection("users").document(userId)
@@ -261,7 +244,7 @@ public class OtherProfileActivity extends ActivityBase {
         String imageUrl = document.getString("imageUrl");
         Boolean isPrivate = document.getBoolean("isPrivate");
         if (isPrivate == null) {
-            isPrivate = false; // or any default value you prefer
+            isPrivate = false;
         }
 
         List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");

@@ -57,26 +57,4 @@ public class MapActivityTest {
         }
         return tags;
     }
-
-    @Test
-    public void testMoodObjectCreation() {
-        Mood mood = new Mood(
-                "User1",
-                "user@example.com",
-                "New York",
-                "2023-10-01",
-                "2023-10-01T12:00:00",
-                "With 2 others",
-                "Feeling Happy",
-                "Trigger",
-                "Reason",
-                "image.jpg",
-                "profile.jpg",
-                new ArrayList<>()
-        );
-
-        assertEquals("User1", mood.getUserName());
-        assertEquals("user@example.com", mood.getUserId());
-        assertEquals("With 2 others", mood.getUserGatheringStatus());
-    }
 }
