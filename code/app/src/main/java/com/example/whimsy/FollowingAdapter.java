@@ -57,6 +57,13 @@ public class FollowingAdapter extends RecyclerView.Adapter<FollowingAdapter.User
                 .placeholder(R.drawable.ic_profile)
                 .into(holder.profilePicture);
 
+        if (user.getId().equals(currentUserId)) {
+            holder.followButton.setText("You");
+            holder.followButton.setEnabled(false);
+            return;
+        }
+
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         db.collection("users")

@@ -76,9 +76,10 @@ public class FollowingActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerViewFollowing);
         recyclerView.setLayoutManager(new LinearLayoutManager(this)); // Set layout manager for list display
         userList = new ArrayList<>();
-        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        boolean isSelf = userId.equals(currentUserId);
-        adapter = new FollowingAdapter(userList, currentUserId, isSelf);
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();  // NEW: Get current user id
+        boolean isSelf = userId.equals(currentUserId);  // NEW: Flag to indicate if viewing own following list
+        // EDIT: Pass currentUserId and isSelf flag to the adapter
+        adapter = new FollowingAdapter(userList, currentUserId, isSelf);  // EDIT
         recyclerView.setAdapter(adapter);
 
 
