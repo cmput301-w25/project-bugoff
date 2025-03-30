@@ -216,14 +216,20 @@ public class OtherProfileActivity extends ActivityBase {
 
                     db.collection("users").document(userId).collection("moods")
                             .orderBy("timestamp", Query.Direction.DESCENDING)
+                            .limit(10) // Fetch more than 3 to account for private moods
                             .get()
                             .addOnSuccessListener(querySnapshot -> {
                                 if (!querySnapshot.isEmpty()) {
+                                    int count = 0;
                                     for (DocumentSnapshot document : querySnapshot.getDocuments()) {
-                                        // Pass the retrieved name and username instead of a FirebaseUser
-                                        Mood moodObj = createMoodObject(document, name, username, profileImageUrl);
-                                        moodList.add(moodObj);
-                                        moodDocIds.add(document.getId());
+                                        Boolean isPrivate = document.getBoolean("isPrivate");
+                                        if (isPrivate == null || !isPrivate) {
+                                            Mood moodObj = createMoodObject(document, name, username, profileImageUrl);
+                                            moodList.add(moodObj);
+                                            moodDocIds.add(document.getId());
+                                            count++;
+                                            if (count == 3) break; // Stop after adding 3 non-private moods
+                                        }
                                     }
                                     sortAndUpdateMoods();
                                 } else {
