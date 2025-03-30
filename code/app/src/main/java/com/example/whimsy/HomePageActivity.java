@@ -29,6 +29,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +37,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class HomePageActivity extends ActivityBase {
     private static final String TAG = "HomePageActivity";
@@ -140,10 +142,18 @@ public class HomePageActivity extends ActivityBase {
     }
 
     /** Loads moods from followed users with optional filters. */
+    /** Loads moods from followed users with optional filters, ensuring latest order. */
     private void loadMoodsFromFollowedUsers(List<String> followedUserIds, int days, String moodFilter, String searchFilter) {
         moodList.clear();
         moodDocIds.clear();
-        long cutoffTimestamp = days > 0 ? calculateCutoffTimestamp(days) : 0;
+
+        if (followedUserIds.isEmpty()) {
+            moodAdapter.notifyDataSetChanged();
+            return;
+        }
+
+        final int totalUsers = followedUserIds.size();
+        final AtomicInteger usersProcessed = new AtomicInteger(0);
 
         for (String followedId : followedUserIds) {
             db.collection("users").document(followedId).get()
@@ -158,7 +168,8 @@ public class HomePageActivity extends ActivityBase {
                                 .addOnSuccessListener(querySnapshots -> {
                                     for (DocumentSnapshot doc : querySnapshots) {
                                         String moodStr = doc.getString("mood");
-                                        String locationName = doc.getString("location");
+                                        String locationName = doc.getString("locationName");
+                                        Log.d(TAG, "moodStr: " + locationName);
                                         String timestampStr = doc.getString("timestamp");
                                         String trigger = doc.getString("trigger");
                                         String reason = doc.getString("reason");
@@ -176,39 +187,84 @@ public class HomePageActivity extends ActivityBase {
                                                 tags.size() == 1 ? "With 1 other" :
                                                         tags.size() <= 5 ? "With " + tags.size() + " others" : "With a crowd";
 
-                                        long moodTimestamp = convertTimestampToMillis(timestampStr);
-                                        boolean withinTimeRange = (days == 0) || (moodTimestamp >= cutoffTimestamp);
-                                        boolean matchesMood = (moodFilter == null || moodFilter.equals("Select Mood")) ||
-                                                moodStr.equalsIgnoreCase(moodFilter);
-                                        boolean matchesSearch = (searchFilter == null || searchFilter.isEmpty()) ||
-                                                (reason != null && reason.toLowerCase().contains(searchFilter.toLowerCase()));
-
-                                        if (!isPrivate && withinTimeRange && matchesMood && matchesSearch) {
-                                            Mood mood = new Mood(
-                                                    displayName != null ? displayName : "Unknown",
-                                                    username != null ? username : "Unknown",
-                                                    locationName != null ? locationName : "No location",
-                                                    timestampStr,
-                                                    timestampStr,
-                                                    gatheringStatus,
-                                                    "Feeling " + moodStr,
-                                                    trigger,
-                                                    reason,
-                                                    imageUrl,
-                                                    profileImageUrl,
-                                                    taggedUserNames,
-                                                    isPrivate
-                                            );
-                                            mood.setOwnerUid(followedId);
-                                            mood.setMoodId(doc.getId());
-                                            moodList.add(mood);
-                                            moodDocIds.add(doc.getId());
-                                        }
+                                        Mood mood = new Mood(
+                                                displayName != null ? displayName : "Unknown",
+                                                username != null ? username : "Unknown",
+                                                locationName != null ? locationName : "No location",
+                                                timestampStr,
+                                                timestampStr,
+                                                gatheringStatus,
+                                                "Feeling " + moodStr,
+                                                trigger,
+                                                reason,
+                                                imageUrl,
+                                                profileImageUrl,
+                                                taggedUserNames,
+                                                isPrivate
+                                        );
+                                        mood.setOwnerUid(followedId);
+                                        mood.setMoodId(doc.getId());
+                                        moodList.add(mood); // Add all moods without filtering yet
+                                        moodDocIds.add(doc.getId());
                                     }
-                                    moodAdapter.notifyDataSetChanged();
+
+                                    // Check if all users' moods have been processed
+                                    if (usersProcessed.incrementAndGet() == totalUsers) {
+                                        applyFiltersAndSort(days, moodFilter, searchFilter);
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error fetching moods for user " + followedId, e);
+                                    if (usersProcessed.incrementAndGet() == totalUsers) {
+                                        applyFiltersAndSort(days, moodFilter, searchFilter);
+                                    }
                                 });
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error fetching user data for " + followedId, e);
+                        if (usersProcessed.incrementAndGet() == totalUsers) {
+                            applyFiltersAndSort(days, moodFilter, searchFilter);
+                        }
                     });
         }
+    }
+
+    /** Applies filters and sorts the mood list by timestamp in descending order. */
+    private void applyFiltersAndSort(int days, String moodFilter, String searchFilter) {
+        long cutoffTimestamp = days > 0 ? calculateCutoffTimestamp(days) : 0;
+
+        // Filter the moods
+        List<Mood> filteredMoods = new ArrayList<>();
+        for (Mood mood : moodList) {
+            if (mood.isPrivate()) continue;
+
+            long moodTimestamp = convertTimestampToMillis(mood.getTimestamp());
+            boolean withinTimeRange = (days == 0) || (moodTimestamp >= cutoffTimestamp);
+            boolean matchesMood = (moodFilter == null || moodFilter.equals("Select Mood")) ||
+                    mood.getMoodStatus().substring("Feeling ".length()).equalsIgnoreCase(moodFilter);
+            boolean matchesSearch = (searchFilter == null || searchFilter.isEmpty()) ||
+                    (mood.getMoodReason() != null && mood.getMoodReason().toLowerCase().contains(searchFilter.toLowerCase()));
+
+            if (withinTimeRange && matchesMood && matchesSearch) {
+                filteredMoods.add(mood);
+            }
+        }
+
+        // Sort by timestamp in descending order
+        Collections.sort(filteredMoods, (m1, m2) -> {
+            long t1 = convertTimestampToMillis(m1.getTimestamp());
+            long t2 = convertTimestampToMillis(m2.getTimestamp());
+            return Long.compare(t2, t1); // Descending order (most recent first)
+        });
+
+        // Update the moodList and notify the adapter
+        moodList.clear();
+        moodList.addAll(filteredMoods);
+        moodDocIds.clear();
+        for (Mood mood : filteredMoods) {
+            moodDocIds.add(mood.getMoodId());
+        }
+        moodAdapter.notifyDataSetChanged();
     }
 
     /** Loads explicitly followed moods with optional filters. */

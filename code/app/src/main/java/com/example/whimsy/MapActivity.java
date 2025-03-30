@@ -211,7 +211,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                         BitmapDescriptor icon = BitmapDescriptorFactory.fromBitmap(resource);
                         mMap.addMarker(new MarkerOptions()
                                 .position(location)
-                                .title(username + " - " + mood)
+                                .title(username)
                                 .icon(icon));
                     }
 

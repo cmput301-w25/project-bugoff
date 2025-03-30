@@ -209,4 +209,8 @@ public class Mood implements Serializable {
     public void setOwnerUid(String ownerUid) { this.ownerUid = ownerUid; }
     public String getMoodId() { return moodId; }
     public void setMoodId(String moodId) { this.moodId = moodId; }
+
+    public boolean isPrivate() {
+        return isPrivate;
+    }
 }
