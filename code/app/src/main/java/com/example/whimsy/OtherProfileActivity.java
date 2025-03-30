@@ -13,6 +13,7 @@
 
 package com.example.whimsy;
 
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -25,14 +26,30 @@ import android.widget.Toast;
 import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.app.AlertDialog;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.WriteBatch;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
+
+import com.google.firebase.firestore.DocumentReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,13 +63,13 @@ public class OtherProfileActivity extends ActivityBase {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private String currentUserId;
+    private TextView followersCount, followingCount;
+    private RecyclerView moodsRecyclerView;
+    private MoodAdapter moodAdapter;
+    private List<Mood> moodList = new ArrayList<>();
+    private List<String> moodDocIds = new ArrayList<>();
+    private TextView moodCountText;
 
-    /**
-     * Called when the activity is first created.
-     * Initializes Firebase, sets up navigation buttons, and loads user data.
-     *
-     * @param savedInstanceState The saved instance state bundle.
-     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,32 +98,40 @@ public class OtherProfileActivity extends ActivityBase {
 
         if (searchedUserId != null && !searchedUserId.isEmpty()) {
             loadUserData(searchedUserId);
+            setupFollowCounts(searchedUserId);
+//            loadMoods(searchedUserId);
         } else {
             Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
             finish();
         }
     }
 
-    /**
-     * Initializes the user interface components like profile image, text fields,
-     * and buttons for following and navigating back.
-     */
     private void initUI() {
         profileImage = findViewById(R.id.other_profile_image);
         profileName = findViewById(R.id.other_profile_name);
         profileUsername = findViewById(R.id.other_profile_email);
         profileBio = findViewById(R.id.other_profile_bio);
         followButton = findViewById(R.id.follow_btn);
+        backButton = findViewById(R.id.back_button);
+
+        followersCount = findViewById(R.id.other_followers_count);
+        followingCount = findViewById(R.id.other_following_count);
+        moodCountText = findViewById(R.id.other_moods_count);
+
+        backButton.setOnClickListener(v -> finish());
         followButton.setOnClickListener(v -> followUser());
+
+        moodsRecyclerView = findViewById(R.id.other_moods_recycler_view);
+        moodsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        moodList = new ArrayList<>();
+        moodDocIds = new ArrayList<>();
+        moodAdapter = new MoodAdapter(moodList);
+        moodsRecyclerView.setAdapter(moodAdapter);
     }
 
-    /**
-     * Loads the data for the searched user and populates the profile UI.
-     *
-     * @param userId The user ID to load the data for.
-     */
+    // In OtherProfileActivity.java
+
     private void loadUserData(String userId) {
-        // Fetch user profile data
         db.collection("users").document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -115,12 +140,20 @@ public class OtherProfileActivity extends ActivityBase {
                         profileUsername.setText("@" + documentSnapshot.getString("username"));
                         profileBio.setText(documentSnapshot.getString("bio"));
 
+                        // NEW: Retrieve the isPrivate flag from user document
+                        boolean isPrivate; // default
+                        if (documentSnapshot.contains("isPrivate")) {
+                            isPrivate = documentSnapshot.getBoolean("isPrivate");
+                        } else {
+                            isPrivate = false;
+                        }
+
                         String imageUrl = documentSnapshot.getString("profilePictureUrl");
                         if (imageUrl != null && !imageUrl.isEmpty()) {
                             Glide.with(this).load(imageUrl).into(profileImage);
                         }
 
-                        // Check if current user is already following this user
+                        // Check if current user follows this account
                         db.collection("users").document(searchedUserId)
                                 .collection("followers")
                                 .document(currentUserId)
@@ -129,29 +162,246 @@ public class OtherProfileActivity extends ActivityBase {
                                     if (followSnapshot.exists()) {
                                         followButton.setText("Following");
                                         followButton.setEnabled(false);
+                                        loadMoods(searchedUserId); // Load moods if already following
                                     } else {
                                         followButton.setText("Follow");
                                         followButton.setEnabled(true);
+                                        // NEW: If account is private and not followed, do not load moods
+                                        if (isPrivate) {
+                                            TextView emptyMoodText = findViewById(R.id.emptyMoodText);
+                                            emptyMoodText.setText("This account is private. Follow to view their moods"); // NEW: Changed text
+                                            emptyMoodText.setVisibility(View.VISIBLE);
+                                        } else {
+                                            loadMoods(searchedUserId); // Load moods for public accounts
+                                        }
                                     }
                                 })
-                                .addOnFailureListener(e -> Log.e("OtherProfileActivity", "Error checking follow status", e));
+                                .addOnFailureListener(e -> {
+                                    Log.e("OtherProfileActivity", "Error checking follow status", e);
+                                });
                     } else {
                         Toast.makeText(this, "User profile not found.", Toast.LENGTH_SHORT).show();
                     }
                 })
-                .addOnFailureListener(e -> Log.e("OtherProfileActivity", "Error fetching user data", e));
+                .addOnFailureListener(e -> {
+                    Log.e("OtherProfileActivity", "Error fetching user data", e);
+                });
     }
 
+    private void setupFollowCounts(String userId) {
+        followersCount.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FollowingActivity.class);
+            intent.putExtra("type", "followers");
+            intent.putExtra("userId", userId);
+            startActivity(intent);
+        });
+
+        followingCount.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FollowingActivity.class);
+            intent.putExtra("type", "following");
+            intent.putExtra("userId", userId);
+            startActivity(intent);
+        });
+
+        db.collection("users").document(userId).collection("followers")
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        followersCount.setText(String.valueOf(querySnapshot.size())))
+                .addOnFailureListener(e -> {
+                    Log.e("OtherProfileActivity", "Error fetching followers count", e);
+                    followersCount.setText("0");
+                });
+
+        db.collection("users").document(userId).collection("following")
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        followingCount.setText(String.valueOf(querySnapshot.size())))
+                .addOnFailureListener(e -> {
+                    Log.e("OtherProfileActivity", "Error fetching following count", e);
+                    followingCount.setText("0");
+                });
+    }
+
+    private void loadMoods(String userId) {
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(userDoc -> {
+                    String profileImageUrl = userDoc.getString("profilePictureUrl");
+                    String name = userDoc.getString("name");
+                    String username = userDoc.getString("username");
+                    moodList.clear();
+                    moodDocIds.clear();
+
+                    db.collection("users").document(userId).collection("moods")
+                            .orderBy("timestamp", Query.Direction.DESCENDING)
+                            .get()
+                            .addOnSuccessListener(querySnapshot -> {
+                                if (!querySnapshot.isEmpty()) {
+                                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                                        // Pass the retrieved name and username instead of a FirebaseUser
+                                        Mood moodObj = createMoodObject(document, name, username, profileImageUrl);
+                                        moodList.add(moodObj);
+                                        moodDocIds.add(document.getId());
+                                    }
+                                    sortAndUpdateMoods();
+                                } else {
+                                    updateMoodCount();
+                                }
+                            })
+                            .addOnFailureListener(e -> handleMoodLoadFailure(e));
+                });
+    }
+
+    // Updated createMoodObject: uses name and username strings
+    private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl) {
+        String mood = document.getString("mood");
+        String locationName = document.getString("locationName");
+        String timestampStr = document.getString("timestamp");
+        String trigger = document.getString("trigger");
+        String reason = document.getString("reason");
+        String imageUrl = document.getString("imageUrl");
+
+        List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
+        List<String> taggedUserNames = extractTaggedUserNames(tags);
+        String gatheringStatus = calculateGatheringStatus(tags);
+
+        return new Mood(
+                name,               // Using the provided name
+                username,           // Provided username
+                locationName != null ? locationName : "No location",
+                timestampStr,
+                timestampStr,
+                gatheringStatus,
+                "Feeling " + mood,
+                trigger,
+                reason,
+                imageUrl,
+                profileImageUrl,
+                taggedUserNames
+        );
+    }
     /**
-     * Allows the current user to follow the searched user by adding them to both
-     * users' follower/following subcollections in Firestore.
+     * Calculates gathering status based on number of tagged users.
+     *
+     * @param tags List of tag maps from Firestore
+     * @return A string representing the gathering status
      */
+    private String calculateGatheringStatus(List<Map<String, Object>> tags) {
+        if (tags == null || tags.isEmpty()) return "Alone";
+        int tagCount = tags.size();
+        if (tagCount == 1) return "With 1 other";
+        if (tagCount <= 5) return "With " + tagCount + " others";
+        return "With a crowd";
+    }
+    private List<String> extractTaggedUserNames(List<Map<String, Object>> tags) {
+        List<String> taggedUserNames = new ArrayList<>();
+        if (tags != null) {
+            for (Map<String, Object> tag : tags) {
+                String username = (String) tag.get("name");
+                if (username != null) {
+                    taggedUserNames.add(username);
+                }
+            }
+        }
+        return taggedUserNames;
+    }
+
+    private long convertTimestampToMillis(String timestampStr) {
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a - MMMM dd, yyyy", Locale.ENGLISH);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            Date date = sdf.parse(timestampStr);
+            return date != null ? date.getTime() : 0;
+        } catch (ParseException e) {
+            Log.e("OtherProfileActivity", "Error parsing timestamp: " + timestampStr, e);
+            return 0;
+        }
+    }
+
+    private void sortAndUpdateMoods() {
+        Collections.sort(moodList, (m1, m2) ->
+                Long.compare(convertTimestampToMillis(m2.getTimestamp()), convertTimestampToMillis(m1.getTimestamp())));
+        moodAdapter.notifyDataSetChanged();
+        updateMoodCount();
+    }
+
+    private void updateMoodCount() {
+        moodCountText.setText(String.valueOf(moodList.size()));
+        TextView emptyMoodText = findViewById(R.id.emptyMoodText);
+        if (moodList.isEmpty()) {
+            emptyMoodText.setVisibility(View.VISIBLE);
+        } else {
+            emptyMoodText.setVisibility(View.GONE);
+        }
+    }
+    private void handleMoodLoadFailure(Exception e) {
+        Log.e("OtherProfileActivity", "Error loading moods", e);
+        Toast.makeText(this, "Error loading moods", Toast.LENGTH_SHORT).show();
+        updateMoodCount();
+    }
+
     private void followUser() {
-        // Validate user IDs
         if (currentUserId == null || searchedUserId == null || currentUserId.equals(searchedUserId)) {
             Toast.makeText(this, "Invalid operation.", Toast.LENGTH_SHORT).show();
             return;
         }
+        db.collection("users").document(searchedUserId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    boolean isPrivate = false;
+                    if (documentSnapshot.exists() && documentSnapshot.contains("isPrivate")) {
+                        isPrivate = documentSnapshot.getBoolean("isPrivate");
+                    }
+                    if (isPrivate) {
+                        // For private accounts, check if a follow request exists // NEW:
+                        db.collection("users").document(searchedUserId)
+                                .collection("followRequests").document(currentUserId)
+                                .get()
+                                .addOnSuccessListener(requestDoc -> {
+                                    if (requestDoc.exists()) {
+                                        // If request exists, cancel the follow request // NEW:
+                                        requestDoc.getReference().delete()
+                                                .addOnSuccessListener(aVoid -> {
+                                                    followButton.setText("Follow"); // NEW: Updated text for cancelled request
+                                                    followButton.setEnabled(true);
+                                                    Toast.makeText(OtherProfileActivity.this, "Follow request cancelled", Toast.LENGTH_SHORT).show();
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    Toast.makeText(OtherProfileActivity.this, "Error cancelling follow request", Toast.LENGTH_SHORT).show();
+                                                });
+                                    } else {
+                                        // If no request exists, send a follow request // NEW:
+                                        Map<String, Object> requestData = new HashMap<>();
+                                        requestData.put("timestamp", FieldValue.serverTimestamp()); // NEW: added timestamp
+                                        db.collection("users").document(searchedUserId)
+                                                .collection("followRequests").document(currentUserId)
+                                                .set(requestData)
+                                                .addOnSuccessListener(aVoid -> {
+                                                    followButton.setText("Requested"); // NEW: show request pending
+                                                    followButton.setEnabled(true); // Allow cancellation if needed
+                                                    Toast.makeText(OtherProfileActivity.this, "Follow request sent", Toast.LENGTH_SHORT).show();
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    Toast.makeText(OtherProfileActivity.this, "Error sending follow request", Toast.LENGTH_SHORT).show();
+                                                });
+                                    }
+                                });
+                    } else {
+                        // For public accounts, follow immediately. // EDITED:
+                        WriteBatch batch = db.batch();
+                        batch.set(db.collection("users").document(searchedUserId)
+                                .collection("followers").document(currentUserId), new HashMap<>());
+                        batch.set(db.collection("users").document(currentUserId)
+                                .collection("following").document(searchedUserId), new HashMap<>());
+                        batch.commit()
+                                .addOnSuccessListener(aVoid -> {
+                                    followButton.setText("Following");
+                                    followButton.setEnabled(false);
+                                    Toast.makeText(OtherProfileActivity.this, "Followed successfully!", Toast.LENGTH_SHORT).show();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(OtherProfileActivity.this, "Failed to follow.", Toast.LENGTH_SHORT).show();
+                                });
+                    }
 
         // Create a batch write for atomic updates
         WriteBatch batch = db.batch();
@@ -181,8 +431,7 @@ public class OtherProfileActivity extends ActivityBase {
                     showSuggestedUsers();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("FollowUser", "Error following user", e);
-                    Toast.makeText(this, "Failed to follow.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error retrieving user info", Toast.LENGTH_SHORT).show();
                 });
 
     }
