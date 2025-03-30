@@ -15,6 +15,9 @@ package com.example.whimsy;
 
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.InputFilter;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -22,20 +25,28 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,8 +59,16 @@ public class MoodPageActivity extends ActivityBase {
 
     private Mood selectedMood;
     private String moodId;
+    private String ownerUid;
     private FirebaseFirestore db;
     private MoodAdapter moodAdapter;
+    private List<Comment> comments = new ArrayList<>();
+    private CommentAdapter commentAdapter;
+    private ListenerRegistration commentsListener;
+    private EditText commentInput;
+    private LinearLayout commentLayout;
+    private Button commentConfirmButton;
+    private FloatingActionButton editMoodFab;
 
     /**
      * Initializes the activity, sets up the RecyclerView, and fetches mood data.
@@ -59,18 +78,16 @@ public class MoodPageActivity extends ActivityBase {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        db = FirebaseFirestore.getInstance();
         FrameLayout contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.activity_mood_page, contentFrame, true);
-
-        db = FirebaseFirestore.getInstance();
-        RecyclerView recyclerView = findViewById(R.id.mood_detail_recycler_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         FloatingActionButton editMoodFab = findViewById(R.id.edit_mood_fab);
 
         // Retrieve mood data from intent
         selectedMood = (Mood) getIntent().getSerializableExtra("SELECTED_MOOD");
         moodId = getIntent().getStringExtra("MOOD_ID");
+        ownerUid = getIntent().getStringExtra("OWNER_UID");
 
         int colorBg;
         int colorFg;
@@ -115,11 +132,56 @@ public class MoodPageActivity extends ActivityBase {
         editMoodFab.setBackgroundTintList(ColorStateList.valueOf(colorBg));
         editMoodFab.setImageTintList(ColorStateList.valueOf(colorFg));
 
+        RecyclerView moodRecyclerView = findViewById(R.id.mood_detail_recycler_view);
+        moodRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+
+        // Set up comments RecyclerView
+        RecyclerView commentsRecyclerView = findViewById(R.id.mood_comments_recycler_view);
+        commentsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        commentAdapter = new CommentAdapter(comments, colorFg);
+        commentsRecyclerView.setAdapter(commentAdapter);
+
+
+        commentInput = findViewById(R.id.comment_input);
+        commentConfirmButton = findViewById(R.id.comment_confirm_button);
+        commentLayout = findViewById(R.id.comment_layout);
+        commentLayout.setVisibility(View.GONE); // Initially hidden
+        commentInput.setBackgroundTintList(ColorStateList.valueOf(colorBg));
+        commentInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(200)});
+        commentInput.setTextColor(colorFg);
+        commentConfirmButton.setBackgroundTintList(ColorStateList.valueOf(colorBg));
+        commentConfirmButton.setTextColor(colorFg);
+        commentConfirmButton.setOnClickListener(v -> postComment());
+
+
+
+
+        fetchComments();
+
+        moodRecyclerView.post(() -> {
+            if (moodRecyclerView.getChildCount() > 0) {
+                View itemView = moodRecyclerView.getChildAt(0); // Get the mood item view
+                Button commentButton = itemView.findViewById(R.id.comment_button);
+                if (commentButton != null) {
+                    commentButton.setOnClickListener(v -> {
+                        // Toggle visibility of comment input area
+                        if (commentLayout.getVisibility() == View.VISIBLE) {
+                            commentLayout.setVisibility(View.GONE); // Hide if visible
+                        } else {
+                            commentLayout.setVisibility(View.VISIBLE); // Show if hidden
+                            commentInput.requestFocus(); // Focus on EditText for typing
+                        }
+                    });
+                }
+            }
+        });
+
         if (selectedMood != null && moodId != null) {
             List<Mood> moodList = new ArrayList<>();
             moodList.add(selectedMood);
             moodAdapter = new MoodAdapter(moodList);
-            recyclerView.setAdapter(moodAdapter);
+            moodRecyclerView.setAdapter(moodAdapter);
 
             FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
             if (user != null) {
@@ -165,8 +227,8 @@ public class MoodPageActivity extends ActivityBase {
 
         // Initialize UI components
         Spinner moodSpinner = dialogView.findViewById(R.id.moodSpinner);
-        EditText triggerInput = dialogView.findViewById(R.id.triggerInput);
         EditText reasonInput = dialogView.findViewById(R.id.reasonInput);
+        TextView reasonCharCountText = dialogView.findViewById(R.id.reasonCharCountText);
         AutoCompleteTextView friendSearchInput = dialogView.findViewById(R.id.friendSearchInput);
         Button addTagButton = dialogView.findViewById(R.id.addTagButton);
         TextView taggedFriendsText = dialogView.findViewById(R.id.taggedFriendsText);
@@ -175,18 +237,38 @@ public class MoodPageActivity extends ActivityBase {
         Button deleteButton = dialogView.findViewById(R.id.deleteButton);
 
         // Setup mood spinner
-        String[] moodOptions = {"Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Surprised", "Shameful"};
+        String[] moodOptions = {"Happy", "Sad", "Angry", "Scared", "Confused", "Disgusted", "Excited", "Ashamed"};
         ArrayAdapter<String> moodAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moodOptions);
         moodAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         moodSpinner.setAdapter(moodAdapter);
 
-        // Populate fields with existing mood data
-        triggerInput.setText(mood.getMoodTrigger());
+        // Pre-select current mood
+        String currentMood = mood.getMoodStatus().replace("Feeling ", ""); // Assuming mood status is stored as "Feeling Happy"
+        int moodIndex = Arrays.asList(moodOptions).indexOf(currentMood);
+        if (moodIndex >= 0) {
+            moodSpinner.setSelection(moodIndex);
+        }
+
+        // Populate reason field and setup character counter
         reasonInput.setText(mood.getMoodReason());
+        reasonInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                int remaining = 200 - s.length();
+                reasonCharCountText.setText(String.valueOf(remaining));
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // Handle tagging friends
         List<String> taggedFriends = new ArrayList<>(mood.getTaggedUserNames());
         updateTaggedFriendsText(taggedFriendsText, taggedFriends);
 
-        // Handle tagging friends
         addTagButton.setOnClickListener(v -> {
             String selectedUser = friendSearchInput.getText().toString().trim();
             if (!selectedUser.isEmpty() && !taggedFriends.contains(selectedUser)) {
@@ -199,22 +281,95 @@ public class MoodPageActivity extends ActivityBase {
         // Save mood updates
         saveButton.setOnClickListener(v -> {
             mood.setMoodStatus("Feeling " + moodSpinner.getSelectedItem().toString());
-            mood.setMoodTrigger(triggerInput.getText().toString().trim());
             mood.setMoodReason(reasonInput.getText().toString().trim());
             mood.setTaggedUserNames(taggedFriends);
-            updateMoodInFirestore(mood, moodId);
-            moodAdapter.notifyDataSetChanged();
+            updateMoodInFirestore(mood, moodId); // Your existing method to save to Firestore
             dialog.dismiss();
         });
 
-        // Delete mood entry
+        // Delete mood with confirmation
         deleteButton.setOnClickListener(v -> {
-            deleteMoodFromFirestore(moodId);
-            dialog.dismiss();
-            finish();
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete Mood")
+                    .setMessage("Are you sure you want to delete this mood?")
+                    .setPositiveButton("Yes", (dialogInterface, i) -> {
+                        deleteMoodFromFirestore(moodId); // Your existing method to delete from Firestore
+                        dialog.dismiss();
+                        finish();
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
         });
+
+        // Cancel button
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
 
         dialog.show();
+    }
+
+    private void fetchComments() {
+        commentsListener = db.collection("users").document(ownerUid)
+                .collection("moods").document(moodId).collection("comments")
+                .orderBy("timestamp", Query.Direction.ASCENDING)
+                .addSnapshotListener((snapshots, e) -> {
+                    if (e != null) {
+                        Log.e("MoodPageActivity", "Listen failed", e);
+                        Toast.makeText(this, "Error loading comments", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    comments.clear();
+                    if (snapshots != null) {
+                        for (var doc : snapshots.getDocuments()) {
+                            Comment comment = doc.toObject(Comment.class);
+                            comments.add(comment);
+                        }
+                    }
+                    commentAdapter.notifyDataSetChanged();
+                });
+    }
+
+    private void postComment() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        String commentText = commentInput.getText().toString().trim();
+
+        if (user == null) {
+            Toast.makeText(this, "Please log in to comment", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (commentText.isEmpty()) {
+            Toast.makeText(this, "Comment cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        db.collection("users").document(user.getUid()).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    String username = documentSnapshot.getString("username");
+                    String profileImageUrl = documentSnapshot.getString("profilePictureUrl"); // Assuming this field exists in Firestore
+                    if (username == null) username = "Anonymous";
+                    Comment comment = new Comment(
+                            user.getUid(),
+                            username,
+                            commentText,
+                            Timestamp.now(),
+                            profileImageUrl
+                    );
+
+                    db.collection("users").document(ownerUid)
+                            .collection("moods").document(moodId).collection("comments")
+                            .add(comment)
+                            .addOnSuccessListener(documentReference -> {
+                                Log.d("MoodPageActivity", "Comment added: " + documentReference.getId());
+                                commentInput.setText("");
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("MoodPageActivity", "Error adding comment", e);
+                                Toast.makeText(this, "Failed to post comment", Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("MoodPageActivity", "Error fetching user data", e);
+                    Toast.makeText(this, "Error retrieving user info", Toast.LENGTH_SHORT).show();
+                });
     }
 
     /**

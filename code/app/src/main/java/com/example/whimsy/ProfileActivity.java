@@ -318,6 +318,7 @@ public class ProfileActivity extends ActivityBase {
         Intent intent = new Intent(this, MoodPageActivity.class);
         intent.putExtra("SELECTED_MOOD", moodList.get(position));
         intent.putExtra("MOOD_ID", moodDocIds.get(position));
+        intent.putExtra("OWNER_UID", moodList.get(position).getUserId());
         startActivity(intent);
     }
 
