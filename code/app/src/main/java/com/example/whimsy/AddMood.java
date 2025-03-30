@@ -61,6 +61,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.android.gms.maps.model.LatLng;
@@ -210,6 +211,12 @@ public class AddMood extends ActivityBase {
         auth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
+
+        FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true) // Enables offline caching
+                .build();
+        FirebaseFirestore.getInstance().setFirestoreSettings(settings);
+
 
         // Initialize FusedLocationProviderClient for acquiring the current location.
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
