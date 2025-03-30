@@ -66,20 +66,26 @@ public class AddMoodTest {
     }
 
     @Test
-    public void testPrivacyToggle_changesSnackbarMessage() {
-        // Click the privacy icon to toggle private.
+    public void testPrivacyToggle_changesSnackbarMessage() throws InterruptedException {
+        // Click the privacy icon to toggle to private.\
+        Thread.sleep(2000);
         onView(withId(R.id.visibilityIcon)).perform(click());
-        // Verify Snackbar message.
-        onView(withText("Mood set to Private"))
-                .inRoot(withDecorView(currentActivity))
+        Thread.sleep(2000);
+        // Verify that the Snackbar text view displays "Mood set to Private"
+        onView(withId(com.google.android.material.R.id.snackbar_text))
                 .check(matches(withText("Mood set to Private")));
 
-        // Click the icon again to toggle public.
-//        onView(withId(R.id.visibilityIcon)).perform(click());
-//        onView(withText("Mood set to Public"))
-//                .inRoot(withDecorView(currentActivity))
-//                .check(matches(withText("Mood set to Public")));
+        // Delay before toggling again (e.g., 2 seconds).
+        Thread.sleep(2000);
+
+        // Click the privacy icon again to toggle back to public.
+        onView(withId(R.id.visibilityIcon)).perform(click());
+        Thread.sleep(2000);
+        // Verify that the Snackbar text view displays "Mood set to Public"
+        onView(withId(com.google.android.material.R.id.snackbar_text))
+                .check(matches(withText("Mood set to Public")));
     }
+
 
     @Test
     public void testReasonInputCharacterCounter_updates() {
@@ -93,11 +99,26 @@ public class AddMoodTest {
         onView(withId(R.id.reasonCharCountText)).check(matches(withText(String.valueOf(expectedCount))));
     }
 
+    @Test
+    public void testLocationPopupAppearsAndCanBeCancelled() {
+        // Click the location icon to open the location popup.
+        onView(withId(R.id.locationIcon)).perform(click());
+        // In the popup, click the cancel button (btn_cancel_location).
+        onView(withId(R.id.btn_cancel_location)).perform(click());
+        // (If the dialog is dismissed, then the cancel button should no longer be displayed.)
+        // We simply check that a view with that id is not found.
+        onView(withId(R.id.btn_cancel_location)).check((view, noViewFoundException) -> {
+            if (view != null) {
+                throw new AssertionError("Location popup should be dismissed");
+            }
+        });
     }
 
     @Test
-    public void testImportImageIcon_opensGallery() {
-        // This requires intent mocking or manual interaction in a real test
-        onView(withId(R.id.importImageIcon)).perform(click());
+    public void testTagUsersPopupAppears() {
+        // Click the tag icon to open the tag users dialog.
+        onView(withId(R.id.tagIcon)).perform(click());
+        // Verify that the search field (id: tag_search_edit_text) is displayed.
+        onView(withId(R.id.tag_search_edit_text)).check(matches(withText("")));
     }
 }
