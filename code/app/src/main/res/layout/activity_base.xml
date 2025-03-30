@@ -99,7 +99,8 @@
             android:layout_height="24dp"
             android:layout_margin="8dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_heart" />
+            android:src="@drawable/follow_request"
+            android:tint="@color/black"/>
 
         <FrameLayout
             android:layout_width="24dp"
