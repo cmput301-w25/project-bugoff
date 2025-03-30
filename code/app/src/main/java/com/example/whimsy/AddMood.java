@@ -13,6 +13,9 @@
  *     <li>User tagging functionality for mood entries.</li>
  *     <li>Input validation and error handling with user feedback.</li>
  *     <li>Integration with Firebase for persistent data storage and retrieval.</li>
+ *     <li>Offline mood queuing when no internet is available.</li>
+ *     <li>A MaterialBanner-style notification showing the number of queued moods.</li>
+ *     <li>Automatic sync when connectivity is restored with a "Back online" message.</li>
  * </ul>
  *
  * <p><b>Outstanding Issues:</b></p>
@@ -25,11 +28,16 @@ package com.example.whimsy;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -57,6 +65,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -64,7 +74,9 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.google.android.gms.maps.model.LatLng;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -112,6 +124,19 @@ public class AddMood extends ActivityBase {
     // For acquiring current location data.
     private FusedLocationProviderClient fusedLocationClient;
     private ProgressBar progressBar;
+
+    // Offline queue keys and MaterialBanner components for displaying queued moods.
+    private static final String PREFS_QUEUE = "offline_queue";
+    private static final String KEY_OFFLINE_MOODS = "offline_moods";
+    private MaterialCardView offlineBanner;
+    private TextView bannerText;
+
+    // Flag to track previous network state.
+    private boolean wasOffline = false;
+
+    // Connectivity monitoring
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback networkCallback;
 
     /**
      * The {@code LocationWrapper} interface abstracts location information.
@@ -193,7 +218,8 @@ public class AddMood extends ActivityBase {
 
     /**
      * Called when the activity is first created. This method inflates the layout, initializes UI components,
-     * configures Firebase and location services, sets up event listeners, and loads user profile data.
+     * configures Firebase and location services, sets up event listeners, registers network connectivity callbacks,
+     * and loads user profile data.
      *
      * @param savedInstanceState If the activity is being re-initialized after previously being shut down, this Bundle contains the data it most recently supplied.
      */
@@ -217,16 +243,19 @@ public class AddMood extends ActivityBase {
                 .build();
         FirebaseFirestore.getInstance().setFirestoreSettings(settings);
 
-
         // Initialize FusedLocationProviderClient for acquiring the current location.
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // Bind UI elements to their corresponding views in the layout.
         moodSpinner = findViewById(R.id.moodSpinner);
 
+        // Bind the offline banner components from the included layout.
+        offlineBanner = findViewById(R.id.offlineBanner);
+        bannerText = findViewById(R.id.bannerText);
+
         visibilityIcon = findViewById(R.id.visibilityIcon);
         visibilityIcon.setOnClickListener(v -> {
-            // Toggle the state.
+            // Toggle the privacy state.
             isPrivate = !isPrivate;
             if (isPrivate) {
                 // Set crossed-eye icon and change tint to blue.
@@ -310,6 +339,61 @@ public class AddMood extends ActivityBase {
             }
             saveMoodToFirebase();
         });
+
+        // Initialize connectivity monitoring.
+        connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        registerNetworkCallback();
+    }
+
+    /**
+     * Registers a network callback to listen for connectivity changes.
+     * When the network becomes available, a "Back online" message is displayed and queued moods are synced.
+     */
+    private void registerNetworkCallback() {
+        NetworkRequest networkRequest = new NetworkRequest.Builder().build();
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onLost(Network network) {
+                // When network is lost, mark the state as offline.
+                wasOffline = true;
+            }
+            @Override
+            public void onAvailable(Network network) {
+                // Only show "Back online" if we were offline before.
+                runOnUiThread(() -> {
+                    if (wasOffline) {
+                        showSnackbar("Back online", false);
+                        wasOffline = false;
+                    }
+                    syncQueuedMoods();
+                    updateOfflineBanner();
+                });
+            }
+        };
+        connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
+    }
+
+
+    /**
+     * Unregisters the network callback.
+     */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (networkCallback != null) {
+            connectivityManager.unregisterNetworkCallback(networkCallback);
+        }
+    }
+
+    /**
+     * Called when the activity resumes.
+     * Updates the offline banner and attempts to sync any queued moods if connectivity is available.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateOfflineBanner();
+        syncQueuedMoods();
     }
 
     // --- LOCATION POPUP ---
@@ -527,10 +611,166 @@ public class AddMood extends ActivityBase {
         });
     }
 
+    // --- OFFLINE QUEUE HELPER METHODS ---
+
+    /**
+     * Checks if network connectivity is available.
+     *
+     * @return {@code true} if the network is available, {@code false} otherwise.
+     */
+    private boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        return cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected();
+    }
+
+    /**
+     * Adds the provided mood data to the offline queue.
+     * The mood data is stored in SharedPreferences as a JSON array.
+     *
+     * @param moodData The mood data to queue.
+     * @param imageUri The {@code Uri} of the selected image (if any).
+     */
+    private void addMoodToQueue(Map<String, Object> moodData, Uri imageUri) {
+        if (imageUri != null) {
+            moodData.put("imageUri", imageUri.toString());
+        }
+        try {
+            JSONObject jsonObject = new JSONObject(moodData);
+            SharedPreferences prefs = getSharedPreferences(PREFS_QUEUE, MODE_PRIVATE);
+            String queueString = prefs.getString(KEY_OFFLINE_MOODS, "[]");
+            JSONArray queueArray = new JSONArray(queueString);
+            queueArray.put(jsonObject);
+            prefs.edit().putString(KEY_OFFLINE_MOODS, queueArray.toString()).apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Retrieves the number of moods currently queued offline.
+     *
+     * @return The count of queued moods.
+     */
+    private int getOfflineQueueCount() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_QUEUE, MODE_PRIVATE);
+        String queueString = prefs.getString(KEY_OFFLINE_MOODS, "[]");
+        try {
+            JSONArray queueArray = new JSONArray(queueString);
+            return queueArray.length();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    /**
+     * Updates the offline banner to display the current number of queued moods.
+     * If there are queued moods, the banner is made visible; otherwise, it is hidden.
+     */
+    private void updateOfflineBanner() {
+        int count = getOfflineQueueCount();
+        if (count > 0) {
+            offlineBanner.setVisibility(View.VISIBLE);
+            bannerText.setText("Queued moods: " + count);
+        } else {
+            offlineBanner.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Attempts to sync queued moods when the network is available.
+     * Each queued mood is posted via the MoodRepository, and on success, removed from the queue.
+     */
+    private void syncQueuedMoods() {
+        if (!isNetworkAvailable()) {
+            return;
+        }
+        SharedPreferences prefs = getSharedPreferences(PREFS_QUEUE, MODE_PRIVATE);
+        String queueString = prefs.getString(KEY_OFFLINE_MOODS, "[]");
+        try {
+            JSONArray queueArray = new JSONArray(queueString);
+            if (queueArray.length() == 0) {
+                updateOfflineBanner(); // Hide banner if empty.
+                return;
+            }
+            // Loop through each queued mood and attempt to sync.
+            for (int i = 0; i < queueArray.length(); i++) {
+                JSONObject moodJson = queueArray.getJSONObject(i);
+                Map<String, Object> moodData = jsonToMap(moodJson);
+                Uri imageUri = null;
+                if (moodData.containsKey("imageUri")) {
+                    imageUri = Uri.parse((String) moodData.get("imageUri"));
+                    moodData.remove("imageUri");
+                }
+                moodRepository.saveMood(moodData, imageUri, new MoodRepository.SaveMoodCallback() {
+                    @Override
+                    public void onSuccess() {
+                        removeMoodFromQueue(moodJson);
+                        updateOfflineBanner();
+                    }
+                    @Override
+                    public void onFailure(Exception e) {
+                        // Leave the mood in the queue if syncing fails.
+                    }
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Removes a mood from the offline queue.
+     *
+     * @param moodJson The {@code JSONObject} representing the mood to remove.
+     */
+    private void removeMoodFromQueue(JSONObject moodJson) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_QUEUE, MODE_PRIVATE);
+        String queueString = prefs.getString(KEY_OFFLINE_MOODS, "[]");
+        try {
+            JSONArray queueArray = new JSONArray(queueString);
+            JSONArray newArray = new JSONArray();
+            for (int i = 0; i < queueArray.length(); i++) {
+                JSONObject obj = queueArray.getJSONObject(i);
+                if (!obj.toString().equals(moodJson.toString())) {
+                    newArray.put(obj);
+                }
+            }
+            prefs.edit().putString(KEY_OFFLINE_MOODS, newArray.toString()).apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Converts a {@code JSONObject} to a {@code Map<String, Object>}.
+     *
+     * @param json The {@code JSONObject} to convert.
+     * @return A {@code Map<String, Object>} representation of the JSON data.
+     */
+    private Map<String, Object> jsonToMap(JSONObject json) {
+        Map<String, Object> map = new HashMap<>();
+        try {
+            JSONArray keys = json.names();
+            if (keys != null) {
+                for (int i = 0; i < keys.length(); i++) {
+                    String key = keys.getString(i);
+                    Object value = json.get(key);
+                    map.put(key, value);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return map;
+    }
+
     // --- SAVE MOOD TO FIRESTORE ---
     /**
      * Validates user inputs and assembles mood data into a map.
      * Delegates the process of saving mood data (and optionally an image) to the MoodRepository.
+     * If the device is offline, the mood is queued and the offline banner is updated.
+     * After adding a mood (online or offline), all fields are reset.
      */
     private void saveMoodToFirebase() {
         FirebaseUser user = auth.getCurrentUser();
@@ -559,7 +799,6 @@ public class AddMood extends ActivityBase {
         moodData.put("mood", mood);
         moodData.put("reason", reason);
         moodData.put("timestamp", timestamp);
-
         moodData.put("isPrivate", isPrivate);
 
         if (selectedLocation != null) {
@@ -580,12 +819,35 @@ public class AddMood extends ActivityBase {
             moodData.put("tags", tags);
         }
 
-        // Delegate the save operation to the MoodRepository.
+        // Check network connectivity.
+        if (!isNetworkAvailable()) {
+            addMoodToQueue(moodData, selectedImageUri);
+            progressBar.setVisibility(View.GONE);
+            int count = getOfflineQueueCount();
+            showSnackbar("No internet. Mood queued. Total queued: " + count, false);
+            updateOfflineBanner();
+            // Reset all fields.
+            moodSpinner.setSelection(0);
+            reasonInput.setText("");
+            selectedImageView.setVisibility(View.GONE);
+            selectedImageUri = null;
+            importImageIcon.clearColorFilter();
+            locationIcon.clearColorFilter();
+            selectedLocation = null;
+            taggedUsers.clear();
+            tagIcon.clearColorFilter();
+            SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
+            timestampText.setText(sdf.format(new Date()));
+            return;
+        }
+
+        // If online, delegate the save operation to the MoodRepository.
         moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
             @Override
             public void onSuccess() {
                 progressBar.setVisibility(View.GONE);
-                // Clear the UI upon successful save.
+                // Reset all fields upon successful save.
+                moodSpinner.setSelection(0);
                 reasonInput.setText("");
                 selectedImageView.setVisibility(View.GONE);
                 selectedImageUri = null;
@@ -595,6 +857,8 @@ public class AddMood extends ActivityBase {
                 taggedUsers.clear();
                 tagIcon.clearColorFilter();
                 showSnackbar("Mood added successfully", false);
+                SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
+                timestampText.setText(sdf.format(new Date()));
             }
 
             @Override
