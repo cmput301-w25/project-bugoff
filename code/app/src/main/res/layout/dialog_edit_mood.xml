@@ -2,12 +2,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Emotional State Spinner -->
-
+    <!-- Mood Spinner -->
     <FrameLayout
         android:id="@+id/spinnerFrame"
         android:layout_width="264dp"
@@ -15,13 +13,10 @@
         android:layout_marginTop="25dp"
         android:elevation="6dp"
         android:layout_gravity="center_horizontal">
-
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@drawable/input_field">
-
-            <!-- Spinner -->
             <Spinner
                 android:id="@+id/moodSpinner"
                 android:layout_width="match_parent"
@@ -30,8 +25,6 @@
                 android:background="@android:color/transparent"
                 android:hint="Click to Select a Mood"
                 android:prompt="@string/select_mood"/>
-
-            <!-- Dropdown Icon -->
             <ImageView
                 android:id="@+id/spinner_icon"
                 android:layout_width="24dp"
@@ -42,30 +35,19 @@
         </RelativeLayout>
     </FrameLayout>
 
-    <!-- Trigger Input -->
+    <!-- Reason Input with 200 Character Limit -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Trigger"
+        android:text="Reason"
         android:textSize="16sp"
         android:textStyle="bold"
         android:layout_marginTop="16dp" />
-    <EditText
-        android:id="@+id/triggerInput"
-        android:layout_width="match_parent"
-        android:background="@drawable/input_field"
-        android:padding="15dp"
-        android:textColor="@color/black"
-        android:textColorHint="@color/gray"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="Add Trigger..." />
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="25dp">
-
         <EditText
             android:id="@+id/reasonInput"
             android:layout_width="match_parent"
@@ -75,24 +57,21 @@
             android:textColor="@color/black"
             android:textColorHint="@color/gray"
             android:hint="Add Reason..."
-            android:maxLength="20" />
-
+            android:maxLength="200" />
         <TextView
             android:id="@+id/reasonCharCountText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:padding="4dp"
-            android:text="20"
+            android:text="200"
             android:layout_marginEnd="5dp"
             android:layout_marginBottom="2dp"
             android:textSize="12sp"
             android:textColor="@color/gray" />
     </FrameLayout>
-    <!-- Reason Input -->
 
     <!-- Tagging Friends -->
-
     <AutoCompleteTextView
         android:id="@+id/friendSearchInput"
         android:layout_width="match_parent"
@@ -103,7 +82,7 @@
         android:background="@drawable/input_field"
         android:padding="15dp"
         android:hint="Search users..."
-        android:textAppearance="?android:attr/textAppearanceMedium" />/>
+        android:textAppearance="?android:attr/textAppearanceMedium" />
     <Button
         android:id="@+id/addTagButton"
         android:layout_width="wrap_content"

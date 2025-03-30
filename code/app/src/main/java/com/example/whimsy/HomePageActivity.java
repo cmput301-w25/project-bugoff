@@ -104,6 +104,7 @@ public class HomePageActivity extends ActivityBase {
                         Intent intent = new Intent(HomePageActivity.this, MoodPageActivity.class);
                         intent.putExtra("SELECTED_MOOD", moodList.get(position));
                         intent.putExtra("MOOD_ID", moodDocIds.get(position));
+                        intent.putExtra("OWNER_UID", moodList.get(position).getUserId());
                         startActivity(intent);
                         return true;
                     }

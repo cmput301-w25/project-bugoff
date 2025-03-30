@@ -23,8 +23,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Looper;
-import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -318,6 +316,7 @@ public class ProfileActivity extends ActivityBase {
         Intent intent = new Intent(this, MoodPageActivity.class);
         intent.putExtra("SELECTED_MOOD", moodList.get(position));
         intent.putExtra("MOOD_ID", moodDocIds.get(position));
+        intent.putExtra("OWNER_UID", moodList.get(position).getUserId());
         startActivity(intent);
     }
 
@@ -472,7 +471,10 @@ public class ProfileActivity extends ActivityBase {
         String trigger = document.getString("trigger");
         String reason = document.getString("reason");
         String imageUrl = document.getString("imageUrl");
-        boolean isPrivate = document.getBoolean("isPrivate");
+        Boolean isPrivate = document.getBoolean("isPrivate");
+        if (isPrivate == null) {
+            isPrivate = false; // or any default value you prefer
+        }
 
         List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
         List<String> taggedUserNames = extractTaggedUserNames(tags);

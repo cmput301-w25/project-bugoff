@@ -31,6 +31,10 @@
         <activity android:name=".OtherProfileActivity" />
         <activity android:name=".MapActivity" />
         <activity
+            android:name=".FollowRequestsActivity"
+            android:exported="false"
+            android:label="Follow Requests" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

@@ -3,11 +3,56 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/mood_detail_recycler_view"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+
+        android:layout_margin="7dp">
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/mood_detail_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="8dp"/>
+
+        <LinearLayout
+            android:id="@+id/comment_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"
+            android:visibility="gone">
+            <EditText
+                android:id="@+id/comment_input"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="Add a comment..."
+                android:inputType="text"
+                android:layout_weight="1"
+                android:layout_marginTop="8dp"/>
+
+            <Button
+                android:id="@+id/comment_confirm_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginStart="6dp"
+                android:backgroundTint="?attr/buttonBackgroundColor"
+                android:text="ᗒ"
+                android:textColor="?attr/textColor" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/mood_comments_recycler_view"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginLeft="12dp"/>
+    </LinearLayout>
+
+
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/edit_mood_fab"
@@ -18,5 +63,4 @@
         android:visibility="gone"
         app:srcCompat="@android:drawable/ic_menu_edit"
         android:contentDescription="Edit Mood" />
-
 </FrameLayout>

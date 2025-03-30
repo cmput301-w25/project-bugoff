@@ -1,11 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
     android:background="?android:attr/colorBackground">
 
+    <!-- Switch for private/public profile -->
+    <Switch
+        android:id="@+id/privacy_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Private Profile"
+        android:textSize="16sp"
+        android:padding="16dp"
+        android:layout_marginBottom="32dp"/>
+
+    <!-- Existing Logout Button -->
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/logoutButton"
         android:layout_width="200dp"
@@ -17,5 +29,6 @@
         android:fontFamily="sans-serif-medium"
         android:padding="10dp"
         android:letterSpacing="0.05"
-        android:stateListAnimator="@android:anim/slide_in_left"/>
+        android:stateListAnimator="@android:anim/slide_in_left" />
+
 </LinearLayout>

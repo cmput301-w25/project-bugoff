@@ -192,7 +192,7 @@
                 android:backgroundTint="?attr/buttonBackgroundColor"
                 android:drawableLeft="@drawable/mood_heart_icon_tinted"
                 android:drawableTint="?attr/textColor"
-                android:text="Endorse"
+                android:text="Follow"
                 android:textColor="?attr/textColor"
                 android:textSize="13dp" />
 
