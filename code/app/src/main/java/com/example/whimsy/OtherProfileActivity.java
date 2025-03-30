@@ -32,6 +32,7 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -112,8 +113,6 @@ public class OtherProfileActivity extends ActivityBase {
         profileUsername = findViewById(R.id.other_profile_email);
         profileBio = findViewById(R.id.other_profile_bio);
         followButton = findViewById(R.id.follow_btn);
-        backButton = findViewById(R.id.back_button);
-
         followersCount = findViewById(R.id.other_followers_count);
         followingCount = findViewById(R.id.other_following_count);
         moodCountText = findViewById(R.id.other_moods_count);
@@ -260,14 +259,18 @@ public class OtherProfileActivity extends ActivityBase {
         String trigger = document.getString("trigger");
         String reason = document.getString("reason");
         String imageUrl = document.getString("imageUrl");
+        Boolean isPrivate = document.getBoolean("isPrivate");
+        if (isPrivate == null) {
+            isPrivate = false; // or any default value you prefer
+        }
 
         List<Map<String, Object>> tags = (List<Map<String, Object>>) document.get("tags");
         List<String> taggedUserNames = extractTaggedUserNames(tags);
         String gatheringStatus = calculateGatheringStatus(tags);
 
         return new Mood(
-                name,               // Using the provided name
-                username,           // Provided username
+                name,
+                username,
                 locationName != null ? locationName : "No location",
                 timestampStr,
                 timestampStr,
@@ -277,7 +280,8 @@ public class OtherProfileActivity extends ActivityBase {
                 reason,
                 imageUrl,
                 profileImageUrl,
-                taggedUserNames
+                taggedUserNames,
+                isPrivate
         );
     }
     /**
@@ -341,52 +345,66 @@ public class OtherProfileActivity extends ActivityBase {
     }
 
     private void followUser() {
+        // Prevent self-following with a clear message
         if (currentUserId == null || searchedUserId == null || currentUserId.equals(searchedUserId)) {
-            Toast.makeText(this, "Invalid operation.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "You cannot follow yourself.", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        // Disable the button to prevent multiple clicks during processing
+        followButton.setEnabled(false);
+
         db.collection("users").document(searchedUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    boolean isPrivate = false;
-                    if (documentSnapshot.exists() && documentSnapshot.contains("isPrivate")) {
-                        isPrivate = documentSnapshot.getBoolean("isPrivate");
-                    }
+                    boolean isPrivate = documentSnapshot.exists() &&
+                            documentSnapshot.contains("isPrivate") &&
+                            documentSnapshot.getBoolean("isPrivate");
+
                     if (isPrivate) {
-                        // For private accounts, check if a follow request exists // NEW:
+                        // Handle follow request for private accounts
                         db.collection("users").document(searchedUserId)
                                 .collection("followRequests").document(currentUserId)
                                 .get()
                                 .addOnSuccessListener(requestDoc -> {
                                     if (requestDoc.exists()) {
-                                        // If request exists, cancel the follow request // NEW:
+                                        // Cancel existing follow request
                                         requestDoc.getReference().delete()
                                                 .addOnSuccessListener(aVoid -> {
-                                                    followButton.setText("Follow"); // NEW: Updated text for cancelled request
+                                                    followButton.setText("Follow");
                                                     followButton.setEnabled(true);
-                                                    Toast.makeText(OtherProfileActivity.this, "Follow request cancelled", Toast.LENGTH_SHORT).show();
+                                                    Toast.makeText(this, "Follow request cancelled", Toast.LENGTH_SHORT).show();
                                                 })
                                                 .addOnFailureListener(e -> {
-                                                    Toast.makeText(OtherProfileActivity.this, "Error cancelling follow request", Toast.LENGTH_SHORT).show();
+                                                    followButton.setEnabled(true);
+                                                    Toast.makeText(this, "Failed to cancel request. Please try again.", Toast.LENGTH_SHORT).show();
+                                                    Log.e("FollowUser", "Error cancelling request", e);
                                                 });
                                     } else {
-                                        // If no request exists, send a follow request // NEW:
+                                        // Send new follow request
                                         Map<String, Object> requestData = new HashMap<>();
-                                        requestData.put("timestamp", FieldValue.serverTimestamp()); // NEW: added timestamp
+                                        requestData.put("timestamp", FieldValue.serverTimestamp());
                                         db.collection("users").document(searchedUserId)
                                                 .collection("followRequests").document(currentUserId)
                                                 .set(requestData)
                                                 .addOnSuccessListener(aVoid -> {
-                                                    followButton.setText("Requested"); // NEW: show request pending
-                                                    followButton.setEnabled(true); // Allow cancellation if needed
-                                                    Toast.makeText(OtherProfileActivity.this, "Follow request sent", Toast.LENGTH_SHORT).show();
+                                                    followButton.setText("Requested");
+                                                    followButton.setEnabled(true); // Allow cancellation
+                                                    Toast.makeText(this, "Follow request sent", Toast.LENGTH_SHORT).show();
                                                 })
                                                 .addOnFailureListener(e -> {
-                                                    Toast.makeText(OtherProfileActivity.this, "Error sending follow request", Toast.LENGTH_SHORT).show();
+                                                    followButton.setEnabled(true);
+                                                    Toast.makeText(this, "Failed to send request. Please try again.", Toast.LENGTH_SHORT).show();
+                                                    Log.e("FollowUser", "Error sending request", e);
                                                 });
                                     }
+                                })
+                                .addOnFailureListener(e -> {
+                                    followButton.setEnabled(true);
+                                    Toast.makeText(this, "Error checking request status.", Toast.LENGTH_SHORT).show();
+                                    Log.e("FollowUser", "Error fetching request doc", e);
                                 });
                     } else {
-                        // For public accounts, follow immediately. // EDITED:
+                        // Follow public accounts immediately
                         WriteBatch batch = db.batch();
                         batch.set(db.collection("users").document(searchedUserId)
                                 .collection("followers").document(currentUserId), new HashMap<>());
@@ -395,45 +413,22 @@ public class OtherProfileActivity extends ActivityBase {
                         batch.commit()
                                 .addOnSuccessListener(aVoid -> {
                                     followButton.setText("Following");
-                                    followButton.setEnabled(false);
-                                    Toast.makeText(OtherProfileActivity.this, "Followed successfully!", Toast.LENGTH_SHORT).show();
+                                    followButton.setEnabled(false); // Permanently disable after following
+                                    Toast.makeText(this, "Followed successfully!", Toast.LENGTH_SHORT).show();
+                                    showSuggestedUsers();
                                 })
                                 .addOnFailureListener(e -> {
-                                    Toast.makeText(OtherProfileActivity.this, "Failed to follow.", Toast.LENGTH_SHORT).show();
+                                    followButton.setEnabled(true);
+                                    Toast.makeText(this, "Failed to follow. Please try again.", Toast.LENGTH_SHORT).show();
+                                    Log.e("FollowUser", "Error following user", e);
                                 });
                     }
-
-        // Create a batch write for atomic updates
-        WriteBatch batch = db.batch();
-
-        // Reference to the follower's document in searched user's followers subcollection
-        DocumentReference followerRef = db.collection("users")
-                .document(searchedUserId)
-                .collection("followers")
-                .document(currentUserId);
-        batch.set(followerRef, new HashMap<String, Object>());
-
-        // Reference to the following document in current user's following subcollection
-        DocumentReference followingRef = db.collection("users")
-                .document(currentUserId)
-                .collection("following")
-                .document(searchedUserId);
-        batch.set(followingRef, new HashMap<String, Object>());
-
-        // Commit the batch write
-        batch.commit()
-                .addOnSuccessListener(aVoid -> {
-                    followButton.setText("Following");
-                    followButton.setEnabled(false);
-                    Toast.makeText(this, "Followed successfully!", Toast.LENGTH_SHORT).show();
-
-                    // Call suggestion function
-                    showSuggestedUsers();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error retrieving user info", Toast.LENGTH_SHORT).show();
+                    followButton.setEnabled(true);
+                    Toast.makeText(this, "Error retrieving user info. Please try again.", Toast.LENGTH_SHORT).show();
+                    Log.e("FollowUser", "Error fetching user doc", e);
                 });
-
     }
     private void showSuggestedUsers() {
         db.collection("users")
