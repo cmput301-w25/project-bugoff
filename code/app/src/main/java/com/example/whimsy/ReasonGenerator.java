@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * ReasonGenerator handles AI text generation using OpenAI's Chat Completions API.
  * This version uses the GPT‑4 model. It sends the prompt as a user message and retrieves a response.
- * The generated text is trimmed to 185 characters if necessary.
+ * The generated text is trimmed to 200 characters if necessary.
  */
 public class ReasonGenerator {
 
@@ -69,7 +69,7 @@ public class ReasonGenerator {
             userMsg.put("content", prompt);
             messages.put(userMsg);
             jsonBody.put("messages", messages);
-            jsonBody.put("max_tokens", 50);  // Adjust token count as needed.
+            jsonBody.put("max_tokens", 50);
             jsonBody.put("temperature", 0.7);
         } catch (JSONException e) {
             callback.onFailure(e);
@@ -102,8 +102,16 @@ public class ReasonGenerator {
                         JSONObject firstChoice = choices.getJSONObject(0);
                         JSONObject message = firstChoice.getJSONObject("message");
                         String generatedText = message.getString("content").trim();
-                        if (generatedText.length() > 185) {
-                            generatedText = generatedText.substring(0, 185);
+                        if (generatedText.length() > 200) {
+                            int lastPeriod = generatedText.lastIndexOf(".", 200);
+                            int lastExclamation = generatedText.lastIndexOf("!", 200);
+                            int lastQuestion = generatedText.lastIndexOf("?", 200);
+                            int lastIndex = Math.max(lastPeriod, Math.max(lastExclamation, lastQuestion));
+                            if (lastIndex != -1 && lastIndex > 0) {
+                                generatedText = generatedText.substring(0, lastIndex + 1);
+                            } else {
+                                generatedText = generatedText.substring(0, 200);
+                            }
                         }
                         String finalGeneratedText = generatedText;
                         new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(finalGeneratedText));
@@ -116,4 +124,5 @@ public class ReasonGenerator {
             }
         });
     }
+
 }
