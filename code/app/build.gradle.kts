@@ -6,6 +6,9 @@ plugins {
 android {
     namespace = "com.example.whimsy"
     compileSdk = 35
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "com.example.whimsy"
@@ -13,8 +16,9 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
+        buildConfigField("String", "IMAGE_GEN_API_KEY", "\"INSERT KEY HERE\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
 
     buildTypes {
@@ -94,4 +98,5 @@ dependencies {
     implementation ("com.google.firebase:firebase-bom:32.8.0")
     implementation ("com.google.android.gms:play-services-base:18.3.0")
     implementation("com.google.android.gms:play-services-maps:18.1.0")
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
 }

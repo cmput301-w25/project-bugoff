@@ -28,12 +28,15 @@ package com.example.whimsy;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.ComponentCaller;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
 import android.net.ConnectivityManager;
@@ -45,7 +48,10 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.InputFilter;
+import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -58,6 +64,8 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
@@ -66,6 +74,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
@@ -150,6 +161,8 @@ public class AddMood extends ActivityBase {
     // Connectivity monitoring
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
+    private String generatedImageUrl;
+
 
     private ActivityResultLauncher<Intent> autocompleteLauncher;
 
@@ -366,11 +379,42 @@ public class AddMood extends ActivityBase {
         reasonInput.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+//            @Override
+//            public void onTextChanged(CharSequence s, int start, int before, int count) {
+//                int remaining = 200 - s.length();
+//                reasonCharCountText.setText(String.valueOf(remaining));
+//            }
+
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String text = s.toString();
                 int remaining = 200 - s.length();
                 reasonCharCountText.setText(String.valueOf(remaining));
+                if (text.startsWith("#generate-reason")) {
+                    addMoodButton.setText("Generate");
+                    SpannableString spannable = new SpannableString(text);
+                    ForegroundColorSpan blueSpan = new ForegroundColorSpan(0xFF2196F3);
+                    spannable.setSpan(blueSpan, 0, "#generate-reason".length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    reasonInput.removeTextChangedListener(this);
+                    reasonInput.setText(spannable);
+                    reasonInput.setSelection(spannable.length());
+                    reasonInput.addTextChangedListener(this);
+                }
+                else if (text.startsWith("#generate-image")) {
+                    addMoodButton.setText("Generate");
+                    SpannableString spannable = new SpannableString(text);
+                    ForegroundColorSpan blueSpan = new ForegroundColorSpan(0xFF2196F3);
+                    spannable.setSpan(blueSpan, 0, "#generate-image".length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    reasonInput.removeTextChangedListener(this);
+                    reasonInput.setText(spannable);
+                    reasonInput.setSelection(spannable.length());
+                    reasonInput.addTextChangedListener(this);
+                }
+                else {
+                    addMoodButton.setText("Add Mood");
+                }
             }
+
             @Override
             public void afterTextChanged(Editable s) { }
         });
@@ -386,21 +430,255 @@ public class AddMood extends ActivityBase {
 
         // Set up click listener for the Add Mood button to validate inputs and initiate mood saving.
         addMoodButton.setOnClickListener(v -> {
-            // Show the progress bar while saving the mood.
             progressBar.setVisibility(View.VISIBLE);
-
             if (moodSpinner.getSelectedItemPosition() == 0) {
                 progressBar.setVisibility(View.GONE);
                 showSnackbar("Please select an emotion.");
                 return;
             }
-            saveMoodToFirebase();
+            handleAddMoodButtonClick();
         });
+
 
         // Initialize connectivity monitoring.
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         registerNetworkCallback();
     }
+
+    private void handleAddMoodButtonClick() {
+        String currentButtonText = addMoodButton.getText().toString();
+        if ("Generate".equals(currentButtonText)) {
+            String reason = reasonInput.getText().toString().trim();
+            if (reason.startsWith("#generate-reason")) {
+                generateReasonAndUpdateUI();
+            } else if (reason.startsWith("#generate-image")) {
+                generateImageAndUpdateUI();
+            } else {
+                saveMoodNormally();
+            }
+        } else {
+            saveMoodNormally();
+        }
+    }
+
+    private void generateReasonAndUpdateUI() {
+        String reason = reasonInput.getText().toString().trim();
+        if (!reason.startsWith("#generate-reason")) {
+            showSnackbar("Please enter a prompt starting with #generate-reason");
+            progressBar.setVisibility(View.GONE);
+            return;
+        }
+        String prompt = reason.substring("#generate-reason".length()).trim();
+        ReasonGenerator reasonGenerator = new ReasonGenerator();
+        reasonGenerator.generateReason(prompt, new ReasonGenerator.ReasonGeneratorCallback() {
+            @Override
+            public void onSuccess(String generatedText) {
+                reasonInput.setText(generatedText);
+                addMoodButton.setText("Add Mood");
+                showSnackbar("AI text Generated successfully", false);
+                progressBar.setVisibility(View.GONE);
+            }
+            @Override
+            public void onFailure(Exception e) {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("Failed to generate text: " + e.getMessage());
+            }
+        });
+    }
+    private void generateImageAndUpdateUI() {
+        String reason = reasonInput.getText().toString().trim();
+        if (!reason.startsWith("#generate-image")) {
+            showSnackbar("Please enter a prompt starting with #generate-image");
+            progressBar.setVisibility(View.GONE);
+            return;
+        }
+        String prompt = reason.substring("#generate-image".length()).trim();
+        ImageGenerator imageGenerator = new ImageGenerator();
+        imageGenerator.generateImage(prompt, new ImageGenerator.ImageGeneratorCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                Glide.with(AddMood.this).load(imageUrl).into(selectedImageView);
+                selectedImageView.setVisibility(ImageView.VISIBLE);
+                generatedImageUrl = imageUrl;
+                selectedImageUri = null;
+                importImageIcon.setColorFilter(Color.BLUE);
+                reasonInput.setText("");
+                addMoodButton.setText("Add Mood");
+                showSnackbar("AI image Generated successfully", false);
+                progressBar.setVisibility(View.GONE);
+            }
+            @Override
+            public void onFailure(Exception e) {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("Failed to generate image: " + e.getMessage());
+            }
+        });
+    }
+
+
+    private void saveMoodNormally() {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            showSnackbar("User not logged in");
+            progressBar.setVisibility(View.GONE);
+            return;
+        }
+
+        // Basic mood validation
+        String mood = moodSpinner.getSelectedItem().toString();
+        if (mood.equals("Select an Emotion")) {
+            showSnackbar("Please select an emotion");
+            progressBar.setVisibility(View.GONE);
+            return;
+        }
+
+        String reason = reasonInput.getText().toString().trim();
+        String timestamp = timestampText.getText().toString();
+
+        Map<String, Object> moodData = new HashMap<>();
+        moodData.put("mood", mood);
+        moodData.put("reason", reason);
+        moodData.put("timestamp", timestamp);
+        moodData.put("isPrivate", isPrivate);
+
+        // Add location data if available
+        if (selectedLocation != null) {
+            moodData.put("locationName", selectedLocation.getName());
+            moodData.put("locationLat", selectedLocation.getLatLng().latitude);
+            moodData.put("locationLng", selectedLocation.getLatLng().longitude);
+        }
+
+        // Add tag data if available
+        if (!taggedUsers.isEmpty()) {
+            List<Map<String, Object>> tags = new ArrayList<>();
+            for (User taggedUser : taggedUsers) {
+                Map<String, Object> tagInfo = new HashMap<>();
+                tagInfo.put("userId", taggedUser.getId());
+                tagInfo.put("username", taggedUser.getUsername());
+                tagInfo.put("name", taggedUser.getName());
+                tags.add(tagInfo);
+            }
+            moodData.put("tags", tags);
+        }
+
+        // Handle AI-generated image
+        if (generatedImageUrl != null) {
+            if (!isNetworkAvailable()) {
+                moodData.put("generatedImageUrl", generatedImageUrl);
+                addMoodToQueue(moodData, null);
+                progressBar.setVisibility(View.GONE);
+                int count = getOfflineQueueCount();
+                showSnackbar("No internet. Mood queued. Total queued: " + count, false);
+                updateOfflineBanner();
+                resetFields();
+                return;
+            }
+
+            processGeneratedImage(moodData);
+            return;
+        }
+
+        // Handle regular image upload
+        if (!isNetworkAvailable()) {
+            addMoodToQueue(moodData, selectedImageUri);
+            progressBar.setVisibility(View.GONE);
+            int count = getOfflineQueueCount();
+            showSnackbar("No internet. Mood queued. Total queued: " + count, false);
+            updateOfflineBanner();
+            resetFields();
+            return;
+        }
+
+        // Standard mood save with potential image upload
+        moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
+            @Override
+            public void onSuccess() {
+                progressBar.setVisibility(View.GONE);
+                resetFields();
+                showSnackbar("Mood added successfully", false);
+            }
+            @Override
+            public void onFailure(Exception e) {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("Error adding mood: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Process and upload an AI-generated image to Firebase Storage
+     * then save the mood with the image URL
+     *
+     * @param moodData The mood data map to save with the image URL
+     */
+    private void processGeneratedImage(Map<String, Object> moodData) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            runOnUiThread(() -> {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("User not logged in");
+            });
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                // Download the AI-generated image using Glide
+                Bitmap bitmap = Glide.with(AddMood.this)
+                        .asBitmap()
+                        .load(generatedImageUrl)
+                        .submit(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+                        .get();
+
+                byte[] compressedBytes = ImageCompressor.compressImage(bitmap, 64000);
+
+                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+                StorageReference imageRef = storage.getReference("mood_images/" + user.getUid() + "/" + timeStamp + ".jpg");
+
+                // Upload the compressed image to Firebase Storage
+                imageRef.putBytes(compressedBytes)
+                        .addOnSuccessListener(taskSnapshot -> {
+                            imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                                moodData.put("imageUrl", uri.toString());
+
+                                moodRepository.saveMood(moodData, null, new MoodRepository.SaveMoodCallback() {
+                                    @Override
+                                    public void onSuccess() {
+                                        runOnUiThread(() -> {
+                                            progressBar.setVisibility(View.GONE);
+                                            resetFields();
+                                            showSnackbar("Mood with generated image added successfully", false);
+                                        });
+                                    }
+                                    @Override
+                                    public void onFailure(Exception e) {
+                                        runOnUiThread(() -> {
+                                            progressBar.setVisibility(View.GONE);
+                                            showSnackbar("Error adding mood: " + e.getMessage());
+                                        });
+                                    }
+                                });
+                            }).addOnFailureListener(e -> {
+                                runOnUiThread(() -> {
+                                    progressBar.setVisibility(View.GONE);
+                                    showSnackbar("Error getting download URL: " + e.getMessage());
+                                });
+                            });
+                        }).addOnFailureListener(e -> {
+                            runOnUiThread(() -> {
+                                progressBar.setVisibility(View.GONE);
+                                showSnackbar("Error uploading image: " + e.getMessage());
+                            });
+                        });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    showSnackbar("Error processing generated image: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+
 
     /**
      * Registers a network callback to listen for connectivity changes.
@@ -882,14 +1160,12 @@ public class AddMood extends ActivityBase {
             showSnackbar("User not logged in");
             return;
         }
-
         String mood = moodSpinner.getSelectedItem().toString();
         if (!InputValidator.isValidMood(mood)) {
             showSnackbar("Please select a valid emotion.");
             progressBar.setVisibility(View.GONE);
             return;
         }
-
         String reason = reasonInput.getText().toString().trim();
         String reasonError = InputValidator.validateReason(reason);
         if (reasonError != null) {
@@ -897,7 +1173,6 @@ public class AddMood extends ActivityBase {
             progressBar.setVisibility(View.GONE);
             return;
         }
-
         String timestamp = timestampText.getText().toString();
         Map<String, Object> moodData = new HashMap<>();
         moodData.put("mood", mood);
@@ -910,7 +1185,6 @@ public class AddMood extends ActivityBase {
             moodData.put("locationLat", selectedLocation.getLatLng().latitude);
             moodData.put("locationLng", selectedLocation.getLatLng().longitude);
         }
-
         if (!taggedUsers.isEmpty()) {
             List<Map<String, Object>> tags = new ArrayList<>();
             for (User taggedUser : taggedUsers) {
@@ -923,49 +1197,53 @@ public class AddMood extends ActivityBase {
             moodData.put("tags", tags);
         }
 
-        // Check network connectivity.
+        if (reason.startsWith("#generate-image")) {
+            String prompt = reason.substring("#generate-image".length()).trim();
+            ImageGenerator imageGenerator = new ImageGenerator();
+            imageGenerator.generateImage(prompt, new ImageGenerator.ImageGeneratorCallback() {
+                @Override
+                public void onSuccess(String imageUrl) {
+                    Glide.with(AddMood.this)
+                            .load(imageUrl)
+                            .into(selectedImageView);
+                    selectedImageView.setVisibility(ImageView.VISIBLE);
+                    Log.d("AddMood", "AI image generated with URL: " + imageUrl);
+                    generatedImageUrl = imageUrl;
+                    selectedImageUri = null;
+                    processGeneratedImage(moodData);
+                }
+                @Override
+                public void onFailure(Exception e) {
+                    progressBar.setVisibility(View.GONE);
+                    showSnackbar("Failed to generate image: " + e.getMessage());
+                }
+            });
+            return; // NEW: Exit early since AI image branch is handled asynchronously.
+        }
+
+        // If a normal image is selected via gallery/camera, use that.
+        if (selectedImageUri != null) {
+            Log.d("AddMood", "Using selectedImageUri: " + selectedImageUri.toString());
+        }
+
+        // If offline, queue the mood.
         if (!isNetworkAvailable()) {
             addMoodToQueue(moodData, selectedImageUri);
             progressBar.setVisibility(View.GONE);
             int count = getOfflineQueueCount();
             showSnackbar("No internet. Mood queued. Total queued: " + count, false);
             updateOfflineBanner();
-            // Reset all fields.
-            moodSpinner.setSelection(0);
-            reasonInput.setText("");
-            selectedImageView.setVisibility(View.GONE);
-            selectedImageUri = null;
-            importImageIcon.clearColorFilter();
-            locationIcon.clearColorFilter();
-            selectedLocation = null;
-            taggedUsers.clear();
-            tagIcon.clearColorFilter();
-            SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
-            timestampText.setText(sdf.format(new Date()));
+            resetFields();
             return;
         }
 
-        // If online, delegate the save operation to the MoodRepository.
         moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
             @Override
             public void onSuccess() {
                 progressBar.setVisibility(View.GONE);
-                // Reset all fields upon successful save.
-                moodSpinner.setSelection(0);
-                reasonInput.setText("");
-                selectedImageView.setVisibility(View.GONE);
-                selectedImageUri = null;
-                importImageIcon.clearColorFilter();
-                locationIcon.clearColorFilter();
-                selectedLocation = null;
-                taggedUsers.clear();
-                selectedLocationText.setVisibility(View.GONE);
-                tagIcon.clearColorFilter();
+                resetFields();
                 showSnackbar("Mood added successfully", false);
-                SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
-                timestampText.setText(sdf.format(new Date()));
             }
-
             @Override
             public void onFailure(Exception e) {
                 progressBar.setVisibility(View.GONE);
@@ -973,6 +1251,21 @@ public class AddMood extends ActivityBase {
             }
         });
     }
+
+    private void resetFields() {
+        moodSpinner.setSelection(0);
+        reasonInput.setText("");
+        selectedImageView.setVisibility(ImageView.GONE);
+        selectedImageUri = null;
+        importImageIcon.clearColorFilter();
+        locationIcon.clearColorFilter();
+        selectedLocation = null;
+        taggedUsers.clear();
+        tagIcon.clearColorFilter();
+        SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
+        timestampText.setText(sdf.format(new Date()));
+    }
+
 
     // --- TAGGING FUNCTIONALITY ---
 
