@@ -2,6 +2,7 @@ package com.example.whimsy;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.transition.TransitionManager;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -10,12 +11,15 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -65,6 +69,39 @@ public class HomePageActivity extends ActivityBase {
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
 
+        final ConstraintLayout constraintLayout = findViewById(R.id.constraintLayout);
+        final LinearLayout buttonPanel = findViewById(R.id.buttonPanel);
+// recyclerView is already defined
+
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                // Use a simple threshold if needed
+                if (dy > 0 && buttonPanel.getVisibility() == View.VISIBLE) {
+                    // Hide the panel and update RecyclerView constraint
+                    ConstraintSet constraintSet = new ConstraintSet();
+                    constraintSet.clone(constraintLayout);
+                    // Reconnect the RecyclerView top directly to parent's top
+                    constraintSet.clear(R.id.moods_recycler_view, ConstraintSet.TOP);
+                    constraintSet.connect(R.id.moods_recycler_view, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
+                    TransitionManager.beginDelayedTransition(constraintLayout);
+                    constraintSet.applyTo(constraintLayout);
+                    buttonPanel.setVisibility(View.GONE);
+                } else if (dy < 0 && buttonPanel.getVisibility() != View.VISIBLE) {
+                    // Show the panel and update RecyclerView constraint to its bottom
+                    ConstraintSet constraintSet = new ConstraintSet();
+                    constraintSet.clone(constraintLayout);
+                    constraintSet.clear(R.id.moods_recycler_view, ConstraintSet.TOP);
+                    constraintSet.connect(R.id.moods_recycler_view, ConstraintSet.TOP, R.id.buttonPanel, ConstraintSet.BOTTOM, 0);
+                    TransitionManager.beginDelayedTransition(constraintLayout);
+                    constraintSet.applyTo(constraintLayout);
+                    buttonPanel.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+
+
         // Initialize Firebase
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -74,7 +111,7 @@ public class HomePageActivity extends ActivityBase {
             loadFollowedUsersMoods(userId);
 
             // Setup filter button
-            ImageButton filterButton = findViewById(R.id.filter_button);
+            Button filterButton = findViewById(R.id.filter_button);
             filterButton.setOnClickListener(v -> showFilterPopup());
 
             // Real-time listener for followed moods
