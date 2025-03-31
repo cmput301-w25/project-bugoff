@@ -147,13 +147,14 @@
         android:layout_marginTop="12dp"/>
 
     <!-- Sign Up Button -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/signup_btn"
         android:layout_width="0dp"
         android:layout_height="55dp"
         android:layout_marginTop="28dp"
         android:backgroundTint="@color/blue"
         android:text="Sign Up"
+        app:cornerRadius="14dp"
         android:textColor="@android:color/white"
         android:textSize="18sp"
         android:textStyle="bold"

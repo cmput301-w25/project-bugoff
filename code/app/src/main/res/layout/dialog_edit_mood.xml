@@ -10,12 +10,21 @@
     android:orientation="vertical"
     android:padding="10dp">
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Editing Mood..."
+        android:textSize="30sp"
+        android:fontFamily="@font/kaushan_script"
+        android:textAlignment="center"
+        android:layout_marginTop="10dp" />
+
     <!-- Mood Spinner -->
     <FrameLayout
         android:id="@+id/spinnerFrame"
         android:layout_width="264dp"
         android:layout_height="35dp"
-        android:layout_marginTop="25dp"
+        android:layout_marginTop="20dp"
         android:elevation="6dp"
         android:layout_gravity="center_horizontal">
         <RelativeLayout
@@ -105,13 +114,14 @@
 
     </LinearLayout>
     <!-- Tagging Friends -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/addTagButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:backgroundTint="#439DEB"
         android:layout_gravity="center"
         android:text="Add Tag"
+        app:cornerRadius="14dp"
         android:layout_marginTop="8dp" />
     <TextView
         android:id="@+id/taggedFriendsText"
@@ -128,24 +138,27 @@
         android:orientation="horizontal"
         android:layout_marginTop="16dp"
         android:gravity="center">
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/deleteButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Delete"
+            app:cornerRadius="14dp"
             android:backgroundTint="@color/anger_text"/>
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/saveButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:text="Save"
+            app:cornerRadius="14dp"
             android:backgroundTint="#439DEB"/>
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/cancelButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cancel"
+            app:cornerRadius="14dp"
             android:layout_marginStart="8dp"
             android:backgroundTint="#439DEB"/>
 

@@ -40,20 +40,22 @@
         android:textColor="@android:color/black" />
 
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/reject_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Reject"
+            app:cornerRadius="14dp"
             android:textColor="@android:color/white"
             android:backgroundTint="#EB4343"
             android:layout_marginEnd="8dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/accept_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Accept"
+            app:cornerRadius="14dp"
             android:textColor="@android:color/white"
             android:backgroundTint="#439DEB" />
     </LinearLayout>

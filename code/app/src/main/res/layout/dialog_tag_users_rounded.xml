@@ -60,18 +60,20 @@
         android:gravity="end"
         android:orientation="horizontal">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/tag_cancel_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:backgroundTint="#EB4343"
+            app:cornerRadius="14dp"
             android:text="Cancel" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/tag_apply_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Apply"
+            app:cornerRadius="14dp"
             android:backgroundTint="#439DEB"
             android:layout_marginStart="8dp"/>
     </LinearLayout>
