@@ -362,7 +362,6 @@ public class AddMood extends ActivityBase {
         tagIcon.setOnClickListener(v -> showTagUsersDialog());
 
         // Set up click listener for the Add Mood button to validate inputs and initiate mood saving.
-        // EDIT: Replace the existing onClickListener with the following code:
         addMoodButton.setOnClickListener(v -> {
             progressBar.setVisibility(View.VISIBLE);
             if (moodSpinner.getSelectedItemPosition() == 0) {
@@ -370,7 +369,7 @@ public class AddMood extends ActivityBase {
                 showSnackbar("Please select an emotion.");
                 return;
             }
-            handleAddMoodButtonClick();  // NEW: Delegate to our custom method.
+            handleAddMoodButtonClick();
         });
 
 
@@ -378,19 +377,23 @@ public class AddMood extends ActivityBase {
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         registerNetworkCallback();
     }
-    // NEW: Handles the addMoodButton click based on its current text.
+
     private void handleAddMoodButtonClick() {
         String currentButtonText = addMoodButton.getText().toString();
         if ("Generate".equals(currentButtonText)) {
-            // If the button shows "Generate", call the text generation branch.
-            generateReasonAndUpdateUI();
+            String reason = reasonInput.getText().toString().trim();
+            if (reason.startsWith("#generate-reason")) {
+                generateReasonAndUpdateUI();
+            } else if (reason.startsWith("#generate-image")) {
+                generateImageAndUpdateUI();
+            } else {
+                saveMoodNormally();
+            }
         } else {
-            // Otherwise, save the mood normally.
             saveMoodNormally();
         }
     }
 
-    // NEW: Calls the ReasonGenerator to generate text and updates the UI.
     private void generateReasonAndUpdateUI() {
         String reason = reasonInput.getText().toString().trim();
         if (!reason.startsWith("#generate-reason")) {
@@ -398,18 +401,14 @@ public class AddMood extends ActivityBase {
             progressBar.setVisibility(View.GONE);
             return;
         }
-        // Strip the prefix.
         String prompt = reason.substring("#generate-reason".length()).trim();
         ReasonGenerator reasonGenerator = new ReasonGenerator();
         reasonGenerator.generateReason(prompt, new ReasonGenerator.ReasonGeneratorCallback() {
             @Override
             public void onSuccess(String generatedText) {
-                // Clear and update the reason input with the generated text.
                 reasonInput.setText(generatedText);
-                // Change button text back to "Add Mood".
                 addMoodButton.setText("Add Mood");
-                // Inform the user.
-                showSnackbar("AI text Generated successfully");
+                showSnackbar("AI text Generated successfully", false);
                 progressBar.setVisibility(View.GONE);
             }
             @Override
@@ -419,11 +418,33 @@ public class AddMood extends ActivityBase {
             }
         });
     }
+    private void generateImageAndUpdateUI() {
+        String reason = reasonInput.getText().toString().trim();
+        if (!reason.startsWith("#generate-image")) {
+            showSnackbar("Please enter a prompt starting with #generate-image");
+            progressBar.setVisibility(View.GONE);
+            return;
+        }
+        String prompt = reason.substring("#generate-image".length()).trim();
+        ImageGenerator imageGenerator = new ImageGenerator();
+        imageGenerator.generateImage(prompt, new ImageGenerator.ImageGeneratorCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                Glide.with(AddMood.this).load(imageUrl).into(selectedImageView);
+                selectedImageView.setVisibility(ImageView.VISIBLE);
+                addMoodButton.setText("Add Mood");
+                showSnackbar("AI image Generated successfully", false);
+                progressBar.setVisibility(View.GONE);
+            }
+            @Override
+            public void onFailure(Exception e) {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("Failed to generate image: " + e.getMessage());
+            }
+        });
+    }
 
-    // NEW: Saves the mood normally (without AI text generation).
     private void saveMoodNormally() {
-        // Your existing logic to build moodData and save the mood.
-        // For example:
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             showSnackbar("User not logged in");
@@ -437,7 +458,6 @@ public class AddMood extends ActivityBase {
         moodData.put("reason", reason);
         moodData.put("timestamp", timestamp);
         moodData.put("isPrivate", isPrivate);
-        // Include location and tag info as needed...
 
         if (!isNetworkAvailable()) {
             addMoodToQueue(moodData, selectedImageUri);
