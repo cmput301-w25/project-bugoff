@@ -13,7 +13,13 @@
 
 package com.example.whimsy;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.ColorStateList;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -28,6 +34,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,8 +50,10 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
@@ -70,12 +79,16 @@ public class MoodPageActivity extends ActivityBase {
     private List<Comment> comments = new ArrayList<>();
     private CommentAdapter commentAdapter;
     private ListenerRegistration commentsListener;
+    private ListenerRegistration moodListener; // Added field
     private EditText commentInput;
     private LinearLayout commentLayout;
     private Button commentConfirmButton;
     private FloatingActionButton editMoodFab;
     private ImageView backBtn;
     private Set<String> followedMoodsSet = new HashSet<>();
+
+    private BroadcastReceiver connectivityReceiver;
+    private boolean wasOffline = false;
 
     /**
      * Initializes the activity, sets up the RecyclerView, and fetches mood data.
@@ -85,9 +98,27 @@ public class MoodPageActivity extends ActivityBase {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = FirebaseFirestore.getInstance();
+        FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true)
+                .build();
+        db.setFirestoreSettings(settings);
         FrameLayout contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.activity_mood_page, contentFrame, true);
 
+
+        connectivityReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                boolean isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+                if (!isConnected) {
+                    wasOffline = true;
+                    Toast.makeText(MoodPageActivity.this, "Offline: Changes will sync later", Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
+        registerReceiver(connectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         // Retrieve mood data from intent
         selectedMood = (Mood) getIntent().getSerializableExtra("SELECTED_MOOD");
@@ -161,7 +192,7 @@ public class MoodPageActivity extends ActivityBase {
 // Set up comments RecyclerView
         RecyclerView commentsRecyclerView = findViewById(R.id.mood_comments_recycler_view);
         commentsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        commentAdapter = new CommentAdapter(comments, colorFg, cardBg);
+        commentAdapter = new CommentAdapter(comments, colorFg);
         commentsRecyclerView.setAdapter(commentAdapter);
 
 // Initialize comment input components
@@ -283,6 +314,7 @@ public class MoodPageActivity extends ActivityBase {
         AutoCompleteTextView friendSearchInput = dialogView.findViewById(R.id.friendSearchInput);
         Button addTagButton = dialogView.findViewById(R.id.addTagButton);
         TextView taggedFriendsText = dialogView.findViewById(R.id.taggedFriendsText);
+        Switch privacySwitch = dialogView.findViewById(R.id.privacySwitch);
         Button cancelButton = dialogView.findViewById(R.id.cancelButton);
         Button saveButton = dialogView.findViewById(R.id.saveButton);
         Button deleteButton = dialogView.findViewById(R.id.deleteButton);
@@ -316,10 +348,13 @@ public class MoodPageActivity extends ActivityBase {
             public void afterTextChanged(Editable s) {}
         });
 
+        privacySwitch.setChecked(mood.isPrivateMood()); // Add this
+
+
+
         // Handle tagging friends
         List<String> taggedFriends = new ArrayList<>(mood.getTaggedUserNames());
         updateTaggedFriendsText(taggedFriendsText, taggedFriends);
-
         addTagButton.setOnClickListener(v -> {
             String selectedUser = friendSearchInput.getText().toString().trim();
             if (!selectedUser.isEmpty() && !taggedFriends.contains(selectedUser)) {
@@ -334,6 +369,10 @@ public class MoodPageActivity extends ActivityBase {
             mood.setMoodStatus("Feeling " + moodSpinner.getSelectedItem().toString());
             mood.setMoodReason(reasonInput.getText().toString().trim());
             mood.setTaggedUserNames(taggedFriends);
+            mood.setPrivate(privacySwitch.isChecked());
+            mood.setMoodImage(mood.getMoodImage());
+
+            moodAdapter.notifyDataSetChanged();
             updateMoodInFirestore(mood, moodId); // Your existing method to save to Firestore
             dialog.dismiss();
         });
@@ -344,9 +383,9 @@ public class MoodPageActivity extends ActivityBase {
                     .setTitle("Delete Mood")
                     .setMessage("Are you sure you want to delete this mood?")
                     .setPositiveButton("Yes", (dialogInterface, i) -> {
-                        deleteMoodFromFirestore(moodId); // Your existing method to delete from Firestore
+                        deleteMoodFromFirestore(moodId);
                         dialog.dismiss();
-                        finish();
+                        // finish() is called inside deleteMoodFromFirestore
                     })
                     .setNegativeButton("No", null)
                     .show();
@@ -457,10 +496,37 @@ public class MoodPageActivity extends ActivityBase {
 
         Map<String, Object> updatedData = new HashMap<>();
         updatedData.put("mood", mood.getMoodStatus().replace("Feeling ", ""));
-        updatedData.put("trigger", mood.getMoodTrigger());
         updatedData.put("reason", mood.getMoodReason());
+        updatedData.put("isPrivate", mood.isPrivateMood());
+
+        // Convert taggedUserNames to Firestore-compatible tags format
+        List<Map<String, Object>> tags = new ArrayList<>();
+        if (mood.getTaggedUserNames() != null) {
+            for (String username : mood.getTaggedUserNames()) {
+                Map<String, Object> tag = new HashMap<>();
+                tag.put("username", username);
+                // Note: userId and name are unavailable in edit dialog; only username is used
+                tags.add(tag);
+            }
+        }
+        updatedData.put("tags", tags);
+
         db.collection("users").document(user.getUid()).collection("moods").document(moodId)
-                .update(updatedData);
+                .update(updatedData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("MoodPageActivity", "Mood updated successfully");
+                    Toast.makeText(this, "Mood updated", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("MoodPageActivity", "Error updating mood", e);
+                    Toast.makeText(this, "Failed to update mood", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private boolean isOnline() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
     }
 
     /**
@@ -472,30 +538,34 @@ public class MoodPageActivity extends ActivityBase {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
 
-        // If the mood has an associated image, delete it from Firebase Storage.
-        // Assuming selectedMood is the Mood object being displayed.
-        String imageUrl = selectedMood.getMoodImage();
-        if (imageUrl != null && !imageUrl.isEmpty()) {
-            StorageReference imageRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl);
-            imageRef.delete()
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d("Storage", "Mood image deleted successfully");
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e("Storage", "Error deleting mood image", e);
-                    });
-        }
-
-        // Delete the mood document from Firestore.
+        // Reference to the mood document
         db.collection("users").document(user.getUid()).collection("moods").document(moodId)
                 .delete()
                 .addOnSuccessListener(aVoid -> {
                     Log.d("Firestore", "Mood document deleted successfully");
+                    // Check connectivity for user feedback
+                    if (isOnline()) {
+                        Toast.makeText(this, "Mood deleted", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Mood will be deleted when online", Toast.LENGTH_SHORT).show();
+                    }
+                    finish(); // Close the activity immediately
                 })
                 .addOnFailureListener(e -> {
                     Log.e("Firestore", "Error deleting mood document", e);
+                    Toast.makeText(this, "Failed to delete mood", Toast.LENGTH_SHORT).show();
                 });
+
+        // Handle image deletion if it exists
+        String imageUrl = selectedMood.getMoodImage();
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            StorageReference imageRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl);
+            imageRef.delete()
+                    .addOnSuccessListener(aVoid -> Log.d("Storage", "Mood image deleted successfully"))
+                    .addOnFailureListener(e -> Log.e("Storage", "Error deleting mood image", e));
+        }
     }
+
 
     private void setupListeners(String currentUserId) {
         moodAdapter.setOnFollowClickListener((mood, isFollowing, button) -> {
@@ -595,9 +665,11 @@ public class MoodPageActivity extends ActivityBase {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (commentsListener != null) {
-            commentsListener.remove();
+        if (connectivityReceiver != null) {
+            unregisterReceiver(connectivityReceiver);
+        }
+        if (moodListener != null) {
+            moodListener.remove();
         }
     }
-
 }
