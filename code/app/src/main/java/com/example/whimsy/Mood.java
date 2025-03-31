@@ -209,15 +209,6 @@ public class Mood implements Serializable {
     }
 
     /**
-     * Sets the time when the mood was recorded.
-     *
-     * @param userTime The time the mood was recorded.
-     */
-    public void setUserTime(String userTime) {
-        this.userTime = userTime;
-    }
-
-    /**
      * Returns the gathering status of the user (e.g., alone, with friends).
      *
      * @return The gathering status of the user.
