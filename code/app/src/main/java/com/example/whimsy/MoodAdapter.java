@@ -38,9 +38,9 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int VIEW_TYPE_WITH_IMAGE = 1;  // Constant for moods with images
     private static final int VIEW_TYPE_NO_IMAGE = 2;   // Constant for moods without images
-    private List<Mood> moodList;  // List of Mood objects to be displayed
+    public List<Mood> moodList;  // List of Mood objects to be displayed
     private Set<String> followedMoodsSet = new HashSet<>();
-    private OnFollowClickListener onFollowClickListener;
+    public OnFollowClickListener onFollowClickListener;
     private OnShowFollowersListener onShowFollowersListener;
 
     public void setFollowedMoodsSet(Set<String> followedMoodsSet) {
