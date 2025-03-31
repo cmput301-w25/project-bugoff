@@ -1,16 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/dialog_container"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/dialog_bg"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="10dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Editing Mood..."
+        android:textSize="30sp"
+        android:fontFamily="@font/kaushan_script"
+        android:textAlignment="center"
+        android:layout_marginTop="10dp" />
 
     <!-- Mood Spinner -->
     <FrameLayout
         android:id="@+id/spinnerFrame"
         android:layout_width="264dp"
         android:layout_height="35dp"
-        android:layout_marginTop="25dp"
+        android:layout_marginTop="20dp"
         android:elevation="6dp"
         android:layout_gravity="center_horizontal">
         <RelativeLayout
@@ -80,7 +94,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="8dp">
+        android:paddingTop="8dp"
+        android:layout_marginHorizontal="70dp">
 
         <TextView
             android:layout_width="0dp"
@@ -94,32 +109,25 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:thumbTint="#439DEB"
-            android:trackTint="@color/blue" />
+            android:trackTint="@color/blue"
+            tools:ignore="UseSwitchCompatOrMaterialXml" />
 
     </LinearLayout>
     <!-- Tagging Friends -->
-    <AutoCompleteTextView
-        android:id="@+id/friendSearchInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:inputType="text"
-        android:completionThreshold="1"
-        android:background="@drawable/input_field"
-        android:padding="15dp"
-        android:hint="Search users..."
-        android:textAppearance="?android:attr/textAppearanceMedium" />
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/addTagButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:backgroundTint="#439DEB"
-        android:text="Add Tag"
+        android:layout_gravity="center"
+        android:text="Tags"
+        app:cornerRadius="14dp"
         android:layout_marginTop="8dp" />
     <TextView
         android:id="@+id/taggedFriendsText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textAlignment="center"
         android:layout_marginTop="8dp"
         android:hint="Tagged friends will appear here" />
 
@@ -130,25 +138,30 @@
         android:orientation="horizontal"
         android:layout_marginTop="16dp"
         android:gravity="center">
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/deleteButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Delete"
+            app:cornerRadius="14dp"
+            android:backgroundTint="@color/anger_text"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/saveButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Save"
+            app:cornerRadius="14dp"
             android:backgroundTint="#439DEB"/>
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/cancelButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cancel"
+            app:cornerRadius="14dp"
             android:layout_marginStart="8dp"
             android:backgroundTint="#439DEB"/>
-        <Button
-            android:id="@+id/saveButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Save"
-            android:layout_marginStart="8dp"
-            android:backgroundTint="#439DEB"/>
+
+
     </LinearLayout>
 </LinearLayout>

@@ -78,12 +78,13 @@
         android:layout_marginTop="16dp"/>
 
     <!-- Sign In Button -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/signIn_btn"
         android:layout_width="0dp"
         android:layout_height="55dp"
         android:backgroundTint="@color/blue"
         android:text="Sign In"
+        app:cornerRadius="14dp"
         android:textColor="@android:color/white"
         android:textSize="18sp"
         android:textStyle="bold"

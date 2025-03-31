@@ -70,7 +70,6 @@ public class HomePageActivity extends ActivityBase {
     private int currentDays = 0; // 0 indicates no time filter
     private String currentMoodFilter = "Select Mood";
     private String currentSearchFilter = "";
-    private SwipeRefreshLayout swipeRefreshLayoutt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,18 +80,6 @@ public class HomePageActivity extends ActivityBase {
         // Inflate home page layout into content frame
         getLayoutInflater().inflate(R.layout.activity_home_page, findViewById(R.id.content_frame), true);
 
-        swipeRefreshLayoutt = findViewById(R.id.swipeRefreshLayout);
-        swipeRefreshLayoutt.setOnRefreshListener(() -> {
-            currentShowOnlyFollowedMoods = false;
-            currentDays = 0;
-            currentMoodFilter = "Select Mood";
-            currentSearchFilter = "";
-            FirebaseUser user = mAuth.getCurrentUser();
-            if (user != null) {
-                loadFollowedUsersAndMoods(user.getUid());
-            }
-            swipeRefreshLayoutt.setRefreshing(false);
-        });
 
         // Setup RecyclerView
         recyclerView = findViewById(R.id.moods_recycler_view);
@@ -708,4 +695,15 @@ public class HomePageActivity extends ActivityBase {
             return 0;
         }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user != null) {
+            loadFollowedUsersAndMoods(user.getUid());
+        }
+    }
 }
+
+
