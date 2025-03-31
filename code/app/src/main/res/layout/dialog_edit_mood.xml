@@ -120,7 +120,7 @@
         android:layout_height="wrap_content"
         android:backgroundTint="#439DEB"
         android:layout_gravity="center"
-        android:text="Add Tag"
+        android:text="Tags"
         app:cornerRadius="14dp"
         android:layout_marginTop="8dp" />
     <TextView
