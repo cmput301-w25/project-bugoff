@@ -39,6 +39,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
@@ -48,8 +50,10 @@ import com.google.firebase.storage.StorageReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Activity for displaying and managing a selected mood entry.
@@ -69,25 +73,28 @@ public class MoodPageActivity extends ActivityBase {
     private LinearLayout commentLayout;
     private Button commentConfirmButton;
     private FloatingActionButton editMoodFab;
+    private Set<String> followedMoodsSet = new HashSet<>();
 
     /**
      * Initializes the activity, sets up the RecyclerView, and fetches mood data.
      *
      * @param savedInstanceState Saved instance state bundle.
      */
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = FirebaseFirestore.getInstance();
         FrameLayout contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.activity_mood_page, contentFrame, true);
 
-        FloatingActionButton editMoodFab = findViewById(R.id.edit_mood_fab);
 
         // Retrieve mood data from intent
         selectedMood = (Mood) getIntent().getSerializableExtra("SELECTED_MOOD");
         moodId = getIntent().getStringExtra("MOOD_ID");
         ownerUid = getIntent().getStringExtra("OWNER_UID");
+        if (selectedMood != null) {
+            selectedMood.setOwnerUid(ownerUid);
+            selectedMood.setMoodId(moodId);
+        }
 
         int colorBg;
         int colorFg;
@@ -129,70 +136,71 @@ public class MoodPageActivity extends ActivityBase {
                 colorFg = getColor(R.color.black);
                 break;
         }
+        editMoodFab = findViewById(R.id.edit_mood_fab); // Initialize the FAB properly
         editMoodFab.setBackgroundTintList(ColorStateList.valueOf(colorBg));
         editMoodFab.setImageTintList(ColorStateList.valueOf(colorFg));
-
         RecyclerView moodRecyclerView = findViewById(R.id.mood_detail_recycler_view);
         moodRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-
-        // Set up comments RecyclerView
+// Set up comments RecyclerView
         RecyclerView commentsRecyclerView = findViewById(R.id.mood_comments_recycler_view);
         commentsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         commentAdapter = new CommentAdapter(comments, colorFg);
         commentsRecyclerView.setAdapter(commentAdapter);
 
-
+// Initialize comment input components
         commentInput = findViewById(R.id.comment_input);
-        commentConfirmButton = findViewById(R.id.comment_confirm_button);
-        commentLayout = findViewById(R.id.comment_layout);
-        commentLayout.setVisibility(View.GONE); // Initially hidden
         commentInput.setBackgroundTintList(ColorStateList.valueOf(colorBg));
         commentInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(200)});
         commentInput.setTextColor(colorFg);
+
+        commentConfirmButton = findViewById(R.id.comment_confirm_button);
         commentConfirmButton.setBackgroundTintList(ColorStateList.valueOf(colorBg));
         commentConfirmButton.setTextColor(colorFg);
+        commentLayout = findViewById(R.id.comment_layout);
+        commentLayout.setVisibility(View.GONE); // Initially hidden
         commentConfirmButton.setOnClickListener(v -> postComment());
 
-
-
-
+// Fetch comments
         fetchComments();
 
+// Set up the comment button listener
         moodRecyclerView.post(() -> {
             if (moodRecyclerView.getChildCount() > 0) {
-                View itemView = moodRecyclerView.getChildAt(0); // Get the mood item view
+                View itemView = moodRecyclerView.getChildAt(0);
                 Button commentButton = itemView.findViewById(R.id.comment_button);
                 if (commentButton != null) {
                     commentButton.setOnClickListener(v -> {
-                        // Toggle visibility of comment input area
+                        // Toggle comment layout visibility
+                        commentLayout.setVisibility(
+                                commentLayout.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
+                        );
                         if (commentLayout.getVisibility() == View.VISIBLE) {
-                            commentLayout.setVisibility(View.GONE); // Hide if visible
-                        } else {
-                            commentLayout.setVisibility(View.VISIBLE); // Show if hidden
-                            commentInput.requestFocus(); // Focus on EditText for typing
+                            commentInput.requestFocus();
                         }
                     });
                 }
             }
         });
 
+        FloatingActionButton editMoodFab = findViewById(R.id.edit_mood_fab);
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
         if (selectedMood != null && moodId != null) {
+            selectedMood.setOwnerUid(ownerUid);
+            selectedMood.setMoodId(moodId);
             List<Mood> moodList = new ArrayList<>();
             moodList.add(selectedMood);
             moodAdapter = new MoodAdapter(moodList);
-            moodRecyclerView.setAdapter(moodAdapter);
 
-            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
             if (user != null) {
-                FirebaseFirestore db = FirebaseFirestore.getInstance();
-                // Fetch the username of the current user from Firestore
                 db.collection("users")
                         .document(user.getUid())
                         .get()
                         .addOnSuccessListener(documentSnapshot -> {
                             String username = documentSnapshot.getString("username");
-                            // Compare the selectedMood's userId (assumed to be the username) with the fetched username
                             if (selectedMood.getUserId().equals(username)) {
                                 editMoodFab.setVisibility(View.VISIBLE);
                                 editMoodFab.setOnClickListener(v -> showEditDialog(selectedMood, moodId));
@@ -201,11 +209,38 @@ public class MoodPageActivity extends ActivityBase {
                             }
                         })
                         .addOnFailureListener(e -> {
-                            Log.e("TAG", "Error fetching username", e);
                             editMoodFab.setVisibility(View.GONE);
                         });
             } else {
                 editMoodFab.setVisibility(View.GONE);
+            }
+
+            if (currentUser != null) {
+                String currentUserId = currentUser.getUid();
+                db.collection("users")
+                        .document(currentUserId)
+                        .collection("followedMoods")
+                        .get()
+                        .addOnSuccessListener(querySnapshot -> {
+
+
+                            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                                String ownerUidDoc = doc.getString("ownerUid");
+                                String moodIdDoc = doc.getString("moodId");
+                                followedMoodsSet.add(ownerUidDoc + "_" + moodIdDoc);
+                            }
+                            moodAdapter.setFollowedMoodsSet(followedMoodsSet);
+                            setupListeners(currentUserId);
+                            moodRecyclerView.setAdapter(moodAdapter);
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e("MoodPageActivity", "Error fetching followed moods", e);
+                            moodAdapter.setFollowedMoodsSet(followedMoodsSet); // Empty set if failed
+                            setupListeners(currentUserId);
+                            moodRecyclerView.setAdapter(moodAdapter);
+                        });
+            } else {
+                moodRecyclerView.setAdapter(moodAdapter);
             }
         } else {
             Log.e("MoodPageActivity", "Missing mood or moodId, finishing activity");
@@ -317,14 +352,26 @@ public class MoodPageActivity extends ActivityBase {
                         Toast.makeText(this, "Error loading comments", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    comments.clear();
                     if (snapshots != null) {
-                        for (var doc : snapshots.getDocuments()) {
+                        // Clear the list to avoid duplicates
+                        comments.clear();
+                        for (DocumentSnapshot doc : snapshots.getDocuments()) {
                             Comment comment = doc.toObject(Comment.class);
                             comments.add(comment);
                         }
+                        // Update the UI on the main thread
+                        runOnUiThread(() -> {
+                            // Notify the adapter of data changes
+                            commentAdapter.notifyDataSetChanged();
+                            // Update visibility of "No Comments Yet" TextView
+                            TextView noCommentsText = findViewById(R.id.no_comments_text);
+                            if (comments.isEmpty()) {
+                                noCommentsText.setVisibility(View.VISIBLE);
+                            } else {
+                                noCommentsText.setVisibility(View.GONE);
+                            }
+                        });
                     }
-                    commentAdapter.notifyDataSetChanged();
                 });
     }
 
@@ -432,6 +479,109 @@ public class MoodPageActivity extends ActivityBase {
                 .addOnFailureListener(e -> {
                     Log.e("Firestore", "Error deleting mood document", e);
                 });
+    }
+
+    private void setupListeners(String currentUserId) {
+        moodAdapter.setOnFollowClickListener((mood, isFollowing, button) -> {
+            if (isFollowing) {
+                unfollowMood(mood.getOwnerUid(), mood.getMoodId(), currentUserId, button);
+            } else {
+                followMood(mood.getOwnerUid(), mood.getMoodId(), currentUserId, button);
+            }
+        });
+
+        moodAdapter.setOnShowFollowersListener(mood -> showFollowers(mood.getOwnerUid(), mood.getMoodId()));
+
+        moodAdapter.setOnCommentButtonClickListener(() -> {
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null) {
+                Toast.makeText(this, "Please log in to comment", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Toggle comment layout visibility
+            commentLayout.setVisibility(
+                    commentLayout.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
+            );
+            if (commentLayout.getVisibility() == View.VISIBLE) {
+                commentInput.requestFocus();
+            }
+        });
+    }
+
+    private void followMood(String ownerUid, String moodId, String currentUserId, Button button) {
+        Map<String, Object> followerData = new HashMap<>();
+        followerData.put("timestamp", FieldValue.serverTimestamp());
+
+        // Add to mood's followers
+        db.collection("users").document(ownerUid).collection("moods").document(moodId)
+                .collection("followers").document(currentUserId)
+                .set(followerData)
+                .addOnSuccessListener(aVoid -> {
+                    button.setText("Following");
+                    followedMoodsSet.add(ownerUid + "_" + moodId);
+                    Toast.makeText(this, "Now following this mood", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("MoodPageActivity", "Error following mood", e);
+                    Toast.makeText(this, "Failed to follow mood", Toast.LENGTH_SHORT).show();
+                });
+
+        // Add to user's followedMoods
+        Map<String, Object> followedMoodData = new HashMap<>();
+        followedMoodData.put("ownerUid", ownerUid);
+        followedMoodData.put("moodId", moodId);
+        followedMoodData.put("timestamp", FieldValue.serverTimestamp());
+        db.collection("users").document(currentUserId).collection("followedMoods")
+                .document(ownerUid + "_" + moodId)
+                .set(followedMoodData);
+    }
+
+    private void unfollowMood(String ownerUid, String moodId, String currentUserId, Button button) {
+        db.collection("users").document(ownerUid).collection("moods").document(moodId)
+                .collection("followers").document(currentUserId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    button.setText("Follow");
+                    followedMoodsSet.remove(ownerUid + "_" + moodId);
+                    Toast.makeText(this, "Unfollowed this mood", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("MoodPageActivity", "Error unfollowing mood", e);
+                    Toast.makeText(this, "Failed to unfollow mood", Toast.LENGTH_SHORT).show();
+                });
+
+        db.collection("users").document(currentUserId).collection("followedMoods")
+                .document(ownerUid + "_" + moodId)
+                .delete();
+    }
+
+    private void showFollowers(String ownerUid, String moodId) {
+        db.collection("users").document(ownerUid).collection("moods").document(moodId)
+                .collection("followers")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<String> followerNames = new ArrayList<>();
+                    for (DocumentSnapshot doc : querySnapshot) {
+                        String followerUid = doc.getId();
+                        db.collection("users").document(followerUid).get()
+                                .addOnSuccessListener(userDoc -> {
+                                    String username = userDoc.getString("username");
+                                    followerNames.add(username != null ? username : followerUid);
+                                    if (followerNames.size() == querySnapshot.size()) {
+                                        String followersStr = followerNames.isEmpty() ? "No followers" : String.join("\n", followerNames);
+                                        new AlertDialog.Builder(this).setTitle("Followers").setMessage(followersStr).setPositiveButton("OK", null).show();
+                                    }
+                                });
+                    }
+                });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (commentsListener != null) {
+            commentsListener.remove();
+        }
     }
 
 }

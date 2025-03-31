@@ -1,5 +1,4 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/transparent"
@@ -8,7 +7,7 @@
     <RelativeLayout
         android:id="@+id/filter_popup_container"
         android:layout_width="321dp"
-        android:layout_height="450dp"
+        android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:background="@drawable/input_field"
         android:elevation="10dp"
@@ -48,40 +47,12 @@
             android:layout_marginEnd="1dp"
             android:src="@drawable/close_button" />
 
-        <!-- New RadioGroup for Mood Source -->
-        <RadioGroup
-            android:id="@+id/mood_source_filter"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/filter_header"
-            android:layout_marginTop="10dp"
-            android:orientation="horizontal">
-
-            <RadioButton
-                android:id="@+id/show_all_moods"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="All Moods"
-                android:textColor="#000000"
-                android:textSize="14sp" />
-
-            <RadioButton
-                android:id="@+id/show_followed_moods"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:text="Followed Moods"
-                android:textColor="#000000"
-                android:textSize="14sp" />
-        </RadioGroup>
-
         <!-- Search Box -->
         <FrameLayout
             android:id="@+id/search_box_wrapper"
-            android:layout_width="match_parent"
+            android:layout_width="264dp"
             android:layout_height="46dp"
-            android:layout_below="@id/mood_source_filter"
+            android:layout_below="@id/filter_header"
             android:layout_marginTop="7dp"
             android:elevation="6dp">
 
@@ -89,20 +60,9 @@
                 android:id="@+id/search_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/rounded_input_field"
+                android:background="@drawable/box_shadow"
                 android:orientation="horizontal"
-                android:padding="6dp">
-
-                <!-- Search icon with tint same as hint color -->
-                <ImageView
-                    android:id="@+id/search_button"
-                    android:layout_width="18sp"
-                    android:layout_height="18sp"
-                    android:src="@drawable/ic_search"
-                    android:layout_marginStart="10dp"
-                    android:layout_gravity="center_vertical|center_horizontal"
-                    android:layout_marginEnd="1dp"
-                    app:tint="@android:color/darker_gray" />
+                android:padding="4dp">
 
                 <EditText
                     android:id="@+id/search_reason_box"
@@ -111,11 +71,17 @@
                     android:layout_weight="1"
                     android:background="@android:color/transparent"
                     android:hint="Search: Reason Why"
-                    android:inputType="text"
                     android:padding="8dp"
-                    android:textColor="@android:color/black"
-                    android:textColorHint="@android:color/darker_gray"
+                    android:textColorHint="#888888"
                     android:textSize="14sp" />
+
+                <ImageView
+                    android:id="@+id/search_button"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center_vertical"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_search" />
             </LinearLayout>
         </FrameLayout>
 
@@ -160,7 +126,7 @@
         <!-- Spinner for Emotional State -->
         <FrameLayout
             android:id="@+id/spinner_wrapper"
-            android:layout_width="match_parent"
+            android:layout_width="264dp"
             android:layout_height="40dp"
             android:layout_below="@id/filter_options"
             android:layout_marginTop="12dp"
@@ -195,8 +161,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_marginBottom="16dp"
+            android:layout_below="@id/spinner_wrapper"
+            android:layout_marginTop="16dp"
             android:gravity="center"
             android:orientation="horizontal">
 
@@ -221,6 +187,5 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
-
     </RelativeLayout>
 </RelativeLayout>

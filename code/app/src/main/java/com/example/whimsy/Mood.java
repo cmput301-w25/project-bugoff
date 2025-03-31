@@ -27,7 +27,9 @@ public class Mood implements Serializable {
     private List<String> taggedUserNames;
     private String timestamp;
     private boolean isPrivate = false;
-    
+    private String ownerUid;          // Firebase UID of the mood's owner
+    private String moodId;
+
     /**
      * Constructor for initializing the Mood object with all its attributes.
      *
@@ -40,6 +42,10 @@ public class Mood implements Serializable {
      * @param moodTrigger       The trigger for the mood
      * @param moodReason        The reason behind the mood
      * @param moodImage         An optional image representing the mood
+     * @param profileImageUrl   The URL of the user's profile image
+     * @param taggedUserNames   The list of tagged user names
+     * @param isPrivate         The privacy status of the mood
+     * @param timestamp         The timestamp of the mood
      */
     public Mood(String userName, String userId, String userLocation, String timestamp, String userTime, String userGatheringStatus, String moodStatus, String moodTrigger, String moodReason, String moodImage, String profileImageUrl, List<String> taggedUserNames, boolean isPrivate) {
         this.userName = userName;
@@ -76,6 +82,17 @@ public class Mood implements Serializable {
     public void setProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
     }
+
+    private double locationLat;
+    private double locationLng;
+
+    // Getters
+    public double getLocationLat() { return locationLat; }
+    public double getLocationLng() { return locationLng; }
+
+    // Setters (if needed)
+    public void setLocationLat(double locationLat) { this.locationLat = locationLat; }
+    public void setLocationLng(double locationLng) { this.locationLng = locationLng; }
 
     /**
      * Returns the name of the user.
@@ -198,5 +215,13 @@ public class Mood implements Serializable {
 
     public void setPrivate(boolean privateMood) {
         this.isPrivate = privateMood;
+    }
+    public String getOwnerUid() { return ownerUid; }
+    public void setOwnerUid(String ownerUid) { this.ownerUid = ownerUid; }
+    public String getMoodId() { return moodId; }
+    public void setMoodId(String moodId) { this.moodId = moodId; }
+
+    public boolean isPrivate() {
+        return isPrivate;
     }
 }

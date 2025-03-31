@@ -16,7 +16,10 @@ package com.example.whimsy;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -25,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.FrameLayout;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -111,6 +115,29 @@ public class OtherProfileActivity extends ActivityBase {
             Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
             finish();
         }
+
+
+        // Add touch listener to RecyclerView for mood item selection
+        final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return true;
+            }
+        });
+        moodsRecyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                View child = rv.findChildViewUnder(e.getX(), e.getY());
+                if (child != null && gestureDetector.onTouchEvent(e)) {
+                    int position = rv.getChildAdapterPosition(child);
+                    if (position != RecyclerView.NO_POSITION) {
+                        navigateToMoodPage(position);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
     }
 
     private void loadUserData(String userId) {
@@ -151,7 +178,7 @@ public class OtherProfileActivity extends ActivityBase {
                                         // NEW: If account is private and not followed, do not load moods
                                         if (isPrivate) {
                                             TextView emptyMoodText = findViewById(R.id.emptyMoodText);
-                                            emptyMoodText.setText("This account is private. Follow to view their moods"); // NEW: Changed text
+                                            emptyMoodText.setText(Html.fromHtml("<b>This account is private.</b><br>Follow to view their moods"));
                                             emptyMoodText.setVisibility(View.VISIBLE);
                                         } else {
                                             loadMoods(searchedUserId); // Load moods for public accounts
@@ -211,12 +238,12 @@ public class OtherProfileActivity extends ActivityBase {
                     String profileImageUrl = userDoc.getString("profilePictureUrl");
                     String name = userDoc.getString("name");
                     String username = userDoc.getString("username");
-                    moodList.clear();
-                    moodDocIds.clear();
+
+                    moodList.clear(); // Always clear the list before loading new data
 
                     db.collection("users").document(userId).collection("moods")
                             .orderBy("timestamp", Query.Direction.DESCENDING)
-                            .limit(10) // Fetch more than 3 to account for private moods
+                            .limit(10)
                             .get()
                             .addOnSuccessListener(querySnapshot -> {
                                 if (!querySnapshot.isEmpty()) {
@@ -224,14 +251,14 @@ public class OtherProfileActivity extends ActivityBase {
                                     for (DocumentSnapshot document : querySnapshot.getDocuments()) {
                                         Boolean isPrivate = document.getBoolean("isPrivate");
                                         if (isPrivate == null || !isPrivate) {
-                                            Mood moodObj = createMoodObject(document, name, username, profileImageUrl);
+                                            Mood moodObj = createMoodObject(document, name, username, profileImageUrl, userDoc.getId());
+                                            moodObj.setMoodId(document.getId()); // Store ID in the Mood object
                                             moodList.add(moodObj);
-                                            moodDocIds.add(document.getId());
                                             count++;
-                                            if (count == 3) break; // Stop after adding 3 non-private moods
+                                            if (count == 3) break; // Stop after 3 non-private moods
                                         }
                                     }
-                                    sortAndUpdateMoods();
+                                    sortAndUpdateMoods(); // Update UI with sorted moods
                                 } else {
                                     updateMoodCount();
                                 }
@@ -241,7 +268,7 @@ public class OtherProfileActivity extends ActivityBase {
     }
 
     // Updated createMoodObject: uses name and username strings
-    private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl) {
+    private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl, String ownerUid) {
         String mood = document.getString("mood");
         String locationName = document.getString("locationName");
         String timestampStr = document.getString("timestamp");
@@ -257,7 +284,7 @@ public class OtherProfileActivity extends ActivityBase {
         List<String> taggedUserNames = extractTaggedUserNames(tags);
         String gatheringStatus = calculateGatheringStatus(tags);
 
-        return new Mood(
+        Mood moodObj = new Mood(
                 name,
                 username,
                 locationName != null ? locationName : "No location",
@@ -272,6 +299,8 @@ public class OtherProfileActivity extends ActivityBase {
                 taggedUserNames,
                 isPrivate
         );
+        moodObj.setOwnerUid(ownerUid); // Set ownerUid to user document ID
+        return moodObj;
     }
     /**
      * Calculates gathering status based on number of tagged users.
@@ -309,6 +338,15 @@ public class OtherProfileActivity extends ActivityBase {
             Log.e("OtherProfileActivity", "Error parsing timestamp: " + timestampStr, e);
             return 0;
         }
+    }
+
+    private void navigateToMoodPage(int position) {
+        Mood selectedMood = moodList.get(position);
+        Intent intent = new Intent(this, MoodPageActivity.class);
+        intent.putExtra("SELECTED_MOOD", selectedMood);
+        intent.putExtra("MOOD_ID", selectedMood.getMoodId()); // Pass the moodId from the Mood object
+        intent.putExtra("OWNER_UID", selectedMood.getOwnerUid()); // Assuming Mood has this field
+        startActivity(intent);
     }
 
     private void sortAndUpdateMoods() {

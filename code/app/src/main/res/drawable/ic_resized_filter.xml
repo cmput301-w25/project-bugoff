@@ -1,0 +1,6 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="15.2307692308dp"
+        android:height="12dp"
+        android:drawable="@drawable/filter_icon"/>
+</layer-list>
