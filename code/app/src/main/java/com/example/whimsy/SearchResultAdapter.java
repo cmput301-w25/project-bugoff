@@ -1,12 +1,4 @@
-/**
- * SearchResultAdapter is a custom RecyclerView adapter
- * for displaying search results with user information.
- * This adapter binds user data, including usernames and profile pictures,
- * to the RecyclerView items and handles item click events to open user profiles.
- * Outstanding Issues:
- * - Currently does not handle error scenarios for Glide image loading failures.
- * - Does not include a placeholder image while loading the profile picture.
- */
+
 
 package com.example.whimsy;
 
@@ -27,7 +19,12 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.List;
-
+/**
+ * SearchResultAdapter is a custom RecyclerView adapter
+ * for displaying search results with user information.
+ * This adapter binds user data, including usernames and profile pictures,
+ * to the RecyclerView items and handles item click events to open user profiles.
+ */
 public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapter.ResultViewHolder> {
 
     private List<User> userList;  // List of users to display in the RecyclerView

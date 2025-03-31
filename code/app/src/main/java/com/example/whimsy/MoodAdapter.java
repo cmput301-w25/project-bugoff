@@ -1,12 +1,3 @@
-/**
- * The MoodAdapter class is an implementation of RecyclerView.Adapter that
- * binds a list of Mood objects to a RecyclerView. It handles different view types:
- * one for moods with an image and one for moods without an image.
- *
- * This adapter is responsible for inflating the appropriate layouts, binding
- * the data to the views, and determining the appropriate view type for each
- * mood item.
- */
 package com.example.whimsy;
 
 import static android.view.View.GONE;
@@ -30,67 +21,167 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
-
 import java.util.List;
 import java.util.Set;
 
+/**
+ * <h1>MoodAdapter Class</h1>
+ * <p>
+ * The {@code MoodAdapter} class is an implementation of {@link RecyclerView.Adapter} that binds a list of
+ * {@link Mood} objects to a {@link RecyclerView}. It supports two view types:
+ * one for moods with an image and one for moods without an image.
+ * </p>
+ * <p>
+ * <strong>Usage:</strong> Instantiate the adapter with a list of {@code Mood} objects and set any necessary
+ * listeners (follow, comment, or show followers). Then, attach the adapter to a {@code RecyclerView} to display
+ * the mood items.
+ * </p>
+ * <p>
+ * <strong>Outstanding Issues:</strong>
+ * <ul>
+ *   <li>
+ *     In {@link MoodNoImageViewHolder#bind(Mood, MoodAdapter)}, the formatted date is set via
+ *     {@code adapter.formatDateString(mood.getUserTime())} but is immediately overwritten by the original
+ *     {@code mood.getUserTime()}. This should be fixed to ensure consistent date formatting.
+ *   </li>
+ * </ul>
+ * </p>
+ *
+ * @see RecyclerView.Adapter
+ * @see Mood
+ * @version 1.0
+ */
 public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int VIEW_TYPE_WITH_IMAGE = 1;  // Constant for moods with images
-    private static final int VIEW_TYPE_NO_IMAGE = 2;   // Constant for moods without images
-    public List<Mood> moodList;  // List of Mood objects to be displayed
+    private static final int VIEW_TYPE_NO_IMAGE = 2;    // Constant for moods without images
+
+    /**
+     * List of {@link Mood} objects to be displayed.
+     */
+    public List<Mood> moodList;
+
+    /**
+     * Set of keys representing moods that are followed.
+     */
     private Set<String> followedMoodsSet = new HashSet<>();
+
+    /**
+     * Listener for follow button click events.
+     */
     public OnFollowClickListener onFollowClickListener;
+
+    /**
+     * Listener for showing followers on long-click events.
+     */
     private OnShowFollowersListener onShowFollowersListener;
 
+    /**
+     * Listener for comment button click events.
+     */
+    private OnCommentButtonClickListener onCommentButtonClickListener;
+
+    /**
+     * Sets the set of followed mood keys and refreshes the view.
+     *
+     * @param followedMoodsSet A {@code Set<String>} containing keys of followed moods.
+     */
     public void setFollowedMoodsSet(Set<String> followedMoodsSet) {
         this.followedMoodsSet = followedMoodsSet;
         notifyDataSetChanged();
     }
+
+    /**
+     * Updates the first mood in the list with a new {@link Mood} object and refreshes the view.
+     *
+     * @param newMood The new {@code Mood} object to replace the first element.
+     */
     public void updateMood(Mood newMood) {
         if (!moodList.isEmpty()) {
             moodList.set(0, newMood);
             notifyDataSetChanged();
         }
     }
+
+    /**
+     * Sets the listener for follow button click events.
+     *
+     * @param listener An implementation of {@link OnFollowClickListener}.
+     */
     public void setOnFollowClickListener(OnFollowClickListener listener) {
         this.onFollowClickListener = listener;
     }
 
+    /**
+     * Sets the listener for showing followers on long-click events.
+     *
+     * @param listener An implementation of {@link OnShowFollowersListener}.
+     */
     public void setOnShowFollowersListener(OnShowFollowersListener listener) {
         this.onShowFollowersListener = listener;
     }
 
-    public interface OnFollowClickListener {
-        void onFollowClick(Mood mood, boolean isFollowing, Button button);
-    }
-
-    public interface OnCommentButtonClickListener {
-        void onCommentButtonClick();
-    }
-    private OnCommentButtonClickListener onCommentButtonClickListener;
-
+    /**
+     * Sets the listener for comment button click events.
+     *
+     * @param listener An implementation of {@link OnCommentButtonClickListener}.
+     */
     public void setOnCommentButtonClickListener(OnCommentButtonClickListener listener) {
         this.onCommentButtonClickListener = listener;
     }
+
+    /**
+     * Listener interface for handling follow button click events.
+     */
+    public interface OnFollowClickListener {
+        /**
+         * Called when the follow button is clicked.
+         *
+         * @param mood        The {@link Mood} object associated with the follow button.
+         * @param isFollowing {@code true} if the mood is already followed, {@code false} otherwise.
+         * @param button      The {@link Button} that was clicked.
+         */
+        void onFollowClick(Mood mood, boolean isFollowing, Button button);
+    }
+
+    /**
+     * Listener interface for handling comment button click events.
+     */
+    public interface OnCommentButtonClickListener {
+        /**
+         * Called when the comment button is clicked.
+         */
+        void onCommentButtonClick();
+    }
+
+    /**
+     * Listener interface for handling events to show followers.
+     */
     public interface OnShowFollowersListener {
+        /**
+         * Called when a long-click on the follow button triggers the show followers event.
+         *
+         * @param mood The {@link Mood} object associated with the event.
+         */
         void onShowFollowers(Mood mood);
     }
 
     /**
-     * Constructor for the MoodAdapter.
+     * Constructs a new {@code MoodAdapter} with the provided list of {@link Mood} objects.
      *
-     * @param moodList The list of Mood objects that will be bound to the RecyclerView.
+     * @param moodList The list of {@code Mood} objects to be bound to the RecyclerView.
      */
     public MoodAdapter(List<Mood> moodList) {
         this.moodList = moodList;
     }
 
     /**
-     * Determines the view type for the item at the given position.
+     * Determines the view type for the item at the specified position.
+     * Returns {@code VIEW_TYPE_WITH_IMAGE} if the {@link Mood} has a non-null and non-empty mood image URL;
+     * otherwise, returns {@code VIEW_TYPE_NO_IMAGE}.
      *
      * @param position The position of the item in the list.
-     * @return The view type for the item, either with or without an image.
+     * @return An integer representing the view type.
      */
     @Override
     public int getItemViewType(int position) {
@@ -99,11 +190,12 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     /**
-     * Creates a ViewHolder based on the view type (with or without image).
+     * Creates a new {@link RecyclerView.ViewHolder} for the given view type.
+     * Inflates the appropriate layout based on whether the mood has an image.
      *
-     * @param parent   The parent ViewGroup to which the new View will be attached.
-     * @param viewType The type of the view (with or without image).
-     * @return A new ViewHolder to hold the views for the corresponding mood item.
+     * @param parent   The parent {@link ViewGroup} to which the new view will be attached.
+     * @param viewType The view type, either {@code VIEW_TYPE_WITH_IMAGE} or {@code VIEW_TYPE_NO_IMAGE}.
+     * @return A new instance of {@link RecyclerView.ViewHolder} for the specified view type.
      */
     @NonNull
     @Override
@@ -120,21 +212,28 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     /**
-     * Binds the data to the ViewHolder based on the item at the given position.
+     * Binds the data from the {@link Mood} object at the specified position to the provided ViewHolder.
      *
-     * @param holder   The ViewHolder that will display the mood data.
-     * @param position The position of the mood item in the list.
+     * @param holder   The {@link RecyclerView.ViewHolder} which should be updated.
+     * @param position The position of the item in the adapter's data set.
      */
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         Mood mood = moodList.get(position);
         if (holder instanceof MoodWithImageViewHolder) {
-            ((MoodWithImageViewHolder) holder).bind(mood, this);// Bind data to the mood view with image
-        } else {                                          // Bind data to the mood view without image
-            ((MoodNoImageViewHolder) holder).bind(mood, this);;
+            ((MoodWithImageViewHolder) holder).bind(mood, this);
+        } else {
+            ((MoodNoImageViewHolder) holder).bind(mood, this);
         }
     }
 
+    /**
+     * Formats the input date string from the format "h:mm a - MMMM dd, yyyy" to "h:mm a • yyyy-MM-dd".
+     * If parsing fails, the original date string is returned.
+     *
+     * @param dateString The date string to format.
+     * @return A formatted date string.
+     */
     private String formatDateString(String dateString) {
         try {
             SimpleDateFormat inputFormat = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
@@ -146,6 +245,14 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             return dateString; // Return the original string if parsing fails
         }
     }
+
+    /**
+     * Applies a style to the provided view based on the mood feeling.
+     * The style is determined from a set of predefined styles in resources.
+     *
+     * @param itemView    The view to which the style should be applied.
+     * @param moodFeeling The mood status string which determines the style.
+     */
     private void applyStyle(View itemView, String moodFeeling) {
         int styleResId;
         switch (moodFeeling.toLowerCase()) {
@@ -173,7 +280,7 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             case "feeling confused":
                 styleResId = R.style.ConfusedStyle;
                 break;
-            // Add more cases for other moods (e.g., "sad", "scared")
+            // Add more cases for other moods as needed
             default:
                 styleResId = R.style.AngerStyle; // Default style
                 break;
@@ -208,15 +315,22 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         moodStatus.setTextColor(textColor);
 
         Button trackMoodButton = itemView.findViewById(R.id.track_mood_button);
-        trackMoodButton.setTextColor(textColor); // Ensure text color is set
+        trackMoodButton.setTextColor(textColor);
         trackMoodButton.setBackgroundTintList(ColorStateList.valueOf(buttonBackgroundColor));
         trackMoodButton.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
 
         Button commentButton = itemView.findViewById(R.id.comment_button);
-        commentButton.setTextColor(textColor); // Ensure text color is set
+        commentButton.setTextColor(textColor);
         commentButton.setBackgroundTintList(ColorStateList.valueOf(buttonBackgroundColor));
         commentButton.setCompoundDrawableTintList(ColorStateList.valueOf(iconTint));
     }
+
+    /**
+     * Sets an emoji drawable on the provided TextView based on the mood feeling.
+     *
+     * @param moodFeeling The mood status string which determines the emoji.
+     * @param moodStatus  The {@link TextView} where the emoji should be set.
+     */
     private void setEmojiBasedOnMood(String moodFeeling, TextView moodStatus) {
         int emojiResId;
         switch (moodFeeling.toLowerCase()) {
@@ -251,11 +365,10 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         moodStatus.setCompoundDrawablesRelativeWithIntrinsicBounds(emojiResId, 0, 0, 0);
     }
 
-
     /**
-     * Returns the total number of items in the list.
+     * Returns the total number of mood items in the list.
      *
-     * @return The number of mood items in the list.
+     * @return The size of the {@code moodList}.
      */
     @Override
     public int getItemCount() {
@@ -263,7 +376,10 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     /**
-     * ViewHolder for moods with an image.
+     * <h2>ViewHolder for Moods with an Image</h2>
+     * <p>
+     * This ViewHolder holds and binds views for mood items that include an image.
+     * </p>
      */
     static class MoodWithImageViewHolder extends RecyclerView.ViewHolder {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
@@ -272,6 +388,11 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private Button trackMoodButton;
         private Button commentButton;
 
+        /**
+         * Constructs a new {@code MoodWithImageViewHolder}.
+         *
+         * @param itemView The view representing the individual mood item with an image.
+         */
         MoodWithImageViewHolder(@NonNull View itemView) {
             super(itemView);
             userName = itemView.findViewById(R.id.user_name);
@@ -290,15 +411,15 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             commentButton = itemView.findViewById(R.id.comment_button);
         }
 
-
         /**
-         * Binds the data from the given Mood object to the views in this ViewHolder.
+         * Binds the data from the given {@link Mood} object to the views in this ViewHolder.
          *
-         * @param mood The Mood object containing the data to bind.
+         * @param mood    The {@code Mood} object containing the data.
+         * @param adapter The {@link MoodAdapter} instance to access adapter methods and listeners.
          */
         void bind(Mood mood, MoodAdapter adapter) {
             userName.setText(mood.getUserName());
-            userId.setText("@"+ mood.getUserId());
+            userId.setText("@" + mood.getUserId());
             userLocation.setText(mood.getUserLocation());
             userTime.setText(adapter.formatDateString(mood.getUserTime())); // Format the date string
             userGatheringStatus.setText(mood.getUserGatheringStatus());
@@ -373,20 +494,22 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     /**
-     * ViewHolder for moods without an image.
+     * <h2>ViewHolder for Moods without an Image</h2>
+     * <p>
+     * This ViewHolder holds and binds views for mood items that do not include an image.
+     * </p>
      */
     static class MoodNoImageViewHolder extends RecyclerView.ViewHolder {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
         private ImageView profileImage;
         private View moodVisibilityBg;
         private Button trackMoodButton;
-
         private Button commentButton;
 
         /**
-         * Constructor for the ViewHolder that holds views for moods without images.
+         * Constructs a new {@code MoodNoImageViewHolder}.
          *
-         * @param itemView The view for the individual item.
+         * @param itemView The view representing the individual mood item without an image.
          */
         MoodNoImageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -405,20 +528,26 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         /**
-         * Binds the data from the given Mood object to the views in this ViewHolder.
+         * Binds the data from the given {@link Mood} object to the views in this ViewHolder.
+         * <p>
+         * <strong>Outstanding Issue:</strong> The formatted date set by
+         * {@code adapter.formatDateString(mood.getUserTime())} is immediately overwritten by the unformatted
+         * {@code mood.getUserTime()}. This should be fixed to ensure consistent date formatting.
+         * </p>
          *
-         * @param mood The Mood object containing the data to bind.
+         * @param mood    The {@code Mood} object containing the data.
+         * @param adapter The {@link MoodAdapter} instance to access adapter methods and listeners.
          */
         void bind(Mood mood, MoodAdapter adapter) {
             userName.setText(mood.getUserName());
-            userId.setText("@"+mood.getUserId());
+            userId.setText("@" + mood.getUserId());
             if (mood.getUserLocation().equals("No location")) {
                 userLocation.setVisibility(GONE);
             } else {
                 userLocation.setText(mood.getUserLocation());
             }
             userTime.setText(adapter.formatDateString(mood.getUserTime())); // Format the date string
-            userTime.setText(mood.getUserTime());
+            userTime.setText(mood.getUserTime()); // Overwrites formatted date (Outstanding Issue)
             userGatheringStatus.setText(mood.getUserGatheringStatus());
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());

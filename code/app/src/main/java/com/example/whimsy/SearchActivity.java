@@ -1,13 +1,3 @@
-/**
- * SearchActivity allows the user to search for other users by name and view the results in a RecyclerView.
- * It uses Firebase Firestore to fetch user data based on the search query and displays the results in real-time
- * as the user types in the search box.
- * This activity includes functionality to handle user input, query the database, and display search results.
- * Outstanding Issues:
- * - The search results might be delayed due to network latency; consider adding a loading indicator.
- * - No error handling for situations when the user is offline or the database query fails.
- */
-
 package com.example.whimsy;
 
 import android.os.Bundle;
@@ -27,6 +17,12 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * SearchActivity allows the user to search for other users by name and view the results in a RecyclerView.
+ * It uses Firebase Firestore to fetch user data based on the search query and displays the results in real-time
+ * as the user types in the search box.
+ * This activity includes functionality to handle user input, query the database, and display search results.
+ */
 public class SearchActivity extends ActivityBase {
 
     private EditText searchEditText;
