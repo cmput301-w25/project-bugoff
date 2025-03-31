@@ -3,9 +3,6 @@
  * This class is used to store the user details, such as name, username,
  * profile picture URL, and Gmail, as well as their corresponding getter and setter methods.
  * The class also includes constructors for Firestore deserialization and user creation.
- * Outstanding Issues:
- * - The `profilePictureUrl` is optional and may not be needed if not used in the application.
- * - No validation for user data (e.g., ensuring that the `username` is unique).
  */
 package com.example.whimsy;
 

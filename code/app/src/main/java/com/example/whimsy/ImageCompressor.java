@@ -1,3 +1,16 @@
+/**
+ * The {@code ImageCompressor} class provides utility methods for compressing Bitmap images.
+ * It allows reducing the JPEG quality and scaling down the image to ensure the resulting
+ * byte array does not exceed a specified maximum size.
+ *
+ * Key Features:
+ *
+ *     Compresses Bitmap images to a JPEG byte array with a specified maximum size.
+ *     Reduces JPEG quality incrementally to fit the size limit.
+ *     Scales down the image dimensions if quality reduction alone is insufficient.
+ *     Ensures efficient compression while maintaining acceptable image quality.
+ *
+ */
 package com.example.whimsy;
 
 import android.graphics.Bitmap;

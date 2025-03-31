@@ -1,3 +1,15 @@
+/**
+ * The {@code InputValidator} class provides static methods for validating user input
+ * in the AddMood functionality. It ensures that mood selections and textual inputs meet
+ * the required criteria.
+ *
+ * Key Features:
+ *
+ *     Validates mood selections to ensure they are not empty or default values.
+ *     Checks the length of reason text input to ensure it does not exceed the character limit.
+ *     Provides descriptive error messages for invalid inputs.
+ *
+ */
 package com.example.whimsy;
 
 /**
@@ -9,9 +21,7 @@ public class InputValidator {
 
     /**
      * Validates that the provided mood is valid.
-     * <p>
      * Assumes that the first spinner option is "Select an Emotion" which is considered invalid.
-     * </p>
      *
      * @param mood the mood selected by the user.
      * @return {@code true} if the mood is valid; {@code false} otherwise.

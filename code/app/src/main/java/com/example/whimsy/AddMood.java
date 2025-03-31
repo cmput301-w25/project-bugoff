@@ -4,25 +4,19 @@
  * while images are uploaded to Firebase Storage. This activity integrates with the Google Places API for location
  * selection and supports tagging other users in the app.
  *
- * <p><b>Key Features:</b></p>
- * <ul>
- *     <li>Mood selection via a spinner control.</li>
- *     <li>Optional reason input with character limits (200 characters).</li>
- *     <li>Location selection using the current location, or by searching via the Google Places Autocomplete.</li>
- *     <li>Image upload from either the camera or the gallery.</li>
- *     <li>User tagging functionality for mood entries.</li>
- *     <li>Input validation and error handling with user feedback.</li>
- *     <li>Integration with Firebase for persistent data storage and retrieval.</li>
- *     <li>Offline mood queuing when no internet is available.</li>
- *     <li>A MaterialBanner-style notification showing the number of queued moods.</li>
- *     <li>Automatic sync when connectivity is restored with a "Back online" message.</li>
- * </ul>
+ * Key Features:
  *
- * <p><b>Outstanding Issues:</b></p>
- * <ul>
- *     <li>The image size validation logic may require optimization to efficiently handle large files.</li>
- *     <li>The location permission handling could be refined to enhance user experience.</li>
- * </ul>
+ *     Mood selection via a spinner control.
+ *     Optional reason input with character limits (200 characters).
+ *     Location selection using the current location, or by searching via the Google Places Autocomplete.
+ *     Image upload from either the camera or the gallery.
+ *     User tagging functionality for mood entries.
+ *     Input validation and error handling with user feedback.
+ *     Integration with Firebase for persistent data storage and retrieval.
+ *     Offline mood queuing when no internet is available.
+ *     A MaterialBanner-style notification showing the number of queued moods.
+ *     Automatic sync when connectivity is restored with a "Back online" message.
+ *
  */
 package com.example.whimsy;
 

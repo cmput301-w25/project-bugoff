@@ -1,3 +1,16 @@
+/**
+ * The {@code ImageGenerator} class provides methods for generating Bitmap images with various
+ * properties such as text overlays, shapes, and colors. It allows creating custom images
+ * programmatically for use in the application.
+ *
+ * Key Features:
+ *
+ *     Generates Bitmap images with text overlays.
+ *     Supports drawing shapes like circles, rectangles, and lines.
+ *     Allows setting background colors and gradients.
+ *     Provides methods for customizing text properties such as font size, color, and style.
+ *
+ */
 package com.example.whimsy;
 
 import android.os.Handler;

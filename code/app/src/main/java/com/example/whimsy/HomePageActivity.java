@@ -1,3 +1,17 @@
+/**
+ * The {@code HomePageActivity} class is the main activity for displaying the home page of the application.
+ * It provides an interface for users to view and interact with moods, follow requests, and other user-related data.
+ *
+ * Key Features:
+ *
+ *     Displays a list of moods from followed users, including their emotional states and locations.
+ *     Provides a filter dialog to customize the displayed moods based on various criteria such as time range and emotional state.
+ *     Integrates with Firebase Firestore to retrieve and display user data, moods, and follow requests.
+ *     Utilizes Glide for image loading, ensuring efficient and smooth display of profile pictures.
+ *     Handles user interactions such as applying filters, resetting filters, and managing follow requests.
+ *
+ */
+
 package com.example.whimsy;
 
 import android.content.Intent;
@@ -705,5 +719,3 @@ public class HomePageActivity extends ActivityBase {
         }
     }
 }
-
-

@@ -1,3 +1,20 @@
+/**
+ * The {@code FollowingAdapter} class is an adapter for displaying a list of users in a RecyclerView,
+ * allowing the logged-in user to follow or unfollow other users. It provides dynamic updates to the
+ * follow status, adjusts the follow button text based on the user's current follow state, and handles
+ * interactions with Firebase Firestore to manage following and follower relationships.
+ *
+ * Key Features:
+ *
+ *     Displays a list of users with their profile picture, name, and username.
+ *     Dynamically updates follow button text to reflect current follow status (Follow/Following).
+ *     Allows the user to follow or unfollow other users by interacting with the follow button.
+ *     Handles Firebase Firestore operations to manage follow and follower data in the database.
+ *     Automatically removes users from the list when unfollowed if the action is initiated by the current user.
+ *     Optimizes UI updates by notifying the adapter when data changes.
+ *
+ */
+
 package com.example.whimsy;
 
 import android.view.LayoutInflater;

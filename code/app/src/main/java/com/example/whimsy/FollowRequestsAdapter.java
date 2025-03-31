@@ -1,3 +1,19 @@
+/**
+ * The {@code FollowRequestsAdapter} class is a custom adapter for displaying follow requests
+ * in a {@link RecyclerView}. Each item in the list represents a follow request, displaying the
+ * requester's name, profile picture, and buttons for accepting or rejecting the request.
+ *
+ * Key Features:
+ *
+ *     Displays follow request details including the requester's name and profile picture.
+ *     Handles accept and reject actions for each follow request, triggering corresponding
+ *     actions through the {@link RequestActionListener}.
+ *     Integrates with Firebase Firestore to retrieve user data such as name and profile picture.
+ *     Utilizes Glide for image loading, falling back to a default profile image if necessary.
+ *     Provides an efficient way to display a list of follow requests and update the UI accordingly.
+ *
+ */
+
 package com.example.whimsy;
 
 import android.view.LayoutInflater;
