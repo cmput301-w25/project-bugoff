@@ -65,6 +65,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private List<String> followedUserIds = new ArrayList<>();
     private FusedLocationProviderClient fusedLocationClient;
     private ImageButton btnMyMoods, btnFollowingMoods, btnAllMoods, btnBack, btnHeart, filterIcon;
+    private List<Mood> originalMoods = new ArrayList<>();
     private List<Mood> currentDisplayedMoods = new ArrayList<>(); // Track moods for filtering
     private String currentMoodSource = ""; // "my_moods", "followed_moods", etc.
 
@@ -257,11 +258,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                 .whereNotEqualTo("locationName", null)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    currentDisplayedMoods.clear();
+                    originalMoods.clear();
                     for (QueryDocumentSnapshot doc : querySnapshot) {
                         Mood mood = doc.toObject(Mood.class);
                         mood.setUserName("You");
-                        currentDisplayedMoods.add(mood);
+                        originalMoods.add(mood);
                     }
                     showMoodsOnMap(querySnapshot, "You", null);
                 })
@@ -275,7 +276,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         db.collection("users").document(currentUserId).collection("followedMoods")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    currentDisplayedMoods.clear();
+                    originalMoods.clear();
                     for (QueryDocumentSnapshot doc : querySnapshot) {
                         String ownerUid = doc.getString("ownerUid");
                         String moodId = doc.getString("moodId");
@@ -296,7 +297,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                                                     mood.setProfileImageUrl(userDoc.getString("profilePictureUrl"));
 
                                                     // Add the mood to the list and display it on the map
-                                                    currentDisplayedMoods.add(mood);
+                                                    originalMoods.add(mood);
                                                     showMoodOnMap(mood);
                                                 });
                                     } else {
@@ -504,14 +505,12 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         long cutoffTimestamp = days > 0 ? calculateCutoffTimestamp(days) : 0;
         List<Mood> filteredMoods = new ArrayList<>();
 
-        for (Mood mood : currentDisplayedMoods) {
+        for (Mood mood : originalMoods) {
             long moodTimestamp = convertTimestampToMillis(mood.getTimestamp());
             boolean withinTimeRange = days == 0 || moodTimestamp >= cutoffTimestamp;
-
             String moodStatus = mood.getMoodStatus();
             boolean matchesMood = moodFilter.equals("Select Mood") ||
                     (moodStatus != null && moodStatus.equalsIgnoreCase(moodFilter));
-
             boolean matchesSearch = searchFilter.isEmpty() ||
                     (mood.getMoodReason() != null &&
                             mood.getMoodReason().toLowerCase().contains(searchFilter.toLowerCase()));
@@ -526,6 +525,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
             showMoodOnMap(mood);
         }
         currentDisplayedMoods = filteredMoods;
+
+        if (filteredMoods.isEmpty()) {
+            Toast.makeText(this, "No moods found for the selected filter", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
