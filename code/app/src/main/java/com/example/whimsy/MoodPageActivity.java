@@ -234,7 +234,21 @@ public class MoodPageActivity extends ActivityBase {
                 }
             }
         });
+        if (selectedMood != null && moodId != null && ownerUid != null) {
+            moodListener = db.collection("users").document(ownerUid)
+                    .collection("moods").document(moodId)
+                    .addSnapshotListener((documentSnapshot, e) -> {
+                        if (e != null) {
+                            Log.e("MoodPageActivity", "Error listening to mood updates", e);
+                            Toast.makeText(MoodPageActivity.this, "Error fetching mood updates", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
 
+                        if (documentSnapshot != null && documentSnapshot.exists()) {
+                            updateMoodFromSnapshot(documentSnapshot);
+                        }
+                    });
+        }
         FloatingActionButton editMoodFab = findViewById(R.id.edit_mood_fab);
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
@@ -761,6 +775,38 @@ public class MoodPageActivity extends ActivityBase {
             wasOffline = false;
             Toast.makeText(this, "Online: Changes will sync now", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void updateMoodFromSnapshot(DocumentSnapshot snapshot) {
+        // Extract updated fields from the snapshot
+        String moodStr = snapshot.getString("mood");
+        String reason = snapshot.getString("reason");
+        boolean isPrivate = Boolean.TRUE.equals(snapshot.getBoolean("isPrivate"));
+        List<Map<String, Object>> tags = (List<Map<String, Object>>) snapshot.get("tags");
+
+        // Process tags to get tagged usernames and gathering status
+        List<String> taggedUsernames = new ArrayList<>();
+        if (tags != null) {
+            for (Map<String, Object> tag : tags) {
+                String username = (String) tag.get("username");
+                if (username != null) {
+                    taggedUsernames.add(username);
+                }
+            }
+        }
+        String gatheringStatus = tags == null || tags.isEmpty() ? "Alone" :
+                tags.size() == 1 ? "With 1 other" :
+                        tags.size() <= 5 ? "With " + tags.size() + " others" : "With a crowd";
+
+        // Update the selectedMood object
+        selectedMood.setMoodStatus("Feeling " + moodStr);
+        selectedMood.setMoodReason(reason);
+        selectedMood.setPrivate(isPrivate);
+        selectedMood.setTaggedUserNames(taggedUsernames);
+        selectedMood.setUserGatheringStatus(gatheringStatus);
+
+        // Notify the adapter to refresh the RecyclerView
+        moodAdapter.notifyDataSetChanged();
     }
 
     /**
