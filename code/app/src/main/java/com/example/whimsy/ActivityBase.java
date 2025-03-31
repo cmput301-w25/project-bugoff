@@ -16,7 +16,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 public class ActivityBase extends AppCompatActivity {
-    private ImageView profileButton, homeButton, settings, addMoodButton, searchButton, notificationButton, mapButton;
+    private ImageView profileButton, homeButton, settings, addMoodButton, searchButton, mapButton;
     protected FrameLayout contentFrame; // Container for dynamic content
 
     @Override

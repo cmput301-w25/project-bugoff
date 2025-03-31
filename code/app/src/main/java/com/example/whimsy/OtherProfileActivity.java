@@ -70,6 +70,7 @@ public class OtherProfileActivity extends ActivityBase {
     private List<Mood> moodList = new ArrayList<>();
     private List<String> moodDocIds = new ArrayList<>();
     private TextView moodCountText;
+    private ImageView backBtn;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -87,6 +88,10 @@ public class OtherProfileActivity extends ActivityBase {
         followingCount = findViewById(R.id.other_following_count);
         moodCountText = findViewById(R.id.other_moods_count);
         moodsRecyclerView = findViewById(R.id.other_moods_recycler_view);
+        backBtn = findViewById(R.id.tool_back_button);
+        backBtn.setVisibility(View.VISIBLE);
+
+        backBtn.setOnClickListener(v -> finish());
 
         // Set up RecyclerView
         moodsRecyclerView.setLayoutManager(new LinearLayoutManager(this));

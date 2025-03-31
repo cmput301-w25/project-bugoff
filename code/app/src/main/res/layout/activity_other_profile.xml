@@ -42,8 +42,7 @@
                     android:src="@drawable/ic_profile"
                     app:shapeAppearanceOverlay="@style/CircularImageView"
                     app:strokeColor="#EEEEEE"
-                    app:strokeWidth="2dp"
-                    android:elevation="4dp"/>
+                    app:strokeWidth="2dp"/>
 
                 <!-- User Info -->
                 <LinearLayout

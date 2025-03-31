@@ -17,6 +17,14 @@
         android:elevation="4dp"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
 
+        <ImageView
+            android:id="@+id/tool_back_button"
+            android:layout_width="20dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_back_button"
+            android:layout_marginEnd="4dp"
+            android:visibility="gone"/>
+
         <TextView
             android:id="@+id/titleText"
             android:layout_width="wrap_content"
