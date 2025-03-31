@@ -754,6 +754,14 @@ public class MoodPageActivity extends ActivityBase {
             moodListener.remove();
         }
     }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (wasOffline && isOnline()) {
+            wasOffline = false;
+            Toast.makeText(this, "Online: Changes will sync now", Toast.LENGTH_SHORT).show();
+        }
+    }
 
     /**
      * Deletes a mood entry from Firestore and removes the associated image from Firebase Storage if available.

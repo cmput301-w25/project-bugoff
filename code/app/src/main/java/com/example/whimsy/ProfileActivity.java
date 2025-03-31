@@ -480,6 +480,16 @@ public class ProfileActivity extends ActivityBase {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        boolean applyMoodFilter = !selectedMoodFilter.equals("Select Mood");
+        loadMoodsFiltered(
+                selectedDaysFilter,
+                applyMoodFilter ? selectedMoodFilter : null,
+                searchQuery.isEmpty() ? null : searchQuery
+        );
+    }
     /**
      * Creates a Mood object from a Firestore document.
      *
