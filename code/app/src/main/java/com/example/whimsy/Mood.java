@@ -204,19 +204,10 @@ public class Mood implements Serializable {
     public String getUserTime() {
         return userTime;
     }
-<<<<<<< Updated upstream
-=======
     public void setUserTime(String userTime) {
         this.userTime = userTime;
     }
-
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+    
 
     /**
      * Returns the gathering status of the user (e.g., alone, with friends).
