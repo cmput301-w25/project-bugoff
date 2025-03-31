@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FollowRequestsActivity extends AppCompatActivity {
+public class FollowRequestsActivity extends ActivityBase {
 
     // NEW: Declare RecyclerView and adapter for follow requests.
     private RecyclerView recyclerView;
@@ -35,7 +35,8 @@ public class FollowRequestsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_follow_requests); // NEW: Create this layout file
+        // Inflate the add_mood.xml layout into the content frame.
+        getLayoutInflater().inflate(R.layout.activity_follow_requests, findViewById(R.id.content_frame), true);
 
         db = FirebaseFirestore.getInstance();
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();

@@ -59,22 +59,23 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/profileImage"
             android:layout_width="90dp"
             android:layout_height="90dp"
             android:layout_gravity="center_horizontal"
-            android:background="@drawable/circular_background"
-            android:clipToOutline="true"
+            app:shapeAppearanceOverlay="@style/CircularImageView"
             android:scaleType="centerCrop"
-            android:src="@drawable/ic_profile" />
+            android:src="@drawable/ic_profile"
+            app:strokeColor="#EEEEEE"
+            app:strokeWidth="2dp"
+            android:elevation="5dp"/>
 
         <FrameLayout
             android:id="@+id/spinnerFrame"
             android:layout_width="264dp"
             android:layout_height="35dp"
-            android:layout_marginTop="25dp"
-            android:elevation="6dp">
+            android:layout_marginTop="25dp">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -202,11 +203,12 @@
             android:layout_marginTop="16dp"
             android:visibility="gone" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/addMoodButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            app:cornerRadius="14dp"
             android:backgroundTint="#439DEB"
             android:text="Add Mood" />
     </LinearLayout>
