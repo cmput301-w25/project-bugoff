@@ -140,6 +140,8 @@ public class AddMood extends ActivityBase {
     // Connectivity monitoring
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
+    private String generatedImageUrl;
+
 
     /**
      * The {@code LocationWrapper} interface abstracts location information.
@@ -432,12 +434,13 @@ public class AddMood extends ActivityBase {
             public void onSuccess(String imageUrl) {
                 Glide.with(AddMood.this).load(imageUrl).into(selectedImageView);
                 selectedImageView.setVisibility(ImageView.VISIBLE);
-                selectedImageUri = Uri.parse(imageUrl);
+                generatedImageUrl = imageUrl;
+                selectedImageUri = null;
                 importImageIcon.setColorFilter(Color.BLUE);
                 reasonInput.setText("");
                 addMoodButton.setText("Add Mood");
                 showSnackbar("AI image Generated successfully", false);
-                progressBar.setVisibility(View.GONE);
+                progressBar.setVisibility(View.GONE); 
             }
             @Override
             public void onFailure(Exception e) {
@@ -940,13 +943,14 @@ public class AddMood extends ActivityBase {
         moodData.put("reason", reason);
         moodData.put("timestamp", timestamp);
         moodData.put("isPrivate", isPrivate);
+
         if (selectedLocation != null) {
             moodData.put("locationName", selectedLocation.getName());
             moodData.put("locationLat", selectedLocation.getLatLng().latitude);
             moodData.put("locationLng", selectedLocation.getLatLng().longitude);
         }
         if (!taggedUsers.isEmpty()) {
-            ArrayList<Map<String, Object>> tags = new ArrayList<>();
+            List<Map<String, Object>> tags = new ArrayList<>();
             for (User taggedUser : taggedUsers) {
                 Map<String, Object> tagInfo = new HashMap<>();
                 tagInfo.put("userId", taggedUser.getId());
@@ -956,100 +960,36 @@ public class AddMood extends ActivityBase {
             }
             moodData.put("tags", tags);
         }
-
-        // NEW: If reason starts with "#generate", generate image via API.
-        if (reason.startsWith("#generate-image")) {
-            String prompt = reason.substring("#generate-image".length()).trim();
-            ImageGenerator imageGenerator = new ImageGenerator();
-            imageGenerator.generateImage(prompt, new ImageGenerator.ImageGeneratorCallback() {
-                @Override
-                public void onSuccess(String imageUrl) {
-                    // Update preview so user can see the generated image.
-                    Glide.with(AddMood.this)
-                            .load(imageUrl)
-                            .into(selectedImageView);
-                    selectedImageView.setVisibility(ImageView.VISIBLE);
-                    // Prepare moodData with generated image.
-                    moodData.put("imageUrl", imageUrl);
-                    // Show confirmation dialog.
-                    new AlertDialog.Builder(AddMood.this)
-                            .setTitle("Confirm Mood")
-                            .setMessage("Image generated successfully. Do you want to post your mood with this image?")
-                            .setPositiveButton("Post", (dialog, which) -> {
-                                moodRepository.saveMood(moodData, null, new MoodRepository.SaveMoodCallback() {
-                                    @Override
-                                    public void onSuccess() {
-                                        progressBar.setVisibility(ProgressBar.GONE);
-                                        resetFields();
-                                        showSnackbar("Mood added successfully", false);
-                                    }
-                                    @Override
-                                    public void onFailure(Exception e) {
-                                        progressBar.setVisibility(ProgressBar.GONE);
-                                        showSnackbar("Error adding mood: " + e.getMessage());
-                                    }
-                                });
-                            })
-                            .setNegativeButton("Cancel", (dialog, which) -> {
-                                progressBar.setVisibility(ProgressBar.GONE);
-                                showSnackbar("Mood posting cancelled");
-                            })
-                            .show();
-                }
-                @Override
-                public void onFailure(Exception e) {
-                    progressBar.setVisibility(ProgressBar.GONE);
-                    showSnackbar("Failed to generate image: " + e.getMessage());
-                }
-            });
-            return; // Exit early as image generation is asynchronous.
+        // If generatedImageUrl is available, add it to moodData and clear selectedImageUri
+        if (generatedImageUrl != null) {
+            moodData.put("imageUrl", generatedImageUrl);
+            selectedImageUri = null;
         }
-
-        // In AddMood.java, inside saveMoodToFirebase() after assembling moodData:
-        else if (reason.startsWith("#generate-reason")) {
-            // Remove the prefix and trim the remaining prompt.
-            String prompt = reason.substring("#generate-reason".length()).trim();
-            ReasonGenerator reasonGenerator = new ReasonGenerator();
-            reasonGenerator.generateReason(prompt, new ReasonGenerator.ReasonGeneratorCallback() {
-                @Override
-                public void onSuccess(String generatedText) {
-                    // NEW: Clear the input field and set it to the AI-generated text.
-                    reasonInput.setText(generatedText);
-                    // Update moodData with the generated text.
-                    moodData.put("reason", generatedText);
-                    // NEW: Change the button text back to "Add Mood"
-                    addMoodButton.setText("Add Mood");
-                    // Show a Snackbar message.
-                    showSnackbar("AI text Generated successfully", false);
-                    // Optionally, you might now wait for the user to press "Add Mood" again
-                    // before saving the mood, or automatically save it.
-                    // For this example, we automatically proceed to save the mood:
-                    moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
-                        @Override
-                        public void onSuccess() {
-                            progressBar.setVisibility(ProgressBar.GONE);
-                            resetFields();
-                            showSnackbar("Mood added successfully", false);
-                        }
-                        @Override
-                        public void onFailure(Exception e) {
-                            progressBar.setVisibility(ProgressBar.GONE);
-                            showSnackbar("Error adding mood: " + e.getMessage());
-                        }
-                    });
-                }
-                @Override
-                public void onFailure(Exception e) {
-                    progressBar.setVisibility(ProgressBar.GONE);
-                    showSnackbar("Failed to generate text: " + e.getMessage());
-                }
-            });
-            return; // Exit early because text generation is asynchronous.
+        if (!isNetworkAvailable()) {
+            addMoodToQueue(moodData, selectedImageUri);
+            progressBar.setVisibility(View.GONE);
+            int count = getOfflineQueueCount();
+            showSnackbar("No internet. Mood queued. Total queued: " + count, false);
+            updateOfflineBanner();
+            resetFields();
+            return;
         }
+        moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
+            @Override
+            public void onSuccess() {
+                progressBar.setVisibility(View.GONE);
+                resetFields();
+                showSnackbar("Mood added successfully", false);
+            }
+            @Override
+            public void onFailure(Exception e) {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("Error adding mood: " + e.getMessage());
+            }
+        });
 
 
-
-        // ... (Handle offline and normal image uploads as before)
+    // ... (Handle offline and normal image uploads as before)
         if (!isNetworkAvailable()) {
             addMoodToQueue(moodData, selectedImageUri);
             progressBar.setVisibility(ProgressBar.GONE);
