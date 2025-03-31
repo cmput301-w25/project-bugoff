@@ -86,6 +86,7 @@ public class ProfileActivity extends ActivityBase {
     private TextView profileUsername;          // Displays user's email
     private TextView profileBio;            // Displays user's bio
     private Button editProfileButton;       // Button to trigger profile editing
+    private boolean isLoadingMoods = false;
     private FirebaseAuth mAuth;             // Firebase Authentication instance
     private RecyclerView recyclerView;      // Displays list of user's moods
     private MoodAdapter moodAdapter;        // Adapter for mood RecyclerView
@@ -438,27 +439,38 @@ public class ProfileActivity extends ActivityBase {
      * Loads all mood entries for the current user from Firestore.
      */
     public void loadMoods() {
+        if (isLoadingMoods) return; // Skip if a load is already in progress
+        isLoadingMoods = true; // Set flag to indicate loading has started
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             String userId = user.getUid();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
-
             db.collection("users").document(userId).get()
                     .addOnSuccessListener(userDoc -> {
                         String profileImageUrl = userDoc.getString("profilePictureUrl");
                         String username = userDoc.getString("username");
-                        moodList.clear(); // Clear the mood list before loading new data
-
+                        moodList.clear(); // Clear the list before loading new data
+                        moodDocIds.clear(); // Clear the set of mood IDs as well
                         db.collection("users").document(userId).collection("moods")
                                 .orderBy("timestamp", Query.Direction.DESCENDING)
                                 .get()
-                                .addOnSuccessListener(queryDocumentSnapshots -> processMoodDocuments(queryDocumentSnapshots, user, username, profileImageUrl))
-                                .addOnFailureListener(e -> handleMoodLoadFailure(e));
+                                .addOnSuccessListener(queryDocumentSnapshots -> {
+                                    processMoodDocuments(queryDocumentSnapshots, user, username, profileImageUrl);
+                                    isLoadingMoods = false; // Reset flag when loading is complete
+                                })
+                                .addOnFailureListener(e -> {
+                                    handleMoodLoadFailure(e);
+                                    isLoadingMoods = false; // Reset flag on failure
+                                });
                     })
-                    .addOnFailureListener(e -> handleProfileLoadFailure(e));
+                    .addOnFailureListener(e -> {
+                        handleProfileLoadFailure(e);
+                        isLoadingMoods = false; // Reset flag on profile load failure
+                    });
+        } else {
+            isLoadingMoods = false; // Reset flag if no user is logged in
         }
     }
-
     /**
      * Processes mood documents from Firestore query result.
      *
@@ -484,11 +496,13 @@ public class ProfileActivity extends ActivityBase {
     protected void onResume() {
         super.onResume();
         boolean applyMoodFilter = !selectedMoodFilter.equals("Select Mood");
-        loadMoodsFiltered(
-                selectedDaysFilter,
-                applyMoodFilter ? selectedMoodFilter : null,
-                searchQuery.isEmpty() ? null : searchQuery
-        );
+        if (!isLoadingMoods) { // Only load if no other load is in progress
+            loadMoodsFiltered(
+                    selectedDaysFilter,
+                    applyMoodFilter ? selectedMoodFilter : null,
+                    searchQuery.isEmpty() ? null : searchQuery
+            );
+        }
     }
     /**
      * Creates a Mood object from a Firestore document.
@@ -608,27 +622,37 @@ public class ProfileActivity extends ActivityBase {
      * @param searchFilter Search query to filter reasons (null for no filter)
      */
     private void loadMoodsFiltered(int days, @Nullable String moodFilter, @Nullable String searchFilter) {
+        if (isLoadingMoods) return; // Skip if already loading
+        isLoadingMoods = true;
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
             String userId = user.getUid();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
-
             db.collection("users").document(userId).get()
                     .addOnSuccessListener(userDoc -> {
                         String profileImageUrl = userDoc.getString("profilePictureUrl");
                         String username = userDoc.getString("username");
                         moodList.clear();
                         moodDocIds.clear();
-
                         long cutoffTimestamp = days > 0 ? calculateCutoffTimestamp(days) : 0;
-
                         db.collection("users").document(userId).collection("moods")
                                 .orderBy("timestamp", Query.Direction.DESCENDING)
                                 .get()
-                                .addOnSuccessListener(queryDocumentSnapshots -> processFilteredMoods(queryDocumentSnapshots, user, username, profileImageUrl, days, moodFilter, searchFilter, cutoffTimestamp))
-                                .addOnFailureListener(e -> handleMoodLoadFailure(e));
+                                .addOnSuccessListener(queryDocumentSnapshots -> {
+                                    processFilteredMoods(queryDocumentSnapshots, user, username, profileImageUrl, days, moodFilter, searchFilter, cutoffTimestamp);
+                                    isLoadingMoods = false; // Reset when done
+                                })
+                                .addOnFailureListener(e -> {
+                                    handleMoodLoadFailure(e);
+                                    isLoadingMoods = false;
+                                });
                     })
-                    .addOnFailureListener(e -> handleProfileLoadFailure(e));
+                    .addOnFailureListener(e -> {
+                        handleProfileLoadFailure(e);
+                        isLoadingMoods = false;
+                    });
+        } else {
+            isLoadingMoods = false;
         }
     }
 
