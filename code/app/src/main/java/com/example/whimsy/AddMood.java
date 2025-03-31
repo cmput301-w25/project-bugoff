@@ -364,18 +364,13 @@ public class AddMood extends ActivityBase {
         // Set up click listener for the Add Mood button to validate inputs and initiate mood saving.
         // EDIT: Replace the existing onClickListener with the following code:
         addMoodButton.setOnClickListener(v -> {
-            // Show the progress bar while processing.
             progressBar.setVisibility(View.VISIBLE);
-
-            // Check that an emotion is selected.
             if (moodSpinner.getSelectedItemPosition() == 0) {
                 progressBar.setVisibility(View.GONE);
                 showSnackbar("Please select an emotion.");
                 return;
             }
-
-            // Delegate the click handling to our custom method.
-            handleAddMoodButtonClick();
+            handleAddMoodButtonClick();  // NEW: Delegate to our custom method.
         });
 
 
