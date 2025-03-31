@@ -14,7 +14,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     private List<Comment> comments;
     private int textColor;
 
-    public CommentAdapter(List<Comment> comments, int textColor) {
+    public CommentAdapter(List<Comment> comments, int textColor, int cardBg) {
         this.comments = comments;
         this.textColor = textColor;
     }

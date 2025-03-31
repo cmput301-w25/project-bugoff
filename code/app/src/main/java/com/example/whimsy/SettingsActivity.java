@@ -14,6 +14,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+/**
+ * SettingsActivity handles the user settings, including privacy settings and logout functionality.
+ * It interacts with Firebase Firestore to fetch and update user settings.
+ */
+
 public class SettingsActivity extends AppCompatActivity {
 
     private Switch privacySwitch;
@@ -64,7 +69,10 @@ public class SettingsActivity extends AppCompatActivity {
                     .show();
         });
     }
-
+    /**
+     * Listener for privacy switch changes.
+     * Prompts the user for confirmation before updating the privacy setting in Firestore.
+     */
     // Listener for privacy switch changes
     private final CompoundButton.OnCheckedChangeListener switchListener = new CompoundButton.OnCheckedChangeListener() {
         @Override

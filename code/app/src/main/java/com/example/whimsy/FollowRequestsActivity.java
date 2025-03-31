@@ -1,5 +1,6 @@
 package com.example.whimsy;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -26,7 +27,7 @@ import java.util.Map;
 /**
  * Activity for handling follow requests.
  */
-public class FollowRequestsActivity extends AppCompatActivity {
+public class FollowRequestsActivity extends ActivityBase {
 
     private RecyclerView recyclerView;
     private FollowRequestsAdapter adapter;
@@ -43,7 +44,7 @@ public class FollowRequestsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_follow_requests);
+        getLayoutInflater().inflate(R.layout.activity_follow_requests, findViewById(R.id.content_frame), true);
 
         db = FirebaseFirestore.getInstance();
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
