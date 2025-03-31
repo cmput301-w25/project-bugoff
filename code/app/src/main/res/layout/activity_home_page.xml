@@ -12,24 +12,43 @@
         android:gravity="right"
         android:orientation="horizontal"
         android:paddingEnd="8dp"
+        android:background="@drawable/bg_follow_req_title"
+        android:elevation="7dp"
+        android:layout_marginBottom="7dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/moods_recycler_view">
+
+        <TextView
+            android:id="@+id/type_moods"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="22dp"
+            android:text="All Moods"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/filter_button"
-            android:minHeight="0dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:backgroundTint="@color/blue"
-            android:text="Apply Filters"
-            android:textColor="@android:color/white"
             android:drawableLeft="@drawable/ic_resized_filter"
             android:drawableTint="@android:color/white"
-            app:cornerRadius="8dp"
-            app:elevation="6dp"
+            android:minHeight="0dp"
+            android:padding="8dp"
+            android:text="Apply Filters"
+            android:textColor="@android:color/white"
             android:textSize="12sp"
-            android:padding="8dp" />
+            app:cornerRadius="8dp"
+            app:elevation="6dp" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

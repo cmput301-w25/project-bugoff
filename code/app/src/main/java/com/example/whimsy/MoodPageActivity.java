@@ -25,6 +25,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -73,6 +74,7 @@ public class MoodPageActivity extends ActivityBase {
     private LinearLayout commentLayout;
     private Button commentConfirmButton;
     private FloatingActionButton editMoodFab;
+    private ImageView backBtn;
     private Set<String> followedMoodsSet = new HashSet<>();
 
     /**
@@ -96,44 +98,58 @@ public class MoodPageActivity extends ActivityBase {
             selectedMood.setMoodId(moodId);
         }
 
+        backBtn = findViewById(R.id.tool_back_button);
+        backBtn.setVisibility(View.VISIBLE);
+        backBtn.setOnClickListener(v -> finish());
+
         int colorBg;
         int colorFg;
+        int cardBg;
         switch (selectedMood.getMoodStatus().toLowerCase()) {
             case "feeling happy":
                 colorBg = getColor(R.color.happy_background);
                 colorFg = getColor(R.color.happy_text);
+                cardBg = getColor(R.color.happy_card);
                 break;
             case "feeling sad":
                 colorBg = getColor(R.color.sad_background);
                 colorFg = getColor(R.color.sad_text);
+                cardBg = getColor(R.color.sad_card);
                 break;
             case "feeling angry":
                 colorBg = getColor(R.color.anger_background);
                 colorFg = getColor(R.color.anger_text);
+                cardBg = getColor(R.color.anger_card);
                 break;
             case "feeling scared":
                 colorBg = getColor(R.color.scared_background);
                 colorFg = getColor(R.color.scared_text);
+                cardBg = getColor(R.color.scared_card);
                 break;
             case "feeling confused":
                 colorBg = getColor(R.color.confused_background);
                 colorFg = getColor(R.color.confused_text);
+                cardBg = getColor(R.color.confused_card);
                 break;
             case "feeling disgusted":
                 colorBg = getColor(R.color.disgust_background);
                 colorFg = getColor(R.color.disgust_text);
+                cardBg = getColor(R.color.disgust_card);
                 break;
             case "feeling excited":
                 colorBg = getColor(R.color.excited_background);
                 colorFg = getColor(R.color.excited_text);
+                cardBg = getColor(R.color.excited_card);
                 break;
             case "feeling ashamed":
                 colorBg = getColor(R.color.ashamed_background);
                 colorFg = getColor(R.color.ashamed_text);
+                cardBg = getColor(R.color.ashamed_card);
                 break;
             default:
                 colorBg = getColor(R.color.white);
                 colorFg = getColor(R.color.black);
+                cardBg = getColor(R.color.white);
                 break;
         }
         editMoodFab = findViewById(R.id.edit_mood_fab); // Initialize the FAB properly
@@ -145,7 +161,7 @@ public class MoodPageActivity extends ActivityBase {
 // Set up comments RecyclerView
         RecyclerView commentsRecyclerView = findViewById(R.id.mood_comments_recycler_view);
         commentsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        commentAdapter = new CommentAdapter(comments, colorFg);
+        commentAdapter = new CommentAdapter(comments, colorFg, cardBg);
         commentsRecyclerView.setAdapter(commentAdapter);
 
 // Initialize comment input components
@@ -161,10 +177,10 @@ public class MoodPageActivity extends ActivityBase {
         commentLayout.setVisibility(View.GONE); // Initially hidden
         commentConfirmButton.setOnClickListener(v -> postComment());
 
-// Fetch comments
+        // Fetch comments
         fetchComments();
 
-// Set up the comment button listener
+        // Set up the comment button listener
         moodRecyclerView.post(() -> {
             if (moodRecyclerView.getChildCount() > 0) {
                 View itemView = moodRecyclerView.getChildAt(0);

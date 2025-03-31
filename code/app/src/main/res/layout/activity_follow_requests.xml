@@ -14,21 +14,22 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="5dp"
+        android:background="@drawable/bg_follow_req_title"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        android:elevation="6dp">
 
         <!-- Title TextView -->
         <TextView
             android:id="@+id/follow_requests_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
             android:layout_gravity="center_vertical"
             android:text="Follow Requests"
-            android:textSize="20sp"
-            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textStyle="italic|bold"
             android:textColor="@android:color/black"
             android:gravity="center"
             android:layout_weight="1" />

@@ -20,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -61,6 +62,7 @@ public class HomePageActivity extends ActivityBase {
     private FirebaseFirestore db;
     private RecyclerView recyclerView;
     private MoodAdapter moodAdapter;
+    private TextView moodsType;
 
     // Instance variables to store current filter state
     private boolean currentShowOnlyFollowedMoods = false;
@@ -529,6 +531,7 @@ public class HomePageActivity extends ActivityBase {
      * @param popupView    The inflated layout view for the filter popup.
      */
     private void configureFilterDialog(AlertDialog filterDialog, View popupView) {
+        moodsType = findViewById(R.id.type_moods);
         // Initialize the radio buttons for showing all moods or only followed moods
         RadioButton showAllMoods = popupView.findViewById(R.id.show_all_moods);
         RadioButton showFollowedMoods = popupView.findViewById(R.id.show_followed_moods);
@@ -606,6 +609,11 @@ public class HomePageActivity extends ActivityBase {
             applyFilters(showOnlyFollowedMoods, days, selectedMood, searchQuery);
             // Show Snackbar message to indicate filter has been applied
             showSnackbar("Filter applied", false);
+            if (currentShowOnlyFollowedMoods) {
+                moodsType.setText("Followed Moods");
+            } else {
+                moodsType.setText("All Moods");
+            }
             filterDialog.dismiss();
         });
 
