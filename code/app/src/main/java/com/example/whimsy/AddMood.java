@@ -778,37 +778,32 @@ public class AddMood extends ActivityBase {
             showSnackbar("User not logged in");
             return;
         }
-
         String mood = moodSpinner.getSelectedItem().toString();
         if (!InputValidator.isValidMood(mood)) {
             showSnackbar("Please select a valid emotion.");
-            progressBar.setVisibility(View.GONE);
+            progressBar.setVisibility(ProgressBar.GONE);
             return;
         }
-
         String reason = reasonInput.getText().toString().trim();
         String reasonError = InputValidator.validateReason(reason);
         if (reasonError != null) {
             showSnackbar(reasonError);
-            progressBar.setVisibility(View.GONE);
+            progressBar.setVisibility(ProgressBar.GONE);
             return;
         }
-
         String timestamp = timestampText.getText().toString();
         Map<String, Object> moodData = new HashMap<>();
         moodData.put("mood", mood);
         moodData.put("reason", reason);
         moodData.put("timestamp", timestamp);
         moodData.put("isPrivate", isPrivate);
-
         if (selectedLocation != null) {
             moodData.put("locationName", selectedLocation.getName());
             moodData.put("locationLat", selectedLocation.getLatLng().latitude);
             moodData.put("locationLng", selectedLocation.getLatLng().longitude);
         }
-
         if (!taggedUsers.isEmpty()) {
-            List<Map<String, Object>> tags = new ArrayList<>();
+            ArrayList<Map<String, Object>> tags = new ArrayList<>();
             for (User taggedUser : taggedUsers) {
                 Map<String, Object> tagInfo = new HashMap<>();
                 tagInfo.put("userId", taggedUser.getId());
@@ -819,54 +814,92 @@ public class AddMood extends ActivityBase {
             moodData.put("tags", tags);
         }
 
-        // Check network connectivity.
+        // NEW: If reason starts with "#generate", generate image via API.
+        if (reason.startsWith("#generate")) {
+            String prompt = reason.substring("#generate".length()).trim();
+            ImageGenerator imageGenerator = new ImageGenerator();
+            imageGenerator.generateImage(prompt, new ImageGenerator.ImageGeneratorCallback() {
+                @Override
+                public void onSuccess(String imageUrl) {
+                    // Update preview so user can see the generated image.
+                    Glide.with(AddMood.this)
+                            .load(imageUrl)
+                            .into(selectedImageView);
+                    selectedImageView.setVisibility(ImageView.VISIBLE);
+                    // Prepare moodData with generated image.
+                    moodData.put("imageUrl", imageUrl);
+                    // Show confirmation dialog.
+                    new AlertDialog.Builder(AddMood.this)
+                            .setTitle("Confirm Mood")
+                            .setMessage("Image generated successfully. Do you want to post your mood with this image?")
+                            .setPositiveButton("Post", (dialog, which) -> {
+                                moodRepository.saveMood(moodData, null, new MoodRepository.SaveMoodCallback() {
+                                    @Override
+                                    public void onSuccess() {
+                                        progressBar.setVisibility(ProgressBar.GONE);
+                                        resetFields();
+                                        showSnackbar("Mood added successfully", false);
+                                    }
+                                    @Override
+                                    public void onFailure(Exception e) {
+                                        progressBar.setVisibility(ProgressBar.GONE);
+                                        showSnackbar("Error adding mood: " + e.getMessage());
+                                    }
+                                });
+                            })
+                            .setNegativeButton("Cancel", (dialog, which) -> {
+                                progressBar.setVisibility(ProgressBar.GONE);
+                                showSnackbar("Mood posting cancelled");
+                            })
+                            .show();
+                }
+                @Override
+                public void onFailure(Exception e) {
+                    progressBar.setVisibility(ProgressBar.GONE);
+                    showSnackbar("Failed to generate image: " + e.getMessage());
+                }
+            });
+            return; // Exit early as image generation is asynchronous.
+        }
+
+        // ... (Handle offline and normal image uploads as before)
         if (!isNetworkAvailable()) {
             addMoodToQueue(moodData, selectedImageUri);
-            progressBar.setVisibility(View.GONE);
+            progressBar.setVisibility(ProgressBar.GONE);
             int count = getOfflineQueueCount();
             showSnackbar("No internet. Mood queued. Total queued: " + count, false);
             updateOfflineBanner();
-            // Reset all fields.
-            moodSpinner.setSelection(0);
-            reasonInput.setText("");
-            selectedImageView.setVisibility(View.GONE);
-            selectedImageUri = null;
-            importImageIcon.clearColorFilter();
-            locationIcon.clearColorFilter();
-            selectedLocation = null;
-            taggedUsers.clear();
-            tagIcon.clearColorFilter();
-            SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
-            timestampText.setText(sdf.format(new Date()));
+            resetFields();
             return;
         }
 
-        // If online, delegate the save operation to the MoodRepository.
         moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
             @Override
             public void onSuccess() {
-                progressBar.setVisibility(View.GONE);
-                // Reset all fields upon successful save.
-                moodSpinner.setSelection(0);
-                reasonInput.setText("");
-                selectedImageView.setVisibility(View.GONE);
-                selectedImageUri = null;
-                importImageIcon.clearColorFilter();
-                locationIcon.clearColorFilter();
-                selectedLocation = null;
-                taggedUsers.clear();
-                tagIcon.clearColorFilter();
+                progressBar.setVisibility(ProgressBar.GONE);
+                resetFields();
                 showSnackbar("Mood added successfully", false);
-                SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
-                timestampText.setText(sdf.format(new Date()));
             }
-
             @Override
             public void onFailure(Exception e) {
-                progressBar.setVisibility(View.GONE);
+                progressBar.setVisibility(ProgressBar.GONE);
                 showSnackbar("Error adding mood: " + e.getMessage());
             }
         });
+    }
+
+    private void resetFields() {
+        moodSpinner.setSelection(0);
+        reasonInput.setText("");
+        selectedImageView.setVisibility(ImageView.GONE);
+        selectedImageUri = null;
+        importImageIcon.clearColorFilter();
+        locationIcon.clearColorFilter();
+        selectedLocation = null;
+        taggedUsers.clear();
+        tagIcon.clearColorFilter();
+        SimpleDateFormat sdf = new SimpleDateFormat("h:mm a - MMMM dd, yyyy", Locale.getDefault());
+        timestampText.setText(sdf.format(new Date()));
     }
 
     // --- TAGGING FUNCTIONALITY ---
