@@ -3,9 +3,6 @@
  * for displaying search results with user information.
  * This adapter binds user data, including usernames and profile pictures,
  * to the RecyclerView items and handles item click events to open user profiles.
- * Outstanding Issues:
- * - Currently does not handle error scenarios for Glide image loading failures.
- * - Does not include a placeholder image while loading the profile picture.
  */
 
 package com.example.whimsy;
