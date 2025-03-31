@@ -1,8 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-        <string-array name="gender_options">
-            <item>Male</item>
-            <item>Female</item>
-            <item>Other</item>
-        </string-array>
+    <string-array name="gender_options">
+        <item>Male</item>
+        <item>Female</item>
+        <item>Other</item>
+    </string-array>
+    <string-array name="emotional_states">
+        <item>Select Mood</item>  <!-- Placeholder item -->
+        <item>Happy</item>
+        <item>Sad</item>
+        <item>Angry</item>
+        <item>Scared</item>
+        <item>Confused</item>
+        <item>Disgusted</item>
+        <item>Excited</item>
+        <item>Ashamed</item>
+    </string-array>
 </resources>

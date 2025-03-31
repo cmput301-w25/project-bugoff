@@ -1,20 +1,25 @@
 package com.example.whimsy;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.transition.TransitionManager;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.Spinner;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -43,6 +48,11 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * HomePageActivity displays a list of moods and allows users to filter the results.
+ * This activity retrieves moods from followed users, applies filters, and retains filter settings between popup openings.
+ * Snackbar messages are displayed when filters are applied or reset.
+ */
 public class HomePageActivity extends ActivityBase {
     private static final String TAG = "HomePageActivity";
     private List<Mood> moodList;
@@ -51,6 +61,12 @@ public class HomePageActivity extends ActivityBase {
     private FirebaseFirestore db;
     private RecyclerView recyclerView;
     private MoodAdapter moodAdapter;
+
+    // Instance variables to store current filter state
+    private boolean currentShowOnlyFollowedMoods = false;
+    private int currentDays = 0; // 0 indicates no time filter
+    private String currentMoodFilter = "Select Mood";
+    private String currentSearchFilter = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,24 +87,22 @@ public class HomePageActivity extends ActivityBase {
 
         final ConstraintLayout constraintLayout = findViewById(R.id.constraintLayout);
         final LinearLayout buttonPanel = findViewById(R.id.buttonPanel);
-// recyclerView is already defined
 
+        // Hide or show the button panel based on scroll
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                // Use a simple threshold if needed
                 if (dy > 0 && buttonPanel.getVisibility() == View.VISIBLE) {
                     // Hide the panel and update RecyclerView constraint
                     ConstraintSet constraintSet = new ConstraintSet();
                     constraintSet.clone(constraintLayout);
-                    // Reconnect the RecyclerView top directly to parent's top
                     constraintSet.clear(R.id.moods_recycler_view, ConstraintSet.TOP);
                     constraintSet.connect(R.id.moods_recycler_view, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
                     TransitionManager.beginDelayedTransition(constraintLayout);
                     constraintSet.applyTo(constraintLayout);
                     buttonPanel.setVisibility(View.GONE);
                 } else if (dy < 0 && buttonPanel.getVisibility() != View.VISIBLE) {
-                    // Show the panel and update RecyclerView constraint to its bottom
+                    // Show the panel and update RecyclerView constraint
                     ConstraintSet constraintSet = new ConstraintSet();
                     constraintSet.clone(constraintLayout);
                     constraintSet.clear(R.id.moods_recycler_view, ConstraintSet.TOP);
@@ -99,8 +113,6 @@ public class HomePageActivity extends ActivityBase {
                 }
             }
         });
-
-
 
         // Initialize Firebase
         mAuth = FirebaseAuth.getInstance();
@@ -133,7 +145,7 @@ public class HomePageActivity extends ActivityBase {
             Log.e(TAG, "User is not authenticated");
         }
 
-        // Handle item touch events
+        // Handle item touch events for RecyclerView
         final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
@@ -161,7 +173,11 @@ public class HomePageActivity extends ActivityBase {
         });
     }
 
-    /** Loads all moods from followed users without filters. */
+    /**
+     * Loads all moods from followed users without any filters.
+     *
+     * @param userId The current user's ID.
+     */
     private void loadFollowedUsersMoods(String userId) {
         db.collection("users").document(userId).collection("following")
                 .get()
@@ -173,13 +189,19 @@ public class HomePageActivity extends ActivityBase {
                     loadMoodsFromFollowedUsers(followedUserIds, 0, null, null);
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to load following list", Toast.LENGTH_SHORT).show();
+                    showSnackbar("Failed to load following list");
                     Log.e(TAG, "Error loading following", e);
                 });
     }
 
-    /** Loads moods from followed users with optional filters. */
-    /** Loads moods from followed users with optional filters, ensuring latest order. */
+    /**
+     * Loads moods from followed users with optional filters.
+     *
+     * @param followedUserIds List of user IDs being followed.
+     * @param days            Number of days for time filtering.
+     * @param moodFilter      Filter for the mood state.
+     * @param searchFilter    Filter for the search query.
+     */
     private void loadMoodsFromFollowedUsers(List<String> followedUserIds, int days, String moodFilter, String searchFilter) {
         moodList.clear();
         moodDocIds.clear();
@@ -266,7 +288,13 @@ public class HomePageActivity extends ActivityBase {
         }
     }
 
-    /** Applies filters and sorts the mood list by timestamp in descending order. */
+    /**
+     * Applies the given filters and sorts the mood list by timestamp in descending order.
+     *
+     * @param days         Number of days for time filtering.
+     * @param moodFilter   Filter for the mood state.
+     * @param searchFilter Filter for the search query.
+     */
     private void applyFiltersAndSort(int days, String moodFilter, String searchFilter) {
         long cutoffTimestamp = days > 0 ? calculateCutoffTimestamp(days) : 0;
 
@@ -304,7 +332,13 @@ public class HomePageActivity extends ActivityBase {
         moodAdapter.notifyDataSetChanged();
     }
 
-    /** Loads explicitly followed moods with optional filters. */
+    /**
+     * Loads explicitly followed moods with optional filters.
+     *
+     * @param days         Number of days for time filtering.
+     * @param moodFilter   Filter for the mood state.
+     * @param searchFilter Filter for the search query.
+     */
     private void loadFollowedMoodsFiltered(int days, String moodFilter, String searchFilter) {
         FirebaseUser user = mAuth.getCurrentUser();
         if (user == null) return;
@@ -393,58 +427,139 @@ public class HomePageActivity extends ActivityBase {
                 });
     }
 
-    /** Shows the filter popup dialog. */
+    /**
+     * Displays the filter popup dialog.
+     */
     private void showFilterPopup() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View popupView = getLayoutInflater().inflate(R.layout.filter_popup, null);
         builder.setView(popupView);
         AlertDialog filterDialog = builder.create();
+        if (filterDialog.getWindow() != null) {
+            filterDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            filterDialog.getWindow().setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            filterDialog.getWindow().setGravity(Gravity.CENTER);
+        }
         filterDialog.show();
 
         configureFilterDialog(filterDialog, popupView);
     }
 
-    /** Configures the filter dialog UI and logic. */
+    /**
+     * Configures the filter popup dialog's UI and logic.
+     * Initializes UI components with any previously applied filter settings and shows Snackbar messages when filters are applied or reset.
+     *
+     * @param filterDialog The AlertDialog for the filter popup.
+     * @param popupView    The inflated layout view for the filter popup.
+     */
     private void configureFilterDialog(AlertDialog filterDialog, View popupView) {
+        // Initialize the radio buttons for showing all moods or only followed moods
         RadioButton showAllMoods = popupView.findViewById(R.id.show_all_moods);
         RadioButton showFollowedMoods = popupView.findViewById(R.id.show_followed_moods);
-        showAllMoods.setChecked(true); // Default to "All Moods"
+        // Set initial state from stored filter settings
+        showFollowedMoods.setChecked(currentShowOnlyFollowedMoods);
+        showAllMoods.setChecked(!currentShowOnlyFollowedMoods);
 
+        // Initialize the time filter radio buttons (week/month)
         RadioButton filterWeek = popupView.findViewById(R.id.filter_week);
         RadioButton filterMonth = popupView.findViewById(R.id.filter_month);
-        Spinner moodSpinner = popupView.findViewById(R.id.spinner_emotional_state);
-        EditText searchBox = popupView.findViewById(R.id.search_reason_box);
+        if (currentDays == 7) {
+            filterWeek.setChecked(true);
+            filterMonth.setChecked(false);
+        } else if (currentDays == 30) {
+            filterWeek.setChecked(false);
+            filterMonth.setChecked(true);
+        } else {
+            filterWeek.setChecked(false);
+            filterMonth.setChecked(false);
+        }
 
-        // Setup emotional state spinner
+        // Initialize the spinner for emotional states
+        Spinner moodSpinner = popupView.findViewById(R.id.spinner_emotional_state);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
                 this, R.array.emotional_states, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         moodSpinner.setAdapter(adapter);
+        // Set spinner selection based on saved mood filter
+        int spinnerPosition = adapter.getPosition(currentMoodFilter);
+        moodSpinner.setSelection(spinnerPosition);
 
+        // Initialize the search box with saved search filter text
+        EditText searchBox = popupView.findViewById(R.id.search_reason_box);
+        searchBox.setText(currentSearchFilter);
+
+        // Configure search icon color change on text input
+        ImageView searchIcon = popupView.findViewById(R.id.search_button);
+        searchBox.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // No action needed before text changes
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchIcon.setColorFilter(getColor(R.color.black));
+                if (s.toString().isEmpty()) {
+                    searchIcon.clearColorFilter();
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                // No additional actions needed after text changes
+            }
+        });
+
+        // Initialize apply and reset buttons
         Button applyButton = popupView.findViewById(R.id.apply_button);
         Button resetButton = popupView.findViewById(R.id.reset_button);
 
+        // Update filter state and apply filters when the apply button is clicked
         applyButton.setOnClickListener(v -> {
             boolean showOnlyFollowedMoods = showFollowedMoods.isChecked();
             int days = filterWeek.isChecked() ? 7 : filterMonth.isChecked() ? 30 : 0;
             String selectedMood = moodSpinner.getSelectedItem().toString();
             String searchQuery = searchBox.getText().toString().trim();
+
+            // Update current filter state variables
+            currentShowOnlyFollowedMoods = showOnlyFollowedMoods;
+            currentDays = days;
+            currentMoodFilter = selectedMood;
+            currentSearchFilter = searchQuery;
+
             applyFilters(showOnlyFollowedMoods, days, selectedMood, searchQuery);
+            // Show Snackbar message to indicate filter has been applied
+            showSnackbar("Filter applied", false);
             filterDialog.dismiss();
         });
 
+        // Reset filters to default when the reset button is clicked
         resetButton.setOnClickListener(v -> {
+            currentShowOnlyFollowedMoods = false;
+            currentDays = 0;
+            currentMoodFilter = "Select Mood";
+            currentSearchFilter = "";
             FirebaseUser user = mAuth.getCurrentUser();
             if (user != null) {
                 loadFollowedUsersMoods(user.getUid());
             }
+            // Show Snackbar message to indicate filters have been reset
+            showSnackbar("Filters reset", false);
             filterDialog.dismiss();
         });
 
+        // Close the popup when the close icon is clicked
         popupView.findViewById(R.id.close_popup).setOnClickListener(v -> filterDialog.dismiss());
     }
 
-    /** Applies the selected filters. */
+    /**
+     * Applies the selected filters by either loading followed moods or moods from all followed users.
+     *
+     * @param showOnlyFollowedMoods Whether to show only explicitly followed moods.
+     * @param days                  The number of days for time filtering.
+     * @param moodFilter            The selected mood filter.
+     * @param searchFilter          The search query filter.
+     */
     private void applyFilters(boolean showOnlyFollowedMoods, int days, String moodFilter, String searchFilter) {
         FirebaseUser user = mAuth.getCurrentUser();
         if (user == null) return;
@@ -465,14 +580,24 @@ public class HomePageActivity extends ActivityBase {
         }
     }
 
-    /** Calculates the cutoff timestamp for time filtering. */
+    /**
+     * Calculates the cutoff timestamp for filtering moods based on the given number of days.
+     *
+     * @param days The number of days in the past.
+     * @return The cutoff timestamp in milliseconds.
+     */
     private long calculateCutoffTimestamp(int days) {
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_YEAR, -days);
         return calendar.getTimeInMillis();
     }
 
-    /** Converts a timestamp string to milliseconds. */
+    /**
+     * Converts a timestamp string to milliseconds.
+     *
+     * @param timestampStr The timestamp string in the format "hh:mm a - MMMM dd, yyyy".
+     * @return The timestamp in milliseconds.
+     */
     private long convertTimestampToMillis(String timestampStr) {
         SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a - MMMM dd, yyyy", Locale.ENGLISH);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
