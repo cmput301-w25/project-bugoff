@@ -1,10 +1,8 @@
 /**
  * FollowingActivity is responsible for displaying a list of users
  * that a specific user follows or is followed by.
- *
  * It retrieves the user list from Firestore, differentiating
  * between "followers" and "following" based on the provided intent data.
- *
  * Outstanding Issues:
  * - Currently does not handle real-time updates to the follower/following list.
  * - Does not handle network failures or retry mechanisms efficiently.

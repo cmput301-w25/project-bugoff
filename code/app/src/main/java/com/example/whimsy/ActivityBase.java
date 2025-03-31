@@ -1,10 +1,8 @@
 /**
  * ActivityBase serves as the base activity for the application,
  * providing navigation controls to different parts of the app.
- *
  * This class initializes navigation buttons and defines click
  * listeners to navigate between activities.
- *
  * Outstanding Issues:
  * - Currently does not handle back navigation logic.
  * - Does not check if an activity is already running before launching a new one.
