@@ -1,3 +1,17 @@
+/**
+ * The {@code MapActivity} class provides an interface for displaying and interacting with a map.
+ * It allows users to view and add markers representing moods, and provides options for filtering
+ * and customizing the map display.
+ *
+ * Key Features:
+ *
+ *     Displays a map with markers representing user moods.
+ *     Allows users to add new mood markers with location and mood details.
+ *     Integrates with Firebase Firestore to retrieve and display mood data.
+ *     Provides filtering options to customize the displayed markers based on mood type and time range.
+ *     Utilizes Google Maps API for map functionalities and marker management.
+ *
+ */
 package com.example.whimsy;
 
 import android.content.pm.PackageManager;

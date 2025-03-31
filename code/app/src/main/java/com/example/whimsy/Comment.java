@@ -1,3 +1,17 @@
+/**
+ * The {@code Comment} class represents a user-generated comment in the application.
+ * Each comment is associated with a user and includes metadata such as the commenter's ID,
+ * name, text, timestamp, and profile image URL. Comments are stored in Firebase Firestore.
+ *
+ * Key Features:
+ *
+ *     Stores user-generated comments with associated metadata.
+ *     Includes Firestore-compatible timestamp for chronological sorting.
+ *     Provides getters and setters for flexible data manipulation.
+ *     Supports serialization and deserialization for Firestore compatibility.
+ *     Enables retrieval of the commenter's profile image for UI display.
+ */
+
 package com.example.whimsy;
 
 import com.google.firebase.Timestamp;

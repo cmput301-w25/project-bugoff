@@ -1,12 +1,14 @@
 /**
- * MainActivity serves as the entry point of the application, displaying a splash screen
+ * The {@code MainActivity} class serves as the entry point of the application, displaying a splash screen
  * with animations and transitioning to the next screen based on the user's authentication status.
  *
- * This activity initializes Firebase authentication, manages splash animations, plays sound,
- * and transitions to either the HomePageActivity or SignInActivity after the splash duration.
+ * Key Features:
  *
- * Outstanding Issues:
- * - None identified.
+ *     Initializes Firebase authentication to manage user sessions.
+ *     Displays a splash screen with animations and sound effects.
+ *     Transitions to HomePageActivity if the user is authenticated.
+ *     Redirects to SignInActivity if the user is not authenticated.
+ *
  */
 
 package com.example.whimsy;

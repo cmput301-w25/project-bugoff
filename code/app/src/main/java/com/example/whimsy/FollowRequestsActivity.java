@@ -1,3 +1,20 @@
+/**
+ * The {@code FollowRequestsActivity} class handles the user's follow requests within the app.
+ * It displays incoming follow requests in a RecyclerView, and allows the user to either accept
+ * or reject these requests. When a request is accepted, the corresponding follow relationship is
+ * established in Firebase Firestore, and the request is removed. If rejected, the request is simply deleted.
+ *
+ * Key Features:
+ *
+ *     Displays a list of follow requests from other users.
+ *     Allows the user to accept or reject follow requests.
+ *     Accepting a request updates Firestore to reflect the follow relationship.
+ *     Rejection of a request deletes the request from Firestore.
+ *     Error handling for failed Firebase operations, with user feedback via Toast messages.
+ *     Efficient updates to the follow requests list after each action (accept or reject).
+ *
+ */
+
 package com.example.whimsy;
 
 import android.os.Bundle;

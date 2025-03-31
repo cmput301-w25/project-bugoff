@@ -1,3 +1,20 @@
+/**
+ * The {@code ActivityBase} class serves as a base activity that provides navigation and UI functionality
+ * for various screens within the application. It includes a bottom navigation bar with buttons for
+ * accessing key features, such as the home page, profile, settings, search, mood logging, and maps.
+ *
+ * Key Features:
+ *
+ *     Provides a consistent navigation framework across multiple activities.
+ *     Loads the user's profile picture if available via Firebase Authentication.
+ *     Implements efficient navigation handling to avoid unnecessary activity launches.
+ *     Supports a dynamic content frame for embedding different screens.
+ *     Uses Material Design Snackbars for displaying status messages.
+ *     Ensures smooth user experience by managing the activity back stack.
+ *     Implements color-aware Snackbars for improved UI feedback.
+ *
+ */
+
 package com.example.whimsy;
 
 import android.content.Intent;
