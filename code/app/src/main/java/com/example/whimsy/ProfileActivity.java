@@ -33,9 +33,9 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -59,7 +59,6 @@ import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
@@ -69,9 +68,11 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 /**
@@ -165,7 +166,6 @@ public class ProfileActivity extends ActivityBase {
                 }
         );
 
-
         // Inflate profile page layout into content frame
         getLayoutInflater().inflate(R.layout.profile_page, findViewById(R.id.content_frame), true);
 
@@ -187,8 +187,27 @@ public class ProfileActivity extends ActivityBase {
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
 
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String userId = mAuth.getCurrentUser().getUid();
+        db.collection("users").document(userId).collection("followedMoods")
+                .addSnapshotListener((snapshots, e) -> {
+                    if (e != null) {
+                        Log.e("ProfileActivity", "Error listening to followed moods", e);
+                        return;
+                    }
+                    Set<String> followedMoodsSet = new HashSet<>();
+                    if (snapshots != null) {
+                        for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                            String ownerUid = doc.getString("ownerUid");
+                            String moodId = doc.getString("moodId");
+                            followedMoodsSet.add(ownerUid + "_" + moodId);
+                        }
+                    }
+                    moodAdapter.setFollowedMoodsSet(followedMoodsSet);
+                });
+
         // Setup filter button
-        ImageButton filterButton = findViewById(R.id.filter_button);
+        Button filterButton = findViewById(R.id.filter_button);
         filterButton.setOnClickListener(v -> showFilterPopup());
 
         // Load user data
@@ -351,6 +370,9 @@ public class ProfileActivity extends ActivityBase {
 
         ImageView closePopup = popupView.findViewById(R.id.close_popup);
         closePopup.setOnClickListener(v -> filterDialog.dismiss());
+
+        RadioGroup moodGroup = popupView.findViewById(R.id.mood_source_filter);
+        moodGroup.setVisibility(View.GONE);
 
         RadioButton filterWeek = popupView.findViewById(R.id.filter_week);
         RadioButton filterMonth = popupView.findViewById(R.id.filter_month);

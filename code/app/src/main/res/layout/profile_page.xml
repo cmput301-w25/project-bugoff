@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    android:background="@color/white"
     android:layout_height="match_parent"
     tools:context=".ProfileActivity">
 
@@ -41,7 +42,7 @@
                     android:src="@drawable/ic_profile"
                     app:shapeAppearanceOverlay="@style/CircularImageView"
                     app:strokeColor="#EEEEEE"
-                    app:strokeWidth="2dp" />
+                    app:strokeWidth="2dp"/>
 
                 <!-- Container for Name, Email, and Bio -->
                 <LinearLayout
@@ -170,29 +171,37 @@
             </LinearLayout>
 
             <!-- Buttons Section: Edit Profile and Filter -->
-            <Button
-                android:id="@+id/edit_profile_btn"
-                android:layout_width="124dp"
-                android:layout_height="48dp"
-                android:layout_marginTop="8dp"
-                android:backgroundTint="#439DEB"
-                android:text="Edit Profile"
-                app:layout_constraintEnd_toEndOf="parent"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:layout_marginBottom="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/profile_stats" />
+                app:layout_constraintTop_toBottomOf="@+id/profile_stats">
 
-            <ImageButton
-                android:id="@+id/filter_button"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginTop="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/filter_icon"
-                android:contentDescription="Filter"
-                app:layout_constraintTop_toBottomOf="@id/profile_stats"
-                app:layout_constraintStart_toEndOf="@id/edit_profile_btn"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.6" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/edit_profile_btn"
+                    android:layout_width="124dp"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    app:cornerRadius="14dp"
+                    android:backgroundTint="#439DEB"
+                    android:text="Edit Profile" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/filter_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="#FF9E60"
+                    android:drawableLeft="@drawable/ic_resized_filter"
+                    android:drawableTint="@color/white"
+                    app:cornerRadius="14dp"
+                    android:text="Filter" />
+            </LinearLayout>
+
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.appbar.AppBarLayout>

@@ -1,10 +1,8 @@
 /**
  * FollowingActivity is responsible for displaying a list of users
  * that a specific user follows or is followed by.
- *
  * It retrieves the user list from Firestore, differentiating
  * between "followers" and "following" based on the provided intent data.
- *
  * Outstanding Issues:
  * - Currently does not handle real-time updates to the follower/following list.
  * - Does not handle network failures or retry mechanisms efficiently.
@@ -14,11 +12,14 @@ package com.example.whimsy;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class FollowingActivity extends AppCompatActivity {
     private String type;  // Type of list ("followers" or "following")
     private String userId; // The ID of the user whose list is being viewed
     private TextView following_followers_title;
+    private ImageView back_button;
 
     /**
      * Called when the activity is first created.
@@ -57,6 +59,7 @@ public class FollowingActivity extends AppCompatActivity {
 
         // Set the activity title based on whether viewing followers or following
         following_followers_title = findViewById(R.id.following_followers_title);
+        back_button = findViewById(R.id.back_button);
 
         // Set the activity title based on type
         if (type.equals("followers")) {
@@ -74,11 +77,17 @@ public class FollowingActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerViewFollowing);
         recyclerView.setLayoutManager(new LinearLayoutManager(this)); // Set layout manager for list display
         userList = new ArrayList<>();
-        adapter = new FollowingAdapter(userList, userId);
-        recyclerView.setAdapter(adapter); // Attach adapter to RecyclerView
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();  // NEW: Get current user id
+        boolean isSelf = userId.equals(currentUserId);  // NEW: Flag to indicate if viewing own following list
+        // EDIT: Pass currentUserId and isSelf flag to the adapter
+        adapter = new FollowingAdapter(userList, currentUserId, isSelf);  // EDIT
+        recyclerView.setAdapter(adapter);
+
 
         // Fetch the user list from Firestore
         fetchUsersList(type, userId);
+
+        back_button.setOnClickListener(v -> finish());
     }
 
     /**

@@ -26,17 +26,14 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.appcompat.app.AlertDialog;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -49,15 +46,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import com.google.firebase.firestore.DocumentReference;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 public class OtherProfileActivity extends ActivityBase {
 
@@ -74,6 +70,7 @@ public class OtherProfileActivity extends ActivityBase {
     private List<Mood> moodList = new ArrayList<>();
     private List<String> moodDocIds = new ArrayList<>();
     private TextView moodCountText;
+    private ImageView backBtn;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -91,6 +88,10 @@ public class OtherProfileActivity extends ActivityBase {
         followingCount = findViewById(R.id.other_following_count);
         moodCountText = findViewById(R.id.other_moods_count);
         moodsRecyclerView = findViewById(R.id.other_moods_recycler_view);
+        backBtn = findViewById(R.id.tool_back_button);
+        backBtn.setVisibility(View.VISIBLE);
+
+        backBtn.setOnClickListener(v -> finish());
 
         // Set up RecyclerView
         moodsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -104,6 +105,23 @@ public class OtherProfileActivity extends ActivityBase {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
         currentUserId = auth.getCurrentUser().getUid();
+
+        db.collection("users").document(currentUserId).collection("followedMoods")
+                .addSnapshotListener((snapshots, e) -> {
+                    if (e != null) {
+                        Log.e("OtherProfileActivity", "Error listening to followed moods", e);
+                        return;
+                    }
+                    Set<String> followedMoodsSet = new HashSet<>();
+                    if (snapshots != null) {
+                        for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                            String ownerUid = doc.getString("ownerUid");
+                            String moodId = doc.getString("moodId");
+                            followedMoodsSet.add(ownerUid + "_" + moodId);
+                        }
+                    }
+                    moodAdapter.setFollowedMoodsSet(followedMoodsSet);
+                });
 
         // Get the searched user ID from Intent
         searchedUserId = getIntent().getStringExtra("USER_ID");

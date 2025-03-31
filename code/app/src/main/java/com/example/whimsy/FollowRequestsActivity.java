@@ -23,23 +23,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Activity for handling follow requests.
+ */
 public class FollowRequestsActivity extends AppCompatActivity {
 
-    // NEW: Declare RecyclerView and adapter for follow requests.
     private RecyclerView recyclerView;
     private FollowRequestsAdapter adapter;
     private List<DocumentSnapshot> requestSnapshots = new ArrayList<>();
     private FirebaseFirestore db;
     private String currentUserId;
 
+    /**
+     * Called when the activity is first created.
+     * Initializes the RecyclerView, adapter, and loads follow requests.
+     *
+     * @param savedInstanceState The saved instance state bundle.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_follow_requests); // NEW: Create this layout file
+        setContentView(R.layout.activity_follow_requests);
 
         db = FirebaseFirestore.getInstance();
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        recyclerView = findViewById(R.id.follow_requests_recycler_view); // NEW: Ensure layout has this RecyclerView
+        recyclerView = findViewById(R.id.follow_requests_recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new FollowRequestsAdapter(requestSnapshots, new FollowRequestsAdapter.RequestActionListener() {
@@ -57,6 +65,9 @@ public class FollowRequestsActivity extends AppCompatActivity {
         loadFollowRequests();
     }
 
+    /**
+     * Loads follow requests from Firestore and updates the adapter.
+     */
     private void loadFollowRequests() {
         db.collection("users").document(currentUserId)
                 .collection("followRequests")
@@ -72,17 +83,19 @@ public class FollowRequestsActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Accepts a follow request and updates Firestore.
+     *
+     * @param requestDoc The document snapshot of the follow request.
+     */
     private void acceptFollowRequest(DocumentSnapshot requestDoc) {
         String requesterId = requestDoc.getId();
         WriteBatch batch = db.batch();
 
-        // NEW: Add requester to current user's followers.
         batch.set(db.collection("users").document(currentUserId)
                 .collection("followers").document(requesterId), new HashMap<String, Object>());
-        // NEW: Add current user to requester's following.
         batch.set(db.collection("users").document(requesterId)
                 .collection("following").document(currentUserId), new HashMap<String, Object>());
-        // NEW: Delete the follow request.
         batch.delete(requestDoc.getReference());
 
         batch.commit()
@@ -95,6 +108,11 @@ public class FollowRequestsActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Rejects a follow request and updates Firestore.
+     *
+     * @param requestDoc The document snapshot of the follow request.
+     */
     private void rejectFollowRequest(DocumentSnapshot requestDoc) {
         requestDoc.getReference().delete()
                 .addOnSuccessListener(aVoid -> {

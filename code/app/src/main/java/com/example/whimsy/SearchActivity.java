@@ -121,9 +121,7 @@ public class SearchActivity extends ActivityBase {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     userList.clear();
-                    if (queryDocumentSnapshots.isEmpty()) {
-                        Toast.makeText(SearchActivity.this, "No users found.", Toast.LENGTH_SHORT).show();
-                    } else {
+                    if (!queryDocumentSnapshots.isEmpty()) {
                         for (DocumentSnapshot doc : queryDocumentSnapshots) {
                             String id = doc.getId();
                             String username = doc.getString("username");
@@ -138,7 +136,7 @@ public class SearchActivity extends ActivityBase {
                 })
                 .addOnFailureListener(e -> {
                     Log.e("SearchActivity", "Error performing search", e);
-                    Toast.makeText(SearchActivity.this, "Error performing search", Toast.LENGTH_SHORT).show();
+                    showSnackbar("Error performing search");
                 });
     }
 }
