@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -73,6 +74,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private int filterDays = 0; // 0: no time filter, 7: week, 30: month
     private String filterMood = "Select Mood"; // Default spinner value for mood type
     private String filterSearchQuery = ""; // Text search filter for mood reason
+    private LatLng userLocation;
 
     /**
      * Called when the activity is starting. Initializes Firebase, location services, UI elements,
@@ -171,11 +173,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
             fusedLocationClient.getLastLocation()
                     .addOnSuccessListener(this, location -> {
                         if (location != null) {
-                            LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                            userLocation = new LatLng(location.getLatitude(), location.getLongitude());
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 12));
                         } else {
                             LatLng northAmerica = new LatLng(37.0902, -95.7129);
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(northAmerica, 5));
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(northAmerica, 0));
                         }
                     });
         }
@@ -243,7 +245,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                                 .get()
                                 .addOnSuccessListener(querySnapshot -> {
                                     if (!querySnapshot.isEmpty()) {
-                                        showMoodsOnMap(querySnapshot, username, profilePictureUrl);
+                                        showMoodsOnMap(querySnapshot, username, profilePictureUrl, true);
                                     }
                                 });
                     });
@@ -559,6 +561,45 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         } catch (ParseException e) {
             Log.e("MapActivity", "Error parsing timestamp: " + timestampStr, e);
             return 0;
+        }
+    }
+
+    private boolean isWithinRadius(LatLng point1, LatLng point2, double radiusMeters) {
+        if (point1 == null || point2 == null) {
+            return false;
+        }
+        float[] results = new float[1];
+        Location.distanceBetween(point1.latitude, point1.longitude, point2.latitude, point2.longitude, results);
+        return results[0] <= radiusMeters;
+    }
+
+    private void showMoodsOnMap(QuerySnapshot querySnapshot, String username, String profilePictureUrl, boolean filterByDistance) {
+        int index = 0;
+        for (QueryDocumentSnapshot doc : querySnapshot) {
+            Double latObj = doc.getDouble("locationLat");
+            Double lngObj = doc.getDouble("locationLng");
+            if (latObj == null || lngObj == null) {
+                continue;
+            }
+            double lat = latObj;
+            double lng = lngObj;
+            LatLng moodLocation = new LatLng(lat, lng);
+            if (!filterByDistance || userLocation == null || isWithinRadius(userLocation, moodLocation, 5000)) {
+                String mood = doc.getString("mood");
+                String emoji = getEmojiForMood(mood);
+                double offset = 0.0002 * (index % 5);
+                LatLng location = new LatLng(lat + offset, lng + offset);
+                String markerTitle = username + " - " + mood + " " + emoji;
+                if (profilePictureUrl != null && !profilePictureUrl.isEmpty()) {
+                    loadProfilePictureMarker(profilePictureUrl, location, markerTitle, mood);
+                } else {
+                    mMap.addMarker(new MarkerOptions()
+                            .position(location)
+                            .title(markerTitle)
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+                }
+                index++;
+            }
         }
     }
 }
