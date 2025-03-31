@@ -31,4 +31,5 @@ Whimsy is a modern-day social media application that helps people share their fe
 - Wiki : https://github.com/cmput301-w25/project-bugoff/wiki/BugOff's-Wiki
 - Scrum Board : https://github.com/orgs/cmput301-w25/projects/84
 - UI Mockups : https://github.com/cmput301-w25/project-bugoff/blob/main/User-Interface/UImockup.pdf
-- UML : https://github.com/user-attachments/assets/df6cb1da-c580-4bd9-82ce-01649702f486
+- UML : https://github.com/user-attachments/assets/6083314e-1024-44a5-920f-1673f7049eee
+
