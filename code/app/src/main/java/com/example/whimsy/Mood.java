@@ -204,9 +204,6 @@ public class Mood implements Serializable {
     public String getUserTime() {
         return userTime;
     }
-    public void setUserTime(String userTime) {
-        this.userTime = userTime;
-    }
 
     /**
      * Sets the time when the mood was recorded.

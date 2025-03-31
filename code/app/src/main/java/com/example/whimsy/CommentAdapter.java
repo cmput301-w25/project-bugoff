@@ -13,12 +13,12 @@ import java.util.List;
 
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentViewHolder> {
     private List<Comment> comments;
-    private int textColor, cardBg;
+    private int textColor, cardBackgroundColor;
 
-    public CommentAdapter(List<Comment> comments, int textColor, int cardBg) {
+    public CommentAdapter(List<Comment> comments, int textColor, int cardBackgroundColor) {
         this.comments = comments;
         this.textColor = textColor;
-        this.cardBg = cardBg;
+        this.cardBackgroundColor = cardBackgroundColor;
     }
     @Override
     public CommentViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -34,7 +34,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
 
         // Apply text color only
         holder.commenterName.setTextColor(textColor);
-        holder.cardView.setCardBackgroundColor(cardBg);
+        holder.commentCard.setCardBackgroundColor(cardBackgroundColor);
 
         // Load profile image (unchanged)
         String profileImageUrl = comment.getProfileImageUrl();
@@ -55,14 +55,14 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     static class CommentViewHolder extends RecyclerView.ViewHolder {
         TextView commenterName, commentContent;
         ImageView profileImage;
-        CardView cardView;
+        CardView commentCard;
 
         CommentViewHolder(@NonNull View itemView) {
             super(itemView);
             commenterName = itemView.findViewById(R.id.commenter_name);
             commentContent = itemView.findViewById(R.id.comment_content);
             profileImage = itemView.findViewById(R.id.image_profile);
-            cardView = itemView.findViewById(R.id.card_view);
+            commentCard = itemView.findViewById(R.id.comment_card);
         }
     }
 }
