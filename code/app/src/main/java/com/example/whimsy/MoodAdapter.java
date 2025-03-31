@@ -28,15 +28,49 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Locale;
 
 import java.util.List;
+import java.util.Set;
 
 public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int VIEW_TYPE_WITH_IMAGE = 1;  // Constant for moods with images
     private static final int VIEW_TYPE_NO_IMAGE = 2;   // Constant for moods without images
     private List<Mood> moodList;  // List of Mood objects to be displayed
+    private Set<String> followedMoodsSet = new HashSet<>();
+    private OnFollowClickListener onFollowClickListener;
+    private OnShowFollowersListener onShowFollowersListener;
+
+    public void setFollowedMoodsSet(Set<String> followedMoodsSet) {
+        this.followedMoodsSet = followedMoodsSet;
+        notifyDataSetChanged();
+    }
+
+    public void setOnFollowClickListener(OnFollowClickListener listener) {
+        this.onFollowClickListener = listener;
+    }
+
+    public void setOnShowFollowersListener(OnShowFollowersListener listener) {
+        this.onShowFollowersListener = listener;
+    }
+
+    public interface OnFollowClickListener {
+        void onFollowClick(Mood mood, boolean isFollowing, Button button);
+    }
+
+    public interface OnCommentButtonClickListener {
+        void onCommentButtonClick();
+    }
+    private OnCommentButtonClickListener onCommentButtonClickListener;
+
+    public void setOnCommentButtonClickListener(OnCommentButtonClickListener listener) {
+        this.onCommentButtonClickListener = listener;
+    }
+    public interface OnShowFollowersListener {
+        void onShowFollowers(Mood mood);
+    }
 
     /**
      * Constructor for the MoodAdapter.
@@ -230,6 +264,8 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
         private ImageView moodImage, profileImage;
         private View moodVisibilityBg;
+        private Button trackMoodButton;
+        private Button commentButton;
 
         MoodWithImageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -245,6 +281,8 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             // Corrected ID: image_profile instead of profile_image
             profileImage = itemView.findViewById(R.id.image_profile);
             moodVisibilityBg = itemView.findViewById(R.id.moodVisibilityBg);
+            trackMoodButton = itemView.findViewById(R.id.track_mood_button);
+            commentButton = itemView.findViewById(R.id.comment_button);
         }
 
 
@@ -263,12 +301,18 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
 
+
             if (mood.isPrivateMood()) {
                 moodVisibilityBg.setVisibility(View.VISIBLE);
             } else {
                 moodVisibilityBg.setVisibility(View.GONE);
             }
 
+            commentButton.setOnClickListener(v -> {
+                if (adapter.onCommentButtonClickListener != null) {
+                    adapter.onCommentButtonClickListener.onCommentButtonClick();
+                }
+            });
             adapter.applyStyle(itemView, mood.getMoodStatus());
             adapter.setEmojiBasedOnMood(mood.getMoodStatus(), moodStatus);
 
@@ -285,6 +329,24 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             } else {
                 moodImage.setImageResource(R.drawable.ic_profile);
             }
+
+            String key = mood.getOwnerUid() + "_" + mood.getMoodId();
+            boolean isFollowing = adapter.followedMoodsSet.contains(key);
+            trackMoodButton.setText(isFollowing ? "Following" : "Follow");
+
+            trackMoodButton.setOnClickListener(v -> {
+                if (adapter.onFollowClickListener != null) {
+                    adapter.onFollowClickListener.onFollowClick(mood, isFollowing, trackMoodButton);
+                }
+            });
+
+            trackMoodButton.setOnLongClickListener(v -> {
+                if (adapter.onShowFollowersListener != null) {
+                    adapter.onShowFollowersListener.onShowFollowers(mood);
+                    return true;
+                }
+                return false;
+            });
 
             userGatheringStatus.setOnClickListener(v -> {
                 List<String> taggedUsers = mood.getTaggedUserNames();
@@ -307,6 +369,9 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private TextView userName, userId, userLocation, userTime, userGatheringStatus, moodStatus, moodTrigger, moodReason;
         private ImageView profileImage;
         private View moodVisibilityBg;
+        private Button trackMoodButton;
+
+        private Button commentButton;
 
         /**
          * Constructor for the ViewHolder that holds views for moods without images.
@@ -325,6 +390,8 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodReason = itemView.findViewById(R.id.mood_reason);
             profileImage = itemView.findViewById(R.id.image_profile);
             moodVisibilityBg = itemView.findViewById(R.id.moodVisibilityBg);
+            trackMoodButton = itemView.findViewById(R.id.track_mood_button);
+            commentButton = itemView.findViewById(R.id.comment_button);
         }
 
         /**
@@ -348,6 +415,12 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             adapter.applyStyle(itemView, mood.getMoodStatus());
             moodStatus.setText(mood.getMoodStatus());
 
+            commentButton.setOnClickListener(v -> {
+                if (adapter.onCommentButtonClickListener != null) {
+                    adapter.onCommentButtonClickListener.onCommentButtonClick();
+                }
+            });
+
             if (mood.isPrivateMood()) {
                 moodVisibilityBg.setVisibility(View.VISIBLE);
             } else {
@@ -362,6 +435,24 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             } else {
                 profileImage.setImageResource(R.drawable.ic_profile);
             }
+
+            String key = mood.getOwnerUid() + "_" + mood.getMoodId();
+            boolean isFollowing = adapter.followedMoodsSet.contains(key);
+            trackMoodButton.setText(isFollowing ? "Following" : "Follow");
+
+            trackMoodButton.setOnClickListener(v -> {
+                if (adapter.onFollowClickListener != null) {
+                    adapter.onFollowClickListener.onFollowClick(mood, isFollowing, trackMoodButton);
+                }
+            });
+
+            trackMoodButton.setOnLongClickListener(v -> {
+                if (adapter.onShowFollowersListener != null) {
+                    adapter.onShowFollowersListener.onShowFollowers(mood);
+                    return true;
+                }
+                return false;
+            });
 
             userGatheringStatus.setOnClickListener(v -> {
                 List<String> taggedUsers = mood.getTaggedUserNames();

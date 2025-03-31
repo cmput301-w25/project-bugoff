@@ -2,16 +2,21 @@ package com.example.whimsy;
 
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.RadioButton;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -25,7 +30,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -35,8 +39,14 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class MapActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -45,41 +55,63 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private String currentUserId;
     private List<String> followedUserIds = new ArrayList<>();
     private FusedLocationProviderClient fusedLocationClient;
-    private ImageButton btnMyMoods, btnFollowingMoods, btnAllMoods, btnBack;
-
+    private ImageButton btnMyMoods, btnFollowingMoods, btnAllMoods, btnBack, btnHeart, filterIcon;
+    private List<Mood> currentDisplayedMoods = new ArrayList<>(); // Track moods for filtering
+    private String currentMoodSource = ""; // "my_moods" or "followed_moods"
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
+        // Initialize Firebase and location services
         db = FirebaseFirestore.getInstance();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
+        // Initialize UI elements
         btnMyMoods = findViewById(R.id.btn_show_my_moods);
         btnFollowingMoods = findViewById(R.id.btn_show_following_moods);
         btnAllMoods = findViewById(R.id.btn_show_both_moods);
         btnBack = findViewById(R.id.btn_back);
+        btnHeart = findViewById(R.id.btn_heart);
+        filterIcon = findViewById(R.id.filter_icon);
 
+        // Set up button listeners
         btnMyMoods.setOnClickListener(v -> {
             mMap.clear();
             fetchCurrentUserMoods();
+            filterIcon.setVisibility(View.VISIBLE);
+            currentMoodSource = "my_moods";
         });
 
         btnFollowingMoods.setOnClickListener(v -> {
             mMap.clear();
-            fetchFollowedUsers();
+            fetchLatestMoodsOfFollowedUsers();
+            filterIcon.setVisibility(View.GONE);
+            currentMoodSource = "following_moods";
         });
 
         btnAllMoods.setOnClickListener(v -> {
             mMap.clear();
             fetchCurrentUserMoods();
-            fetchFollowedUsers();
+            fetchLatestMoodsOfFollowedUsers();
+            filterIcon.setVisibility(View.GONE);
+            currentMoodSource = "";
         });
 
         btnBack.setOnClickListener(v -> finish());
 
+        btnHeart.setOnClickListener(v -> {
+            mMap.clear();
+            fetchFollowedMoods();
+            filterIcon.setVisibility(View.VISIBLE);
+            currentMoodSource = "followed_moods";
+        });
+
+        filterIcon.setOnClickListener(v -> showFilterDialog());
+
+        // Initialize the map
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map_fragment);
         if (mapFragment != null) {
@@ -91,20 +123,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         checkLocationPermission();
     }
 
-    private BitmapDescriptor getEmojiBitmapDescriptor(int emojiResId) {
-        // Get the drawable as a Bitmap
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), emojiResId);
-
-        // Check if the bitmap is null
-        if (bitmap == null) {
-            Log.e("MapActivity", "Error: Bitmap is null for resource ID " + emojiResId);
-            return BitmapDescriptorFactory.defaultMarker(); // Return a default marker if bitmap is null
-        }
-
-        // Return the BitmapDescriptor using the bitmap
-        return BitmapDescriptorFactory.fromBitmap(bitmap);
-    }
-
+    /** Check and request location permission if not granted */
     private void checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -121,7 +140,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
-
             fusedLocationClient.getLastLocation()
                     .addOnSuccessListener(this, location -> {
                         if (location != null) {
@@ -154,19 +172,23 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         }
     }
 
+    /** Fetch the list of users the current user is following */
     private void fetchFollowedUsers() {
         db.collection("users").document(currentUserId).collection("following")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
+                    followedUserIds.clear();
                     for (QueryDocumentSnapshot doc : querySnapshot) {
-                        String userId = doc.getId();
-                        followedUserIds.add(userId);
+                        followedUserIds.add(doc.getId());
                     }
-                    fetchLatestMoodsOfFollowedUsers();
+                    if (currentMoodSource.equals("following_moods") || currentMoodSource.equals("")) {
+                        fetchLatestMoodsOfFollowedUsers();
+                    }
                 })
                 .addOnFailureListener(e -> Log.e("MapActivity", "Error fetching followed users", e));
     }
 
+    /** Fetch the latest mood of each followed user */
     private void fetchLatestMoodsOfFollowedUsers() {
         for (String userId : followedUserIds) {
             db.collection("users").document(userId)
@@ -183,44 +205,68 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                                     if (!querySnapshot.isEmpty()) {
                                         showMoodsOnMap(querySnapshot, username, profilePictureUrl);
                                     }
-                                })
-                                .addOnFailureListener(e -> Log.e("MapActivity", "Error fetching moods", e));
-                    })
-                    .addOnFailureListener(e -> Log.e("MapActivity", "Error fetching user details", e));
+                                });
+                    });
         }
     }
 
+    /** Fetch the current user's moods */
     private void fetchCurrentUserMoods() {
         db.collection("users").document(currentUserId).collection("moods")
-                .whereNotEqualTo("locationLat", null)
+                .whereNotEqualTo("locationName", null)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
+                    currentDisplayedMoods.clear();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        Mood mood = doc.toObject(Mood.class);
+                        mood.setUserName("You");
+                        currentDisplayedMoods.add(mood);
+                    }
                     showMoodsOnMap(querySnapshot, "You", null);
                 })
                 .addOnFailureListener(e -> Log.e("MapActivity", "Error fetching current user moods", e));
     }
 
-    private void loadProfilePictureMarker(String imageUrl, LatLng location, String username, String mood) {
-        Glide.with(this)
-                .asBitmap()
-                .load(imageUrl)
-                .circleCrop()
-                .into(new CustomTarget<Bitmap>(150, 150) {
-                    @Override
-                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                        BitmapDescriptor icon = BitmapDescriptorFactory.fromBitmap(resource);
-                        mMap.addMarker(new MarkerOptions()
-                                .position(location)
-                                .title(username + " - " + mood)
-                                .icon(icon));
-                    }
+    /** Fetch explicitly followed moods from the followedMoods collection */
+    private void fetchFollowedMoods() {
+        db.collection("users").document(currentUserId).collection("followedMoods")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    currentDisplayedMoods.clear();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        String ownerUid = doc.getString("ownerUid");
+                        String moodId = doc.getString("moodId");
 
-                    @Override
-                    public void onLoadCleared(@Nullable Drawable placeholder) {
+                        // Fetch the mood document from users/{ownerUid}/moods/{moodId}
+                        db.collection("users").document(ownerUid).collection("moods").document(moodId)
+                                .get()
+                                .addOnSuccessListener(moodDoc -> {
+                                    if (moodDoc.exists()) {
+                                        // Convert the Firestore document to a Mood object
+                                        Mood mood = moodDoc.toObject(Mood.class);
+                                        mood.setMoodStatus(moodDoc.getString("mood"));
+
+                                        // Fetch additional user data (name and profile picture)
+                                        db.collection("users").document(ownerUid).get()
+                                                .addOnSuccessListener(userDoc -> {
+                                                    mood.setUserName(userDoc.getString("name"));
+                                                    mood.setProfileImageUrl(userDoc.getString("profilePictureUrl"));
+
+                                                    // Add the mood to the list and display it on the map
+                                                    currentDisplayedMoods.add(mood);
+                                                    showMoodOnMap(mood);
+                                                });
+                                    } else {
+                                        Log.w("MapActivity", "Mood document does not exist: " + moodId);
+                                    }
+                                })
+                                .addOnFailureListener(e -> Log.e("MapActivity", "Error fetching mood: " + moodId, e));
                     }
-                });
+                })
+                .addOnFailureListener(e -> Log.e("MapActivity", "Error fetching followed moods", e));
     }
 
+    /** Display a collection of moods on the map */
     private void showMoodsOnMap(QuerySnapshot querySnapshot, String username, String profilePictureUrl) {
         int index = 0;
 
@@ -252,40 +298,161 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         }
     }
 
-    // Method to get the corresponding emoji based on the mood
-    private String getEmojiForMood(String mood) {
-        String emoji = "";
+    /** Display a single mood on the map */
+    private void showMoodOnMap(Mood mood) {
+        // Get latitude and longitude directly from the Mood object
+        double lat = mood.getLocationLat();
+        double lng = mood.getLocationLng();
 
-        switch (mood.toLowerCase()) {
-            case "happy":
-                emoji = "\uD83D\uDE00"; // 😀
-                break;
-            case "sad":
-                emoji = "\uD83D\uDE1E"; // 😞
-                break;
-            case "angry":
-                emoji = "\uD83D\uDE20"; // 😠
-                break;
-            case "scared":
-                emoji = "\uD83D\uDE28"; // 😨
-                break;
-            case "confused":
-                emoji = "\uD83D\uDE15"; // 😕
-                break;
-            case "disgusted":
-                emoji = "\uD83E\uDD22"; // 🤢
-                break;
-            case "excited":
-                emoji = "\uD83D\uDE04"; // 😄
-                break;
-            case "ashamed":
-                emoji = "\uD83D\uDE33"; // 😳
-                break;
-            default:
-                emoji = "\uD83D\uDE10"; // 😐 Default emoji
-                break;
+        // Check for invalid coordinates to avoid adding invalid markers
+        if (Double.isNaN(lat) || Double.isNaN(lng)) {
+            Log.e("MapActivity", "Invalid location for mood: " + mood.getMoodStatus());
+            return;
         }
 
-        return emoji;
+        // Prepare marker details
+        String moodStr = mood.getMoodStatus();
+        String username = mood.getUserName();
+        String profilePictureUrl = mood.getProfileImageUrl();
+        String emoji = getEmojiForMood(moodStr);
+        LatLng location = new LatLng(lat, lng);
+        String markerTitle = username + " - " + moodStr + " " + emoji;
+
+        // Add the marker to the map
+        if (profilePictureUrl != null && !profilePictureUrl.isEmpty()) {
+            loadProfilePictureMarker(profilePictureUrl, location, markerTitle, moodStr);
+        } else {
+            mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .title(markerTitle)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+        }
+    }
+
+    /** Load a profile picture as a marker icon using Glide */
+    private void loadProfilePictureMarker(String imageUrl, LatLng location, String markerTitle, String mood) {
+        Glide.with(this)
+                .asBitmap()
+                .load(imageUrl)
+                .circleCrop()
+                .into(new CustomTarget<Bitmap>(150, 150) {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        mMap.addMarker(new MarkerOptions()
+                                .position(location)
+                                .title(markerTitle)
+                                .icon(BitmapDescriptorFactory.fromBitmap(resource)));
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {}
+                });
+    }
+
+    /** Get an emoji based on the mood status */
+    private String getEmojiForMood(String mood) {
+        if (mood == null) return "\uD83D\uDE10"; // Default neutral emoji
+        switch (mood.toLowerCase()) {
+            case "happy": return "\uD83D\uDE00"; // 😀
+            case "sad": return "\uD83D\uDE1E"; // 😞
+            case "angry": return "\uD83D\uDE20"; // 😠
+            case "scared": return "\uD83D\uDE28"; // 😨
+            case "confused": return "\uD83D\uDE15"; // 😕
+            case "disgusted": return "\uD83E\uDD22"; // 🤢
+            case "excited": return "\uD83D\uDE04"; // 😄
+            case "ashamed": return "\uD83D\uDE33"; // 😳
+            default: return "\uD83D\uDE10"; // 😐
+        }
+    }
+
+    /** Show the filter dialog for time, mood, and reason */
+    private void showFilterDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View popupView = getLayoutInflater().inflate(R.layout.filter_popup_map, null);
+        builder.setView(popupView);
+        AlertDialog filterDialog = builder.create();
+        filterDialog.show();
+
+        RadioButton filterWeek = popupView.findViewById(R.id.filter_week);
+        RadioButton filterMonth = popupView.findViewById(R.id.filter_month);
+        Spinner moodSpinner = popupView.findViewById(R.id.spinner_emotional_state);
+        EditText searchBox = popupView.findViewById(R.id.search_reason_box);
+        Button applyButton = popupView.findViewById(R.id.apply_button);
+        Button resetButton = popupView.findViewById(R.id.reset_button);
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this, R.array.emotional_states, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        moodSpinner.setAdapter(adapter);
+
+        applyButton.setOnClickListener(v -> {
+            int days = filterWeek.isChecked() ? 7 : filterMonth.isChecked() ? 30 : 0;
+            String selectedMood = moodSpinner.getSelectedItem().toString();
+            String searchQuery = searchBox.getText().toString().trim();
+            applyFilters(days, selectedMood, searchQuery);
+            filterDialog.dismiss();
+        });
+
+        resetButton.setOnClickListener(v -> {
+            mMap.clear();
+            if (currentMoodSource.equals("my_moods")) {
+                fetchCurrentUserMoods();
+            } else if (currentMoodSource.equals("followed_moods")) {
+                fetchFollowedMoods();
+            }
+            filterDialog.dismiss();
+        });
+
+        popupView.findViewById(R.id.close_popup).setOnClickListener(v -> filterDialog.dismiss());
+    }
+
+    /** Apply filters to the current displayed moods */
+    private void applyFilters(int days, String moodFilter, String searchFilter) {
+        long cutoffTimestamp = days > 0 ? calculateCutoffTimestamp(days) : 0;
+        List<Mood> filteredMoods = new ArrayList<>();
+
+        for (Mood mood : currentDisplayedMoods) {
+            long moodTimestamp = convertTimestampToMillis(mood.getTimestamp());
+            boolean withinTimeRange = days == 0 || moodTimestamp >= cutoffTimestamp;
+
+            String moodStatus = mood.getMoodStatus();
+            boolean matchesMood = moodFilter.equals("Select Mood") ||
+                    (moodStatus != null && moodStatus.equalsIgnoreCase(moodFilter));
+
+            boolean matchesSearch = searchFilter.isEmpty() ||
+                    (mood.getMoodReason() != null &&
+                            mood.getMoodReason().toLowerCase().contains(searchFilter.toLowerCase()));
+
+            if (withinTimeRange && matchesMood && matchesSearch) {
+                filteredMoods.add(mood);
+            }
+        }
+
+        mMap.clear();
+        for (Mood mood : filteredMoods) {
+            showMoodOnMap(mood);
+        }
+        currentDisplayedMoods = filteredMoods;
+    }
+
+    /** Calculate the cutoff timestamp for filtering by time */
+    private long calculateCutoffTimestamp(int days) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -days);
+        return calendar.getTimeInMillis();
+    }
+
+    /** Convert a timestamp string to milliseconds */
+    private long convertTimestampToMillis(String timestampStr) {
+        if (timestampStr == null) return 0;
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a - MMMM dd, yyyy", Locale.ENGLISH);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            Date date = sdf.parse(timestampStr);
+            return date != null ? date.getTime() : 0;
+        } catch (ParseException e) {
+            Log.e("MapActivity", "Error parsing timestamp: " + timestampStr, e);
+            return 0;
+        }
     }
 }
