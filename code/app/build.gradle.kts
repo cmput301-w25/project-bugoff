@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation(libs.firebase.auth)
+    implementation(libs.espresso.contrib)
     testImplementation(libs.junit)
     testImplementation(libs.ext.junit)
     androidTestImplementation(libs.ext.junit)
