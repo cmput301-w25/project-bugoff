@@ -14,6 +14,7 @@ package com.example.whimsy;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,6 +35,7 @@ public class FollowingActivity extends AppCompatActivity {
     private String type;  // Type of list ("followers" or "following")
     private String userId; // The ID of the user whose list is being viewed
     private TextView following_followers_title;
+    private ImageView back_button;
 
     /**
      * Called when the activity is first created.
@@ -59,6 +61,7 @@ public class FollowingActivity extends AppCompatActivity {
 
         // Set the activity title based on whether viewing followers or following
         following_followers_title = findViewById(R.id.following_followers_title);
+        back_button = findViewById(R.id.back_button);
 
         // Set the activity title based on type
         if (type.equals("followers")) {
@@ -85,6 +88,8 @@ public class FollowingActivity extends AppCompatActivity {
 
         // Fetch the user list from Firestore
         fetchUsersList(type, userId);
+
+        back_button.setOnClickListener(v -> finish());
     }
 
     /**
