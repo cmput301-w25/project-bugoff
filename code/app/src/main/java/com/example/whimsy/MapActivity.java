@@ -240,15 +240,43 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                         String profilePictureUrl = userDoc.getString("profilePictureUrl");
 
                         db.collection("users").document(userId).collection("moods")
-                                .orderBy("timestamp", Query.Direction.DESCENDING)
-                                .limit(1)
+                                .whereNotEqualTo("locationLat", null) // Fetch moods with locations
                                 .get()
                                 .addOnSuccessListener(querySnapshot -> {
-                                    if (!querySnapshot.isEmpty()) {
-                                        showMoodsOnMap(querySnapshot, username, profilePictureUrl, true);
+                                    List<Mood> moodsWithLocation = new ArrayList<>();
+                                    // Convert Firestore documents to Mood objects
+                                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                                        Mood mood = doc.toObject(Mood.class);
+                                        mood.setMoodStatus(doc.getString("mood"));
+                                        // Ensure both lat and lng are present
+                                        if (mood.getLocationLat() != null && mood.getLocationLng() != null) {
+                                            moodsWithLocation.add(mood);
+                                        }
                                     }
-                                });
-                    });
+                                    if (moodsWithLocation.isEmpty()) {
+                                        return; // No moods with locations for this user
+                                    }
+                                    // Sort moods by timestamp descending (most recent first)
+                                    moodsWithLocation.sort((m1, m2) -> {
+                                        long t1 = convertTimestampToMillis(m1.getTimestamp());
+                                        long t2 = convertTimestampToMillis(m2.getTimestamp());
+                                        return Long.compare(t2, t1); // Descending order
+                                    });
+                                    // Find the most recent mood within 5km
+                                    for (Mood mood : moodsWithLocation) {
+                                        LatLng moodLocation = new LatLng(mood.getLocationLat(), mood.getLocationLng());
+                                        if (userLocation != null && isWithinRadius(userLocation, moodLocation, 5000)) {
+                                            // Set additional user info and display the mood
+                                            mood.setUserName(username);
+                                            mood.setProfileImageUrl(profilePictureUrl);
+                                            showMoodOnMap(mood);
+                                            break; // Stop after finding the first (most recent) valid mood
+                                        }
+                                    }
+                                })
+                                .addOnFailureListener(e -> Log.e("MapActivity", "Error fetching moods for user " + userId, e));
+                    })
+                    .addOnFailureListener(e -> Log.e("MapActivity", "Error fetching user " + userId, e));
         }
     }
 
@@ -572,34 +600,5 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         Location.distanceBetween(point1.latitude, point1.longitude, point2.latitude, point2.longitude, results);
         return results[0] <= radiusMeters;
     }
-
-    private void showMoodsOnMap(QuerySnapshot querySnapshot, String username, String profilePictureUrl, boolean filterByDistance) {
-        int index = 0;
-        for (QueryDocumentSnapshot doc : querySnapshot) {
-            Double latObj = doc.getDouble("locationLat");
-            Double lngObj = doc.getDouble("locationLng");
-            if (latObj == null || lngObj == null) {
-                continue;
-            }
-            double lat = latObj;
-            double lng = lngObj;
-            LatLng moodLocation = new LatLng(lat, lng);
-            if (!filterByDistance || userLocation == null || isWithinRadius(userLocation, moodLocation, 5000)) {
-                String mood = doc.getString("mood");
-                String emoji = getEmojiForMood(mood);
-                double offset = 0.0002 * (index % 5);
-                LatLng location = new LatLng(lat + offset, lng + offset);
-                String markerTitle = username + " - " + mood + " " + emoji;
-                if (profilePictureUrl != null && !profilePictureUrl.isEmpty()) {
-                    loadProfilePictureMarker(profilePictureUrl, location, markerTitle, mood);
-                } else {
-                    mMap.addMarker(new MarkerOptions()
-                            .position(location)
-                            .title(markerTitle)
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
-                }
-                index++;
-            }
-        }
-    }
 }
+

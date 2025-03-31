@@ -1,11 +1,9 @@
 /**
  * OtherProfileActivity handles the display of another user's profile and allows
  * the current user to follow or unfollow that user.
- *
  * This activity loads the profile information of the searched user, including
  * their name, email, bio, and profile picture, and shows the follow button's
  * state based on whether the current user is already following the searched user.
- *
  * Outstanding Issues:
  * - There is no handling for network or Firebase connection issues during the follow/unfollow process.
  * - The current user may accidentally try to follow themselves, which is blocked but needs clearer messaging.
@@ -157,7 +155,11 @@ public class OtherProfileActivity extends ActivityBase {
             }
         });
     }
-
+    /**
+     * Loads the user data for the specified user ID and updates the UI components.
+     *
+     * @param userId The ID of the user whose data is to be loaded.
+     */
     private void loadUserData(String userId) {
         db.collection("users").document(userId)
                 .get()
@@ -215,6 +217,11 @@ public class OtherProfileActivity extends ActivityBase {
                 });
     }
 
+    /**
+     * Sets up the follow counts for the specified user ID and updates the UI components.
+     *
+     * @param userId The ID of the user whose follow counts are to be set up.
+     */
     private void setupFollowCounts(String userId) {
         followersCount.setOnClickListener(v -> {
             Intent intent = new Intent(this, FollowingActivity.class);
@@ -248,7 +255,11 @@ public class OtherProfileActivity extends ActivityBase {
                     followingCount.setText("0");
                 });
     }
-
+    /**
+     * Loads the moods for the specified user ID and updates the UI components.
+     *
+     * @param userId The ID of the user whose moods are to be loaded.
+     */
     private void loadMoods(String userId) {
         db.collection("users").document(userId)
                 .get()
@@ -284,6 +295,17 @@ public class OtherProfileActivity extends ActivityBase {
                             .addOnFailureListener(e -> handleMoodLoadFailure(e));
                 });
     }
+
+    /**
+     * Creates a Mood object from the given DocumentSnapshot and user details.
+     *
+     * @param document The DocumentSnapshot containing mood data.
+     * @param name The name of the user.
+     * @param username The username of the user.
+     * @param profileImageUrl The profile image URL of the user.
+     * @param ownerUid The UID of the mood owner.
+     * @return A Mood object with the provided data.
+     */
 
     // Updated createMoodObject: uses name and username strings
     private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl, String ownerUid) {
@@ -333,6 +355,13 @@ public class OtherProfileActivity extends ActivityBase {
         if (tagCount <= 5) return "With " + tagCount + " others";
         return "With a crowd";
     }
+
+    /**
+     * Extracts tagged user names from the given list of tag maps.
+     *
+     * @param tags List of tag maps from Firestore.
+     * @return A list of tagged user names.
+     */
     private List<String> extractTaggedUserNames(List<Map<String, Object>> tags) {
         List<String> taggedUserNames = new ArrayList<>();
         if (tags != null) {
@@ -345,7 +374,12 @@ public class OtherProfileActivity extends ActivityBase {
         }
         return taggedUserNames;
     }
-
+    /**
+     * Converts a timestamp string to milliseconds.
+     *
+     * @param timestampStr The timestamp string to convert.
+     * @return The timestamp in milliseconds.
+     */
     private long convertTimestampToMillis(String timestampStr) {
         SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a - MMMM dd, yyyy", Locale.ENGLISH);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -358,6 +392,12 @@ public class OtherProfileActivity extends ActivityBase {
         }
     }
 
+    /**
+     * Navigates to the MoodPageActivity for the selected mood.
+     *
+     * @param position The position of the selected mood in the list.
+     */
+
     private void navigateToMoodPage(int position) {
         Mood selectedMood = moodList.get(position);
         Intent intent = new Intent(this, MoodPageActivity.class);
@@ -366,14 +406,18 @@ public class OtherProfileActivity extends ActivityBase {
         intent.putExtra("OWNER_UID", selectedMood.getOwnerUid()); // Assuming Mood has this field
         startActivity(intent);
     }
-
+    /**
+     * Sorts the mood list by timestamp and updates the UI.
+     */
     private void sortAndUpdateMoods() {
         Collections.sort(moodList, (m1, m2) ->
                 Long.compare(convertTimestampToMillis(m2.getTimestamp()), convertTimestampToMillis(m1.getTimestamp())));
         moodAdapter.notifyDataSetChanged();
         updateMoodCount();
     }
-
+    /**
+     * Updates the mood count text and visibility of the empty mood text.
+     */
     private void updateMoodCount() {
         moodCountText.setText(String.valueOf(moodList.size()));
         TextView emptyMoodText = findViewById(R.id.emptyMoodText);
@@ -383,12 +427,19 @@ public class OtherProfileActivity extends ActivityBase {
             emptyMoodText.setVisibility(View.GONE);
         }
     }
+    /**
+     * Handles the failure of loading moods and updates the UI.
+     *
+     * @param e The exception that occurred during mood loading.
+     */
     private void handleMoodLoadFailure(Exception e) {
         Log.e("OtherProfileActivity", "Error loading moods", e);
         Toast.makeText(this, "Error loading moods", Toast.LENGTH_SHORT).show();
         updateMoodCount();
     }
-
+    /**
+     * Follows the searched user and updates the follow button state.
+     */
     private void followUser() {
         // Prevent self-following with a clear message
         if (currentUserId == null || searchedUserId == null || currentUserId.equals(searchedUserId)) {
@@ -475,6 +526,11 @@ public class OtherProfileActivity extends ActivityBase {
                     Log.e("FollowUser", "Error fetching user doc", e);
                 });
     }
+
+    /**
+     * Fetches a list of suggested users for the current user to follow.
+     * The suggestions exclude the current user, the searched user, and users already followed by the current user.
+     */
     private void showSuggestedUsers() {
         db.collection("users")
                 .limit(10) // Increased limit to get more users before filtering
@@ -518,6 +574,11 @@ public class OtherProfileActivity extends ActivityBase {
                 })
                 .addOnFailureListener(e -> Log.e("Suggestions", "Error fetching users", e));
     }
+    /**
+     * Displays the list of suggested users in the UI.
+     *
+     * @param users The list of suggested users to display.
+     */
 
     private void displaySuggestions(ArrayList<User> users) {
         LinearLayout suggestionsContainer = findViewById(R.id.suggestions_container);
@@ -554,7 +615,12 @@ public class OtherProfileActivity extends ActivityBase {
             suggestionsContainer.addView(userView);
         }
     }
-
+    /**
+     * Follows a suggested user and updates the follow button state.
+     *
+     * @param userId The ID of the user to follow.
+     * @param button The follow button to update.
+     */
     private void followSuggestedUser(String userId, Button button) {
         WriteBatch batch = db.batch();
 

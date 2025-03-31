@@ -44,6 +44,10 @@ public class FollowingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (getIntent().hasExtra("testMode")) {
+            setContentView(R.layout.following); // 👈 still inflate layout for test
+            return; // 👈 skip all Firebase logic
+        }
         setContentView(R.layout.following); // Set the UI layout for the activity
 
         // Retrieve type and userId from the intent
