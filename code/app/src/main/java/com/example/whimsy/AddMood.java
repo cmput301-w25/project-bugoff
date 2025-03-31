@@ -432,6 +432,9 @@ public class AddMood extends ActivityBase {
             public void onSuccess(String imageUrl) {
                 Glide.with(AddMood.this).load(imageUrl).into(selectedImageView);
                 selectedImageView.setVisibility(ImageView.VISIBLE);
+                selectedImageUri = Uri.parse(imageUrl);
+                importImageIcon.setColorFilter(Color.BLUE);
+                reasonInput.setText("");
                 addMoodButton.setText("Add Mood");
                 showSnackbar("AI image Generated successfully", false);
                 progressBar.setVisibility(View.GONE);
@@ -443,6 +446,7 @@ public class AddMood extends ActivityBase {
             }
         });
     }
+
 
     private void saveMoodNormally() {
         FirebaseUser user = auth.getCurrentUser();
