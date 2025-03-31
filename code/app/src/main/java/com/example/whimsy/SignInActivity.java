@@ -2,12 +2,10 @@
  * SignInActivity handles user authentication via Firebase,
  * allowing the user to sign in with their email and password.
  * It also provides navigation for users who need to sign up or reset their password.
- *
  * The activity includes:
  * - Firebase authentication for signing in.
  * - Network connectivity check before attempting to log in.
  * - A dialog to reset the password.
- *
  * Outstanding Issues:
  * - No handling of different error states for network or Firebase sign-in failures.
  * - Does not provide feedback for wrong credentials apart from a generic failure message.
