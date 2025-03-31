@@ -44,7 +44,10 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.InputFilter;
+import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -309,10 +312,33 @@ public class AddMood extends ActivityBase {
         reasonInput.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+//            @Override
+//            public void onTextChanged(CharSequence s, int start, int before, int count) {
+//                int remaining = 200 - s.length();
+//                reasonCharCountText.setText(String.valueOf(remaining));
+//            }
+
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String text = s.toString();
                 int remaining = 200 - s.length();
                 reasonCharCountText.setText(String.valueOf(remaining));
+                // EDIT: Check if text starts with "#generate-reason"
+                if (text.startsWith("#generate")) {
+                    // Change the addMoodButton text to "Generate"
+                    addMoodButton.setText("Generate");
+                    // Optional: Apply a blue color to the "#generate-reason" prefix.
+                    SpannableString spannable = new SpannableString(text);
+                    ForegroundColorSpan blueSpan = new ForegroundColorSpan(0xFF2196F3); // Blue color
+                    spannable.setSpan(blueSpan, 0, "#generate".length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    reasonInput.removeTextChangedListener(this);
+                    reasonInput.setText(spannable);
+                    reasonInput.setSelection(spannable.length());
+                    reasonInput.addTextChangedListener(this);
+                } else {
+                    // Otherwise, ensure the button shows "Add Mood"
+                    addMoodButton.setText("Add Mood");
+                }
             }
             @Override
             public void afterTextChanged(Editable s) { }
@@ -328,22 +354,112 @@ public class AddMood extends ActivityBase {
         tagIcon.setOnClickListener(v -> showTagUsersDialog());
 
         // Set up click listener for the Add Mood button to validate inputs and initiate mood saving.
+        // EDIT: Replace the existing onClickListener with the following code:
         addMoodButton.setOnClickListener(v -> {
-            // Show the progress bar while saving the mood.
+            // Show the progress bar while processing.
             progressBar.setVisibility(View.VISIBLE);
 
+            // Check that an emotion is selected.
             if (moodSpinner.getSelectedItemPosition() == 0) {
                 progressBar.setVisibility(View.GONE);
                 showSnackbar("Please select an emotion.");
                 return;
             }
-            saveMoodToFirebase();
+
+            // Delegate the click handling to our custom method.
+            handleAddMoodButtonClick();
         });
+
 
         // Initialize connectivity monitoring.
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         registerNetworkCallback();
     }
+    // NEW: Handles the addMoodButton click based on its current text.
+    private void handleAddMoodButtonClick() {
+        String currentButtonText = addMoodButton.getText().toString();
+        if ("Generate".equals(currentButtonText)) {
+            // If the button shows "Generate", call the text generation branch.
+            generateReasonAndUpdateUI();
+        } else {
+            // Otherwise, save the mood normally.
+            saveMoodNormally();
+        }
+    }
+
+    // NEW: Calls the ReasonGenerator to generate text and updates the UI.
+    private void generateReasonAndUpdateUI() {
+        String reason = reasonInput.getText().toString().trim();
+        if (!reason.startsWith("#generate-reason")) {
+            showSnackbar("Please enter a prompt starting with #generate-reason");
+            progressBar.setVisibility(View.GONE);
+            return;
+        }
+        // Strip the prefix.
+        String prompt = reason.substring("#generate-reason".length()).trim();
+        ReasonGenerator reasonGenerator = new ReasonGenerator();
+        reasonGenerator.generateReason(prompt, new ReasonGenerator.ReasonGeneratorCallback() {
+            @Override
+            public void onSuccess(String generatedText) {
+                // Clear and update the reason input with the generated text.
+                reasonInput.setText(generatedText);
+                // Change button text back to "Add Mood".
+                addMoodButton.setText("Add Mood");
+                // Inform the user.
+                showSnackbar("AI text Generated successfully");
+                progressBar.setVisibility(View.GONE);
+            }
+            @Override
+            public void onFailure(Exception e) {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("Failed to generate text: " + e.getMessage());
+            }
+        });
+    }
+
+    // NEW: Saves the mood normally (without AI text generation).
+    private void saveMoodNormally() {
+        // Your existing logic to build moodData and save the mood.
+        // For example:
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            showSnackbar("User not logged in");
+            return;
+        }
+        String mood = moodSpinner.getSelectedItem().toString();
+        String reason = reasonInput.getText().toString().trim();
+        String timestamp = timestampText.getText().toString();
+        Map<String, Object> moodData = new HashMap<>();
+        moodData.put("mood", mood);
+        moodData.put("reason", reason);
+        moodData.put("timestamp", timestamp);
+        moodData.put("isPrivate", isPrivate);
+        // Include location and tag info as needed...
+
+        if (!isNetworkAvailable()) {
+            addMoodToQueue(moodData, selectedImageUri);
+            progressBar.setVisibility(View.GONE);
+            int count = getOfflineQueueCount();
+            showSnackbar("No internet. Mood queued. Total queued: " + count, false);
+            updateOfflineBanner();
+            resetFields();
+            return;
+        }
+        moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
+            @Override
+            public void onSuccess() {
+                progressBar.setVisibility(View.GONE);
+                resetFields();
+                showSnackbar("Mood added successfully", false);
+            }
+            @Override
+            public void onFailure(Exception e) {
+                progressBar.setVisibility(View.GONE);
+                showSnackbar("Error adding mood: " + e.getMessage());
+            }
+        });
+    }
+
 
     /**
      * Registers a network callback to listen for connectivity changes.
@@ -815,8 +931,8 @@ public class AddMood extends ActivityBase {
         }
 
         // NEW: If reason starts with "#generate", generate image via API.
-        if (reason.startsWith("#generate")) {
-            String prompt = reason.substring("#generate".length()).trim();
+        if (reason.startsWith("#generate-image")) {
+            String prompt = reason.substring("#generate-image".length()).trim();
             ImageGenerator imageGenerator = new ImageGenerator();
             imageGenerator.generateImage(prompt, new ImageGenerator.ImageGeneratorCallback() {
                 @Override
@@ -861,6 +977,50 @@ public class AddMood extends ActivityBase {
             });
             return; // Exit early as image generation is asynchronous.
         }
+
+        // In AddMood.java, inside saveMoodToFirebase() after assembling moodData:
+        else if (reason.startsWith("#generate-reason")) {
+            // Remove the prefix and trim the remaining prompt.
+            String prompt = reason.substring("#generate-reason".length()).trim();
+            ReasonGenerator reasonGenerator = new ReasonGenerator();
+            reasonGenerator.generateReason(prompt, new ReasonGenerator.ReasonGeneratorCallback() {
+                @Override
+                public void onSuccess(String generatedText) {
+                    // NEW: Clear the input field and set it to the AI-generated text.
+                    reasonInput.setText(generatedText);
+                    // Update moodData with the generated text.
+                    moodData.put("reason", generatedText);
+                    // NEW: Change the button text back to "Add Mood"
+                    addMoodButton.setText("Add Mood");
+                    // Show a Snackbar message.
+                    showSnackbar("AI text Generated successfully", false);
+                    // Optionally, you might now wait for the user to press "Add Mood" again
+                    // before saving the mood, or automatically save it.
+                    // For this example, we automatically proceed to save the mood:
+                    moodRepository.saveMood(moodData, selectedImageUri, new MoodRepository.SaveMoodCallback() {
+                        @Override
+                        public void onSuccess() {
+                            progressBar.setVisibility(ProgressBar.GONE);
+                            resetFields();
+                            showSnackbar("Mood added successfully", false);
+                        }
+                        @Override
+                        public void onFailure(Exception e) {
+                            progressBar.setVisibility(ProgressBar.GONE);
+                            showSnackbar("Error adding mood: " + e.getMessage());
+                        }
+                    });
+                }
+                @Override
+                public void onFailure(Exception e) {
+                    progressBar.setVisibility(ProgressBar.GONE);
+                    showSnackbar("Failed to generate text: " + e.getMessage());
+                }
+            });
+            return; // Exit early because text generation is asynchronous.
+        }
+
+
 
         // ... (Handle offline and normal image uploads as before)
         if (!isNetworkAvailable()) {
