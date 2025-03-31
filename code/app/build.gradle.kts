@@ -38,7 +38,6 @@ android {
 }
 
 dependencies {
-//    implementation(files("${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"))
     // Google Places API for location search
     implementation("com.google.android.libraries.places:places:4.1.0")
     // Firebase Storage for image upload
