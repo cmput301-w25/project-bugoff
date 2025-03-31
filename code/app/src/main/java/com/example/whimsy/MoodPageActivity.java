@@ -53,6 +53,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
@@ -191,7 +192,7 @@ public class MoodPageActivity extends ActivityBase {
 // Set up comments RecyclerView
         RecyclerView commentsRecyclerView = findViewById(R.id.mood_comments_recycler_view);
         commentsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        commentAdapter = new CommentAdapter(comments, colorFg, cardBg);
+        commentAdapter = new CommentAdapter(comments, colorFg);
         commentsRecyclerView.setAdapter(commentAdapter);
 
 // Initialize comment input components
@@ -238,48 +239,6 @@ public class MoodPageActivity extends ActivityBase {
             List<Mood> moodList = new ArrayList<>();
             moodList.add(selectedMood);
             moodAdapter = new MoodAdapter(moodList);
-            moodRecyclerView.setAdapter(moodAdapter);
-
-            moodListener = db.collection("users").document(ownerUid)
-                    .collection("moods").document(moodId)
-                    .addSnapshotListener((documentSnapshot, e) -> {
-                        if (e != null) {
-                            Log.e("MoodPageActivity", "Listen failed", e);
-                            return;
-                        }
-                        if (documentSnapshot != null && documentSnapshot.exists()) {
-                            Mood updatedMood = new Mood();
-                            updatedMood.setMoodStatus("Feeling " + documentSnapshot.getString("mood"));
-                            updatedMood.setMoodTrigger(documentSnapshot.getString("trigger"));
-                            updatedMood.setMoodReason(documentSnapshot.getString("reason"));
-                            String userName = documentSnapshot.getString("userName");
-                            updatedMood.setUserName(userName != null ? userName : selectedMood.getUserName());
-                            updatedMood.setUserId(documentSnapshot.getString("userId"));
-                            updatedMood.setUserLocation(documentSnapshot.getString("locationName") != null ? documentSnapshot.getString("locationName") : "No location");
-                            updatedMood.setUserTime(documentSnapshot.getString("timestamp"));
-                            updatedMood.setUserGatheringStatus(documentSnapshot.getString("userGatheringStatus") != null ? documentSnapshot.getString("userGatheringStatus") : "Alone");
-                            updatedMood.setMoodImage(documentSnapshot.getString("moodImage"));
-                            String profileImageUrl = documentSnapshot.getString("profileImageUrl");
-                            updatedMood.setProfileImageUrl(profileImageUrl != null ? profileImageUrl : selectedMood.getProfileImageUrl());
-                            updatedMood.setPrivate(documentSnapshot.getBoolean("isPrivate") != null && documentSnapshot.getBoolean("isPrivate"));
-
-                            List<Map<String, Object>> tags = (List<Map<String, Object>>) documentSnapshot.get("tags");
-                            List<String> taggedUserNames = new ArrayList<>();
-                            if (tags != null) {
-                                for (Map<String, Object> tag : tags) {
-                                    String username = (String) tag.get("username");
-                                    if (username != null) {
-                                        taggedUserNames.add(username);
-                                    }
-                                }
-                            }
-                            updatedMood.setTaggedUserNames(taggedUserNames);
-
-                            updatedMood.setOwnerUid(ownerUid);
-                            updatedMood.setMoodId(moodId);
-                            moodAdapter.updateMood(updatedMood);
-                        }
-                    });
 
             FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
@@ -391,10 +350,11 @@ public class MoodPageActivity extends ActivityBase {
 
         privacySwitch.setChecked(mood.isPrivateMood()); // Add this
 
+
+
         // Handle tagging friends
         List<String> taggedFriends = new ArrayList<>(mood.getTaggedUserNames());
         updateTaggedFriendsText(taggedFriendsText, taggedFriends);
-
         addTagButton.setOnClickListener(v -> {
             String selectedUser = friendSearchInput.getText().toString().trim();
             if (!selectedUser.isEmpty() && !taggedFriends.contains(selectedUser)) {
@@ -536,8 +496,8 @@ public class MoodPageActivity extends ActivityBase {
 
         Map<String, Object> updatedData = new HashMap<>();
         updatedData.put("mood", mood.getMoodStatus().replace("Feeling ", ""));
-        updatedData.put("trigger", mood.getMoodTrigger());
         updatedData.put("reason", mood.getMoodReason());
+        updatedData.put("isPrivate", mood.isPrivateMood());
 
         // Convert taggedUserNames to Firestore-compatible tags format
         List<Map<String, Object>> tags = new ArrayList<>();
