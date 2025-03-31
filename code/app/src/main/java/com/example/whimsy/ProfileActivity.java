@@ -69,9 +69,11 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 /**
@@ -186,6 +188,25 @@ public class ProfileActivity extends ActivityBase {
         moodDocIds = new ArrayList<>();
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String userId = mAuth.getCurrentUser().getUid();
+        db.collection("users").document(userId).collection("followedMoods")
+                .addSnapshotListener((snapshots, e) -> {
+                    if (e != null) {
+                        Log.e("ProfileActivity", "Error listening to followed moods", e);
+                        return;
+                    }
+                    Set<String> followedMoodsSet = new HashSet<>();
+                    if (snapshots != null) {
+                        for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                            String ownerUid = doc.getString("ownerUid");
+                            String moodId = doc.getString("moodId");
+                            followedMoodsSet.add(ownerUid + "_" + moodId);
+                        }
+                    }
+                    moodAdapter.setFollowedMoodsSet(followedMoodsSet);
+                });
 
         // Setup filter button
         ImageButton filterButton = findViewById(R.id.filter_button);
