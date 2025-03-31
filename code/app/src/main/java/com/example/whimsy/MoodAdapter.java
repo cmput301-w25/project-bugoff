@@ -47,7 +47,12 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.followedMoodsSet = followedMoodsSet;
         notifyDataSetChanged();
     }
-
+    public void updateMood(Mood newMood) {
+        if (!moodList.isEmpty()) {
+            moodList.set(0, newMood);
+            notifyDataSetChanged();
+        }
+    }
     public void setOnFollowClickListener(OnFollowClickListener listener) {
         this.onFollowClickListener = listener;
     }
