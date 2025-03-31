@@ -13,7 +13,8 @@
 
 ## Project Description
 
-Whimsy is a modern-day social media application that helps people share their feelings in a short and crisp way. It uses Firebase for authentication and data storage and offers features like: following, profile editing, and search functionality. *The app is currently in it development stage and we are working on some exciting features that make it different from all other social media apps.
+Whimsy is a modern-day social media application that helps people share their feelings in a short and crisp way. It uses Firebase for authentication and data storage and offers features like: following, profile editing, and search functionality.
+
 ## Key Features
 
 - [Follow and Following]: Users can follow other users. and see what others posting.
