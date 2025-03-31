@@ -3,32 +3,51 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
     android:orientation="vertical"
+    android:padding="16dp"
     android:background="?android:attr/colorBackground">
 
-    <!-- Switch for private/public profile -->
+    <!-- Title for the Settings Screen -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Settings"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Switch for Private/Public Profile -->
     <Switch
         android:id="@+id/privacy_switch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Private Profile"
         android:textSize="16sp"
-        android:padding="16dp"
-        android:layout_marginBottom="32dp"/>
+        android:padding="16dp" />
 
-    <!-- Existing Logout Button -->
+    <!-- Description for the Switch -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="When enabled, your profile will be visible only to your friends."
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Logout Button -->
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/logoutButton"
-        android:layout_width="200dp"
-        android:layout_height="60dp"
+        android:layout_width="161dp"
+        android:layout_height="wrap_content"
         android:background="@drawable/rounded_button_blue"
-        android:text="Logout"
-        android:textSize="18sp"
-        android:textColor="@android:color/white"
         android:fontFamily="sans-serif-medium"
-        android:padding="10dp"
         android:letterSpacing="0.05"
-        android:stateListAnimator="@android:anim/slide_in_left" />
+        android:padding="10dp"
+        android:stateListAnimator="@android:anim/slide_in_left"
+        android:text="Logout"
+        android:textColor="@android:color/white"
+        android:textSize="18sp" />
 
 </LinearLayout>

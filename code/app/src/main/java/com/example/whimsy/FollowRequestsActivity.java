@@ -2,10 +2,6 @@ package com.example.whimsy;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.ViewGroup;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,32 +10,42 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public class FollowRequestsActivity extends AppCompatActivity {
+/**
+ * Activity for handling follow requests.
+ */
+public class FollowRequestsActivity extends ActivityBase {
 
-    // NEW: Declare RecyclerView and adapter for follow requests.
     private RecyclerView recyclerView;
     private FollowRequestsAdapter adapter;
     private List<DocumentSnapshot> requestSnapshots = new ArrayList<>();
     private FirebaseFirestore db;
     private String currentUserId;
 
+    /**
+     * Called when the activity is first created.
+     * Initializes the RecyclerView, adapter, and loads follow requests.
+     *
+     * @param savedInstanceState The saved instance state bundle.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_follow_requests); // NEW: Create this layout file
+        getLayoutInflater().inflate(R.layout.activity_follow_requests, findViewById(R.id.content_frame), true);
+        // 👇 Only use Firebase if we're not in test mode
+        if (getIntent().hasExtra("testMode")) {
+            return; // Skip Firebase logic in tests
+        }
 
         db = FirebaseFirestore.getInstance();
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        recyclerView = findViewById(R.id.follow_requests_recycler_view); // NEW: Ensure layout has this RecyclerView
+        recyclerView = findViewById(R.id.follow_requests_recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new FollowRequestsAdapter(requestSnapshots, new FollowRequestsAdapter.RequestActionListener() {
@@ -57,6 +63,9 @@ public class FollowRequestsActivity extends AppCompatActivity {
         loadFollowRequests();
     }
 
+    /**
+     * Loads follow requests from Firestore and updates the adapter.
+     */
     private void loadFollowRequests() {
         db.collection("users").document(currentUserId)
                 .collection("followRequests")
@@ -72,17 +81,19 @@ public class FollowRequestsActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Accepts a follow request and updates Firestore.
+     *
+     * @param requestDoc The document snapshot of the follow request.
+     */
     private void acceptFollowRequest(DocumentSnapshot requestDoc) {
         String requesterId = requestDoc.getId();
         WriteBatch batch = db.batch();
 
-        // NEW: Add requester to current user's followers.
         batch.set(db.collection("users").document(currentUserId)
                 .collection("followers").document(requesterId), new HashMap<String, Object>());
-        // NEW: Add current user to requester's following.
         batch.set(db.collection("users").document(requesterId)
                 .collection("following").document(currentUserId), new HashMap<String, Object>());
-        // NEW: Delete the follow request.
         batch.delete(requestDoc.getReference());
 
         batch.commit()
@@ -95,6 +106,11 @@ public class FollowRequestsActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Rejects a follow request and updates Firestore.
+     *
+     * @param requestDoc The document snapshot of the follow request.
+     */
     private void rejectFollowRequest(DocumentSnapshot requestDoc) {
         requestDoc.getReference().delete()
                 .addOnSuccessListener(aVoid -> {

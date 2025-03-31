@@ -23,7 +23,6 @@ import com.google.firebase.auth.FirebaseUser;
 public class MainActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth; // FirebaseAuth instance for managing user authentication
-    private MediaPlayer mediaPlayer; // MediaPlayer instance for playing background sound
 
     /**
      * Called when the activity is first created.

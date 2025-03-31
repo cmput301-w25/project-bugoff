@@ -40,16 +40,21 @@ android {
 dependencies {
 //    implementation(files("${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"))
     // Google Places API for location search
-    implementation("com.google.android.libraries.places:places:4.1.0")
+    implementation(libs.com.google.android.libraries.places.places)
+
     // Firebase Storage for image upload
     implementation("com.google.firebase:firebase-storage:21.0.1")
     // FileProvider for camera
     implementation("androidx.core:core:1.9.0")
+
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation(libs.firebase.auth)
+    implementation(libs.swiperefreshlayout)
     testImplementation(libs.junit)
     testImplementation(libs.ext.junit)
     androidTestImplementation(libs.ext.junit)

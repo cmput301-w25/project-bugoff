@@ -8,7 +8,7 @@
  * <ul>
  *     <li>Mood selection via a spinner control.</li>
  *     <li>Optional reason input with character limits (200 characters).</li>
- *     <li>Location selection using the current location or Google Places autocomplete.</li>
+ *     <li>Location selection using the current location, or by searching via the Google Places Autocomplete.</li>
  *     <li>Image upload from either the camera or the gallery.</li>
  *     <li>User tagging functionality for mood entries.</li>
  *     <li>Input validation and error handling with user feedback.</li>
@@ -32,6 +32,7 @@ import android.app.ComponentCaller;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -64,7 +65,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.Nullable
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -77,6 +80,7 @@ import com.bumptech.glide.request.transition.Transition;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.libraries.places.widget.AutocompleteActivity;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -85,6 +89,11 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.widget.Autocomplete;
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.model.AddressComponent;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -93,11 +102,13 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class AddMood extends ActivityBase {
 
@@ -128,6 +139,8 @@ public class AddMood extends ActivityBase {
     private static final int REQUEST_IMAGE_CAPTURE = 2;
     private static final int REQUEST_IMAGE_PICK = 3;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+    private static final int CAMERA_PERMISSION_REQUEST_CODE = 2001;
+    private static final int AUTOCOMPLETE_REQUEST_CODE = 4;
 
     // Global list for tagged users (managed internally).
     private List<User> taggedUsers = new ArrayList<>();
@@ -150,6 +163,8 @@ public class AddMood extends ActivityBase {
     private ConnectivityManager.NetworkCallback networkCallback;
     private String generatedImageUrl;
 
+
+    private ActivityResultLauncher<Intent> autocompleteLauncher;
 
     /**
      * The {@code LocationWrapper} interface abstracts location information.
@@ -231,7 +246,7 @@ public class AddMood extends ActivityBase {
 
     /**
      * Called when the activity is first created. This method inflates the layout, initializes UI components,
-     * configures Firebase and location services, sets up event listeners, registers network connectivity callbacks,
+     * configures Firebase, Places, and location services, sets up event listeners, registers network connectivity callbacks,
      * and loads user profile data.
      *
      * @param savedInstanceState If the activity is being re-initialized after previously being shut down, this Bundle contains the data it most recently supplied.
@@ -255,6 +270,48 @@ public class AddMood extends ActivityBase {
                 .setPersistenceEnabled(true) // Enables offline caching
                 .build();
         FirebaseFirestore.getInstance().setFirestoreSettings(settings);
+
+        try {
+            ApplicationInfo ai = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
+            Bundle bundle = ai.metaData;
+            String apiKey = bundle.getString("com.google.android.geo.API_KEY");
+            if (!Places.isInitialized()) {
+                Places.initialize(getApplicationContext(), apiKey);
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        autocompleteLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Place place = Autocomplete.getPlaceFromIntent(result.getData());
+                        String city = "";
+                        String country = "";
+                        // Extract city (locality) and country code from the address components.
+                        if (place.getAddressComponents() != null) {
+                            for (AddressComponent component : place.getAddressComponents().asList()) {
+                                if (component.getTypes().contains("locality")) {
+                                    city = component.getName();
+                                }
+                                if (component.getTypes().contains("country")) {
+                                    country = component.getShortName();
+                                }
+                            }
+                        }
+                        String locName = (city.isEmpty() ? "Unknown City" : city) + ", " + (country.isEmpty() ? "XX" : country);
+                        selectedLocation = new DummyLocation(locName, Objects.requireNonNull(place.getLatLng()).latitude, place.getLatLng().longitude);
+                        locationIcon.setColorFilter(Color.BLUE);
+                        updateSelectedLocationDisplay();
+                        showSnackbar("Location selected: " + selectedLocation.getName(), false);
+                    } else if (result.getResultCode() == AutocompleteActivity.RESULT_ERROR) {
+                        // Handle the error if needed
+                        // Status status = Autocomplete.getStatusFromIntent(result.getData());
+                        showSnackbar("Error retrieving location", false);
+                    }
+                }
+        );
 
         // Initialize FusedLocationProviderClient for acquiring the current location.
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -651,7 +708,6 @@ public class AddMood extends ActivityBase {
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
     }
 
-
     /**
      * Unregisters the network callback.
      */
@@ -675,10 +731,11 @@ public class AddMood extends ActivityBase {
     }
 
     // --- LOCATION POPUP ---
+
     /**
      * Displays a popup dialog that allows the user to select a location.
-     * The dialog provides options to use the current location, remove the current location,
-     * or cancel the selection.
+     * The dialog provides options to use the current location, search for a location using the Google Places Autocomplete,
+     * remove the current location, or cancel the selection.
      */
     private void showLocationPopup() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomDialog);
@@ -688,6 +745,7 @@ public class AddMood extends ActivityBase {
         AlertDialog dialog = builder.create();
 
         Button btnUseCurrent = dialogView.findViewById(R.id.btn_use_current);
+        Button btnSearchLocation = dialogView.findViewById(R.id.btn_search_location);
         Button btnRemoveLocation = dialogView.findViewById(R.id.btn_remove_location);
         Button btnCancel = dialogView.findViewById(R.id.btn_cancel_location);
 
@@ -741,6 +799,13 @@ public class AddMood extends ActivityBase {
             dialog.dismiss();
         });
 
+        // Set up the Search Location button to launch the Places Autocomplete search.
+        btnSearchLocation.setVisibility(View.VISIBLE);
+        btnSearchLocation.setOnClickListener(v -> {
+            launchPlaceAutocomplete();
+            dialog.dismiss();
+        });
+
         btnRemoveLocation.setOnClickListener(v -> {
             selectedLocation = null;
             locationIcon.clearColorFilter();
@@ -752,15 +817,32 @@ public class AddMood extends ActivityBase {
         dialog.show();
     }
 
+    /**
+     * Launches the Google Places Autocomplete activity for location search.
+     * This allows the user to search for landmarks or other places.
+     */
+    private void launchPlaceAutocomplete() {
+        // Define the fields to return after a selection.
+        List<Place.Field> fields = Arrays.asList(
+                Place.Field.ID,
+                Place.Field.NAME,
+                Place.Field.LAT_LNG,
+                Place.Field.ADDRESS_COMPONENTS
+        );
+        // Build the autocomplete intent in OVERLAY mode.
+        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields)
+                .build(this);
+        autocompleteLauncher.launch(intent);
+    }
+
     // --- IMAGE SELECTION METHODS ---
+
     /**
      * Initiates the image picker dialog to allow the user to select an image.
      */
     private void showImagePickerDialog() {
         openGallery();
     }
-
-    private static final int CAMERA_PERMISSION_REQUEST_CODE = 2001;
 
     /**
      * Dispatches an intent to capture an image using the device camera.
@@ -836,9 +918,10 @@ public class AddMood extends ActivityBase {
     }
 
     // --- ON ACTIVITY RESULT ---
+
     /**
-     * Handles results from launched activities (camera capture and image picking).
-     * Displays the selected image and updates UI elements accordingly.
+     * Handles results from launched activities (camera capture, image picking, and location autocomplete).
+     * Displays the selected image or updates location details accordingly.
      *
      * @param requestCode The integer request code originally supplied to startActivityForResult().
      * @param resultCode  The integer result code returned by the child activity.
@@ -857,6 +940,26 @@ public class AddMood extends ActivityBase {
             displaySelectedImage(selectedImageUri);
             importImageIcon.setColorFilter(Color.BLUE);
             setupImageRemoval();
+        } else if (requestCode == AUTOCOMPLETE_REQUEST_CODE && resultCode == RESULT_OK) {
+            Place place = Autocomplete.getPlaceFromIntent(data);
+            String city = "";
+            String country = "";
+            // Extract city (locality) and country code from the place's address components.
+            if (place.getAddressComponents() != null) {
+                for (AddressComponent component : place.getAddressComponents().asList()) {
+                    if (component.getTypes().contains("locality")) {
+                        city = component.getName();
+                    }
+                    if (component.getTypes().contains("country")) {
+                        country = component.getShortName();
+                    }
+                }
+            }
+            String locName = (city.isEmpty() ? "Unknown City" : city) + ", " + (country.isEmpty() ? "XX" : country);
+            selectedLocation = new DummyLocation(locName, place.getLatLng().latitude, place.getLatLng().longitude);
+            locationIcon.setColorFilter(Color.BLUE);
+            updateSelectedLocationDisplay();
+            showSnackbar("Location selected: " + selectedLocation.getName(), false);
         }
     }
 
@@ -1044,6 +1147,7 @@ public class AddMood extends ActivityBase {
     }
 
     // --- SAVE MOOD TO FIRESTORE ---
+
     /**
      * Validates user inputs and assembles mood data into a map.
      * Delegates the process of saving mood data (and optionally an image) to the MoodRepository.
@@ -1164,6 +1268,7 @@ public class AddMood extends ActivityBase {
 
 
     // --- TAGGING FUNCTIONALITY ---
+
     /**
      * Displays a tagging dialog that allows users to add or remove tags.
      * The dialog includes a search bar to query users and a RecyclerView to display matching results.
@@ -1257,17 +1362,36 @@ public class AddMood extends ActivityBase {
             this.selectedUsers = selectedUsers;
         }
 
+        /**
+         * Returns the total number of items in the data set held by the adapter.
+         *
+         * @return The total number of items in this adapter.
+         */
         @Override
         public int getItemCount() {
             return users.size();
         }
 
+        /**
+         * Called when RecyclerView needs a new {@link ViewHolder} of the given type to represent an item.
+         *
+         * @param parent The ViewGroup into which the new View will be added after it is bound to an adapter position.
+         * @param viewType The view type of the new View.
+         * @return A new ViewHolder that holds a View of the given view type.
+         */
         @Override
         public TagUsersAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_tag_user, parent, false);
             return new ViewHolder(view);
         }
 
+        /**
+         * Called by RecyclerView to display the data at the specified position.
+         * This method should update the contents of the {@link ViewHolder#itemView} to reflect the item at the given position.
+         *
+         * @param holder The ViewHolder which should be updated to represent the contents of the item at the given position in the data set.
+         * @param position The position of the item within the adapter's data set.
+         */
         @Override
         public void onBindViewHolder(TagUsersAdapter.ViewHolder holder, int position) {
             User user = users.get(position);

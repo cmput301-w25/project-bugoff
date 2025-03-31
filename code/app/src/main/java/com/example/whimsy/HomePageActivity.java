@@ -1,33 +1,34 @@
-/**
- * The `HomePageActivity` class represents the main screen where users can view mood updates from the
- * people they follow. It retrieves mood data from Firebase Firestore and displays it using a RecyclerView.
- * Users can tap on a mood entry to navigate to a detailed mood page.
- *
- * Key Features:
- * - Fetches followed users from Firebase Firestore.
- * - Retrieves and displays mood entries sorted by timestamp.
- * - Displays user details, mood descriptions, triggers, reasons, and tagged users.
- * - Implements touch interaction to navigate to the selected mood's details.
- *
- * Outstanding Issues:
- * - Performance optimizations may be required for large datasets.
- * - Error handling for Firebase failures could be improved for better user experience.
- */
-
 package com.example.whimsy;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.transition.TransitionManager;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.Toast;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.Spinner;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -35,13 +36,24 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * HomePageActivity is responsible for displaying the moods of users followed by the current user.
- * It retrieves mood data from Firestore and displays it in a RecyclerView.
+ * HomePageActivity displays a list of moods and allows users to filter the results.
+ * This activity retrieves moods from followed users, applies filters, and retains filter settings between popup openings.
+ * Snackbar messages are displayed when filters are applied or reset.
  */
 public class HomePageActivity extends ActivityBase {
     private static final String TAG = "HomePageActivity";
@@ -51,12 +63,15 @@ public class HomePageActivity extends ActivityBase {
     private FirebaseFirestore db;
     private RecyclerView recyclerView;
     private MoodAdapter moodAdapter;
+    private TextView moodsType;
 
-    /**
-     * Initializes the activity, sets up UI components, and loads the moods of followed users.
-     *
-     * @param savedInstanceState The saved state of the activity.
-     */
+    // Instance variables to store current filter state
+    private boolean currentShowOnlyFollowedMoods = false;
+    private int currentDays = 0; // 0 indicates no time filter
+    private String currentMoodFilter = "Select Mood";
+    private String currentSearchFilter = "";
+    private SwipeRefreshLayout swipeRefreshLayoutt;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,29 +79,90 @@ public class HomePageActivity extends ActivityBase {
         initializeNavigation();
 
         // Inflate home page layout into content frame
-        FrameLayout contentFrame = findViewById(R.id.content_frame);
-        getLayoutInflater().inflate(R.layout.activity_home_page, contentFrame, true);
+        getLayoutInflater().inflate(R.layout.activity_home_page, findViewById(R.id.content_frame), true);
+
+        swipeRefreshLayoutt = findViewById(R.id.swipeRefreshLayout);
+        swipeRefreshLayoutt.setOnRefreshListener(() -> {
+            currentShowOnlyFollowedMoods = false;
+            currentDays = 0;
+            currentMoodFilter = "Select Mood";
+            currentSearchFilter = "";
+            FirebaseUser user = mAuth.getCurrentUser();
+            if (user != null) {
+                loadFollowedUsersAndMoods(user.getUid());
+            }
+            swipeRefreshLayoutt.setRefreshing(false);
+        });
 
         // Setup RecyclerView
         recyclerView = findViewById(R.id.moods_recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
         moodList = new ArrayList<>();
         moodDocIds = new ArrayList<>();
         moodAdapter = new MoodAdapter(moodList);
         recyclerView.setAdapter(moodAdapter);
 
-        // Initialize Firebase authentication and database
+        final ConstraintLayout constraintLayout = findViewById(R.id.constraintLayout);
+        final LinearLayout buttonPanel = findViewById(R.id.buttonPanel);
+
+        // Hide or show the button panel based on scroll
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                if (dy > 0 && buttonPanel.getVisibility() == View.VISIBLE) {
+                    // Hide the panel and update RecyclerView constraint
+                    ConstraintSet constraintSet = new ConstraintSet();
+                    constraintSet.clone(constraintLayout);
+                    constraintSet.clear(R.id.moods_recycler_view, ConstraintSet.TOP);
+                    constraintSet.connect(R.id.moods_recycler_view, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
+                    TransitionManager.beginDelayedTransition(constraintLayout);
+                    constraintSet.applyTo(constraintLayout);
+                    buttonPanel.setVisibility(View.GONE);
+                } else if (dy < 0 && buttonPanel.getVisibility() != View.VISIBLE) {
+                    // Show the panel and update RecyclerView constraint
+                    ConstraintSet constraintSet = new ConstraintSet();
+                    constraintSet.clone(constraintLayout);
+                    constraintSet.clear(R.id.moods_recycler_view, ConstraintSet.TOP);
+                    constraintSet.connect(R.id.moods_recycler_view, ConstraintSet.TOP, R.id.buttonPanel, ConstraintSet.BOTTOM, 0);
+                    TransitionManager.beginDelayedTransition(constraintLayout);
+                    constraintSet.applyTo(constraintLayout);
+                    buttonPanel.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+        // Initialize Firebase
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
-            loadFollowedUsersMoods(user.getUid());
+            String userId = user.getUid();
+            loadFollowedUsersAndMoods(userId);
+
+            // Setup filter button
+            Button filterButton = findViewById(R.id.filter_button);
+            filterButton.setOnClickListener(v -> showFilterPopup());
+
+            // Real-time listener for followed moods
+            db.collection("users").document(userId).collection("followedMoods")
+                    .addSnapshotListener((snapshots, e) -> {
+                        if (e != null) {
+                            Log.e(TAG, "Error listening to followed moods", e);
+                            return;
+                        }
+                        Set<String> followedMoodsSet = new HashSet<>();
+                        for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                            String ownerUid = doc.getString("ownerUid");
+                            String moodId = doc.getString("moodId");
+                            followedMoodsSet.add(ownerUid + "_" + moodId);
+                        }
+                        moodAdapter.setFollowedMoodsSet(followedMoodsSet);
+                    });
         } else {
             Log.e(TAG, "User is not authenticated");
         }
 
-        // Handle item touch events to open the selected mood's details
+        // Handle item touch events for RecyclerView
         final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
@@ -104,7 +180,7 @@ public class HomePageActivity extends ActivityBase {
                         Intent intent = new Intent(HomePageActivity.this, MoodPageActivity.class);
                         intent.putExtra("SELECTED_MOOD", moodList.get(position));
                         intent.putExtra("MOOD_ID", moodDocIds.get(position));
-                        intent.putExtra("OWNER_UID", moodList.get(position).getUserId());
+                        intent.putExtra("OWNER_UID", moodList.get(position).getOwnerUid());
                         startActivity(intent);
                         return true;
                     }
@@ -112,15 +188,18 @@ public class HomePageActivity extends ActivityBase {
                 return false;
             }
         });
-
     }
 
     /**
-     * Loads the moods of users followed by the given user ID.
+     * Loads all moods from followed users without any filters.
      *
-     * @param userId The ID of the current user.
+     * @param userId The current user's ID.
      */
-    private void loadFollowedUsersMoods(String userId) {
+    private void loadFollowedUsersAndMoods(String userId) {
+        moodList.clear();
+        moodDocIds.clear();
+
+        // Load moods from followed users
         db.collection("users").document(userId).collection("following")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
@@ -128,75 +207,139 @@ public class HomePageActivity extends ActivityBase {
                     for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
                         followedUserIds.add(doc.getId());
                     }
-                    loadMoodsFromFollowedUsers(followedUserIds);
+                    loadMoodsFromFollowedUsers(followedUserIds, 0, null, null);
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to load following list", Toast.LENGTH_SHORT).show();
+                    showSnackbar("Failed to load following list");
                     Log.e(TAG, "Error loading following", e);
+                });
+
+        // Load explicitly followed moods
+        db.collection("users").document(userId).collection("followedMoods")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        String ownerUid = doc.getString("ownerUid");
+                        String moodId = doc.getString("moodId");
+                        if (ownerUid != null && moodId != null) {
+                            db.collection("users").document(ownerUid).collection("moods").document(moodId)
+                                    .get()
+                                    .addOnSuccessListener(moodDoc -> {
+                                        if (moodDoc.exists()) {
+                                            String moodStr = moodDoc.getString("mood");
+                                            String locationName = moodDoc.getString("locationName"); // Updated field name
+                                            String timestampStr = moodDoc.getString("timestamp");
+                                            String trigger = moodDoc.getString("trigger");
+                                            String reason = moodDoc.getString("reason");
+                                            String imageUrl = moodDoc.getString("imageUrl");
+                                            boolean isPrivate = Boolean.TRUE.equals(moodDoc.getBoolean("isPrivate"));
+                                            List<Map<String, Object>> tags = (List<Map<String, Object>>) moodDoc.get("tags");
+                                            List<String> taggedUserNames = new ArrayList<>();
+                                            if (tags != null) {
+                                                for (Map<String, Object> tag : tags) {
+                                                    String tagName = (String) tag.get("name");
+                                                    if (tagName != null) taggedUserNames.add(tagName);
+                                                }
+                                            }
+                                            String gatheringStatus = tags == null || tags.isEmpty() ? "Alone" :
+                                                    tags.size() == 1 ? "With 1 other" :
+                                                            tags.size() <= 5 ? "With " + tags.size() + " others" : "With a crowd";
+
+                                            db.collection("users").document(ownerUid).get()
+                                                    .addOnSuccessListener(userDoc -> {
+                                                        String profileImageUrl = userDoc.getString("profilePictureUrl");
+                                                        String displayName = userDoc.getString("name");
+                                                        String username = userDoc.getString("username");
+
+                                                        Mood mood = new Mood(
+                                                                displayName != null ? displayName : "Unknown",
+                                                                username != null ? username : "Unknown",
+                                                                locationName != null ? locationName : "No location",
+                                                                timestampStr,
+                                                                timestampStr,
+                                                                gatheringStatus,
+                                                                "Feeling " + moodStr,
+                                                                trigger,
+                                                                reason,
+                                                                imageUrl,
+                                                                profileImageUrl,
+                                                                taggedUserNames,
+                                                                isPrivate
+                                                        );
+                                                        mood.setOwnerUid(ownerUid);
+                                                        mood.setMoodId(moodId);
+
+                                                        // Avoid duplicates by checking moodDocIds
+                                                        if (!moodDocIds.contains(moodId)) {
+                                                            moodList.add(mood);
+                                                            moodDocIds.add(moodId);
+                                                            applyFiltersAndSort(0, null, null); // Apply filters after adding
+                                                        }
+                                                    })
+                                                    .addOnFailureListener(e -> Log.e(TAG, "Error fetching user data for mood", e));
+                                        }
+                                    })
+                                    .addOnFailureListener(e -> Log.e(TAG, "Error fetching followed mood", e));
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading followed moods", e);
                 });
     }
 
     /**
-     * Retrieves and displays moods posted by the followed users.
+     * Loads moods from followed users with optional filters.
      *
-     * @param followedUserIds A list of user IDs that the current user follows.
+     * @param followedUserIds List of user IDs being followed.
+     * @param days            Number of days for time filtering.
+     * @param moodFilter      Filter for the mood state.
+     * @param searchFilter    Filter for the search query.
      */
-    private void loadMoodsFromFollowedUsers(List<String> followedUserIds) {
-        moodList.clear();
-        moodDocIds.clear();
+    private void loadMoodsFromFollowedUsers(List<String> followedUserIds, int days, String moodFilter, String searchFilter) {
+        if (followedUserIds.isEmpty()) {
+            applyFiltersAndSort(days, moodFilter, searchFilter);
+            return;
+        }
+
+        final int totalUsers = followedUserIds.size();
+        final AtomicInteger usersProcessed = new AtomicInteger(0);
+
         for (String followedId : followedUserIds) {
             db.collection("users").document(followedId).get()
                     .addOnSuccessListener(userDoc -> {
-                        // Extract user details
                         String profileImageUrl = userDoc.getString("profilePictureUrl");
                         String displayName = userDoc.getString("name");
-                        String userEmail = userDoc.getString("username"); // Assuming "username" stores email
+                        String username = userDoc.getString("username");
 
-                        // Retrieve moods for this user
-                        db.collection("users").document(followedId)
-                                .collection("moods")
+                        db.collection("users").document(followedId).collection("moods")
                                 .orderBy("timestamp", Query.Direction.DESCENDING)
                                 .get()
                                 .addOnSuccessListener(querySnapshots -> {
-                                    for (DocumentSnapshot doc : querySnapshots.getDocuments()) {
-                                        // Extract mood data
+                                    for (DocumentSnapshot doc : querySnapshots) {
                                         String moodStr = doc.getString("mood");
-                                        String locationName = doc.getString("location");
+                                        String locationName = doc.getString("locationName");
                                         String timestampStr = doc.getString("timestamp");
                                         String trigger = doc.getString("trigger");
                                         String reason = doc.getString("reason");
                                         String imageUrl = doc.getString("imageUrl");
                                         boolean isPrivate = Boolean.TRUE.equals(doc.getBoolean("isPrivate"));
-
-                                        // Extract tagged users
                                         List<Map<String, Object>> tags = (List<Map<String, Object>>) doc.get("tags");
                                         List<String> taggedUserNames = new ArrayList<>();
                                         if (tags != null) {
                                             for (Map<String, Object> tag : tags) {
-                                                String username = (String) tag.get("name");
-                                                if (username != null) {
-                                                    taggedUserNames.add(username);
-                                                }
+                                                String tagName = (String) tag.get("name");
+                                                if (tagName != null) taggedUserNames.add(tagName);
                                             }
                                         }
+                                        String gatheringStatus = tags == null || tags.isEmpty() ? "Alone" :
+                                                tags.size() == 1 ? "With 1 other" :
+                                                        tags.size() <= 5 ? "With " + tags.size() + " others" : "With a crowd";
 
-                                        // Determine gathering status
-                                        String gatheringStatus;
-                                        if (tags == null || tags.isEmpty()) {
-                                            gatheringStatus = "Alone";
-                                        } else if (tags.size() == 1) {
-                                            gatheringStatus = "With 1 other";
-                                        } else if (tags.size() <= 5) {
-                                            gatheringStatus = "With " + tags.size() + " others";
-                                        } else {
-                                            gatheringStatus = "With a crowd";
-                                        }
-
-                                        // Create Mood object and add to the list
                                         Mood mood = new Mood(
-                                                (displayName != null ? displayName : "Unknown"),
-                                                (userEmail != null ? userEmail : "Unknown"),
-                                                (locationName != null ? locationName : "No location"),
+                                                displayName != null ? displayName : "Unknown",
+                                                username != null ? username : "Unknown",
+                                                locationName != null ? locationName : "No location",
                                                 timestampStr,
                                                 timestampStr,
                                                 gatheringStatus,
@@ -208,14 +351,361 @@ public class HomePageActivity extends ActivityBase {
                                                 taggedUserNames,
                                                 isPrivate
                                         );
-                                        moodList.add(mood);
-                                        moodDocIds.add(doc.getId());
+                                        mood.setOwnerUid(followedId);
+                                        mood.setMoodId(doc.getId());
+
+                                        // Avoid duplicates by checking moodDocIds
+                                        if (!moodDocIds.contains(doc.getId())) {
+                                            moodList.add(mood);
+                                            moodDocIds.add(doc.getId());
+                                        }
                                     }
-                                    moodAdapter.notifyDataSetChanged();
+
+                                    if (usersProcessed.incrementAndGet() == totalUsers) {
+                                        applyFiltersAndSort(days, moodFilter, searchFilter);
+                                    }
                                 })
-                                .addOnFailureListener(e -> Toast.makeText(this, "Failed to load moods", Toast.LENGTH_SHORT).show());
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error fetching moods for user " + followedId, e);
+                                    if (usersProcessed.incrementAndGet() == totalUsers) {
+                                        applyFiltersAndSort(days, moodFilter, searchFilter);
+                                    }
+                                });
                     })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to load user profile", Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error fetching user data for " + followedId, e);
+                        if (usersProcessed.incrementAndGet() == totalUsers) {
+                            applyFiltersAndSort(days, moodFilter, searchFilter);
+                        }
+                    });
+        }
+    }
+
+    /**
+     * Applies the given filters and sorts the mood list by timestamp in descending order.
+     *
+     * @param days         Number of days for time filtering.
+     * @param moodFilter   Filter for the mood state.
+     * @param searchFilter Filter for the search query.
+     */
+    private void applyFiltersAndSort(int days, String moodFilter, String searchFilter) {
+        long cutoffTimestamp = days > 0 ? calculateCutoffTimestamp(days) : 0;
+
+        // Filter the moods
+        List<Mood> filteredMoods = new ArrayList<>();
+        for (Mood mood : moodList) {
+            if (mood.isPrivate()) continue;
+
+            long moodTimestamp = convertTimestampToMillis(mood.getTimestamp());
+            boolean withinTimeRange = (days == 0) || (moodTimestamp >= cutoffTimestamp);
+            boolean matchesMood = (moodFilter == null || moodFilter.equals("Select Mood")) ||
+                    mood.getMoodStatus().substring("Feeling ".length()).equalsIgnoreCase(moodFilter);
+            boolean matchesSearch = (searchFilter == null || searchFilter.isEmpty()) ||
+                    (mood.getMoodReason() != null && mood.getMoodReason().toLowerCase().contains(searchFilter.toLowerCase()));
+
+            if (withinTimeRange && matchesMood && matchesSearch) {
+                filteredMoods.add(mood);
+            }
+        }
+
+        // Sort by timestamp in descending order
+        Collections.sort(filteredMoods, (m1, m2) -> {
+            long t1 = convertTimestampToMillis(m1.getTimestamp());
+            long t2 = convertTimestampToMillis(m2.getTimestamp());
+            return Long.compare(t2, t1); // Descending order (most recent first)
+        });
+
+        // Update the moodList and notify the adapter
+        moodList.clear();
+        moodList.addAll(filteredMoods);
+        moodDocIds.clear();
+        for (Mood mood : filteredMoods) {
+            moodDocIds.add(mood.getMoodId());
+        }
+        moodAdapter.notifyDataSetChanged();
+    }
+
+    /**
+     * Loads explicitly followed moods with optional filters.
+     *
+     * @param days         Number of days for time filtering.
+     * @param moodFilter   Filter for the mood state.
+     * @param searchFilter Filter for the search query.
+     */
+    private void loadFollowedMoodsFiltered(int days, String moodFilter, String searchFilter) {
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user == null) return;
+        String userId = user.getUid();
+
+        moodList.clear();
+        moodDocIds.clear();
+        long cutoffTimestamp = days > 0 ? calculateCutoffTimestamp(days) : 0;
+
+        db.collection("users").document(userId).collection("followedMoods")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<DocumentSnapshot> followedDocs = querySnapshot.getDocuments();
+                    if (followedDocs.isEmpty()) {
+                        moodAdapter.notifyDataSetChanged();
+                        return;
+                    }
+
+                    for (DocumentSnapshot doc : followedDocs) {
+                        String ownerUid = doc.getString("ownerUid");
+                        String moodId = doc.getString("moodId");
+                        if (ownerUid != null && moodId != null) {
+                            db.collection("users").document(ownerUid).collection("moods").document(moodId)
+                                    .get()
+                                    .addOnSuccessListener(moodDoc -> {
+                                        if (moodDoc.exists()) {
+                                            String moodStr = moodDoc.getString("mood");
+                                            String locationName = moodDoc.getString("location");
+                                            String timestampStr = moodDoc.getString("timestamp");
+                                            String trigger = moodDoc.getString("trigger");
+                                            String reason = moodDoc.getString("reason");
+                                            String imageUrl = moodDoc.getString("imageUrl");
+                                            boolean isPrivate = Boolean.TRUE.equals(moodDoc.getBoolean("isPrivate"));
+                                            List<Map<String, Object>> tags = (List<Map<String, Object>>) moodDoc.get("tags");
+                                            List<String> taggedUserNames = new ArrayList<>();
+                                            if (tags != null) {
+                                                for (Map<String, Object> tag : tags) {
+                                                    String tagName = (String) tag.get("name");
+                                                    if (tagName != null) taggedUserNames.add(tagName);
+                                                }
+                                            }
+                                            String gatheringStatus = tags == null || tags.isEmpty() ? "Alone" :
+                                                    tags.size() == 1 ? "With 1 other" :
+                                                            tags.size() <= 5 ? "With " + tags.size() + " others" : "With a crowd";
+
+                                            db.collection("users").document(ownerUid).get()
+                                                    .addOnSuccessListener(userDoc -> {
+                                                        String profileImageUrl = userDoc.getString("profilePictureUrl");
+                                                        String displayName = userDoc.getString("name");
+                                                        String username = userDoc.getString("username");
+
+                                                        long moodTimestamp = convertTimestampToMillis(timestampStr);
+                                                        boolean withinTimeRange = (days == 0) || (moodTimestamp >= cutoffTimestamp);
+                                                        boolean matchesMood = (moodFilter == null || moodFilter.equals("Select Mood")) ||
+                                                                moodStr.equalsIgnoreCase(moodFilter);
+                                                        boolean matchesSearch = (searchFilter == null || searchFilter.isEmpty()) ||
+                                                                (reason != null && reason.toLowerCase().contains(searchFilter.toLowerCase()));
+
+                                                        if (!isPrivate && withinTimeRange && matchesMood && matchesSearch) {
+                                                            Mood mood = new Mood(
+                                                                    displayName != null ? displayName : "Unknown",
+                                                                    username != null ? username : "Unknown",
+                                                                    locationName != null ? locationName : "No location",
+                                                                    timestampStr,
+                                                                    timestampStr,
+                                                                    gatheringStatus,
+                                                                    "Feeling " + moodStr,
+                                                                    trigger,
+                                                                    reason,
+                                                                    imageUrl,
+                                                                    profileImageUrl,
+                                                                    taggedUserNames,
+                                                                    isPrivate
+                                                            );
+                                                            mood.setOwnerUid(ownerUid);
+                                                            mood.setMoodId(moodId);
+                                                            moodList.add(mood);
+                                                            moodDocIds.add(moodId);
+                                                            moodAdapter.notifyDataSetChanged();
+                                                        }
+                                                    });
+                                        }
+                                    });
+                        }
+                    }
+                });
+    }
+
+    /**
+     * Displays the filter popup dialog.
+     */
+    private void showFilterPopup() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View popupView = getLayoutInflater().inflate(R.layout.filter_popup, null);
+        builder.setView(popupView);
+        AlertDialog filterDialog = builder.create();
+        if (filterDialog.getWindow() != null) {
+            filterDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            filterDialog.getWindow().setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            filterDialog.getWindow().setGravity(Gravity.CENTER);
+        }
+        filterDialog.show();
+
+        configureFilterDialog(filterDialog, popupView);
+    }
+
+    /**
+     * Configures the filter popup dialog's UI and logic.
+     * Initializes UI components with any previously applied filter settings and shows Snackbar messages when filters are applied or reset.
+     *
+     * @param filterDialog The AlertDialog for the filter popup.
+     * @param popupView    The inflated layout view for the filter popup.
+     */
+    private void configureFilterDialog(AlertDialog filterDialog, View popupView) {
+        moodsType = findViewById(R.id.type_moods);
+        // Initialize the radio buttons for showing all moods or only followed moods
+        RadioButton showAllMoods = popupView.findViewById(R.id.show_all_moods);
+        RadioButton showFollowedMoods = popupView.findViewById(R.id.show_followed_moods);
+        // Set initial state from stored filter settings
+        showFollowedMoods.setChecked(currentShowOnlyFollowedMoods);
+        showAllMoods.setChecked(!currentShowOnlyFollowedMoods);
+
+        // Initialize the time filter radio buttons (week/month)
+        RadioButton filterWeek = popupView.findViewById(R.id.filter_week);
+        RadioButton filterMonth = popupView.findViewById(R.id.filter_month);
+        if (currentDays == 7) {
+            filterWeek.setChecked(true);
+            filterMonth.setChecked(false);
+        } else if (currentDays == 30) {
+            filterWeek.setChecked(false);
+            filterMonth.setChecked(true);
+        } else {
+            filterWeek.setChecked(false);
+            filterMonth.setChecked(false);
+        }
+
+        // Initialize the spinner for emotional states
+        Spinner moodSpinner = popupView.findViewById(R.id.spinner_emotional_state);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this, R.array.emotional_states, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        moodSpinner.setAdapter(adapter);
+        // Set spinner selection based on saved mood filter
+        int spinnerPosition = adapter.getPosition(currentMoodFilter);
+        moodSpinner.setSelection(spinnerPosition);
+
+        // Initialize the search box with saved search filter text
+        EditText searchBox = popupView.findViewById(R.id.search_reason_box);
+        searchBox.setText(currentSearchFilter);
+
+        // Configure search icon color change on text input
+        ImageView searchIcon = popupView.findViewById(R.id.search_button);
+        searchBox.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // No action needed before text changes
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchIcon.setColorFilter(getColor(R.color.black));
+                if (s.toString().isEmpty()) {
+                    searchIcon.clearColorFilter();
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                // No additional actions needed after text changes
+            }
+        });
+
+        // Initialize apply and reset buttons
+        Button applyButton = popupView.findViewById(R.id.apply_button);
+        Button resetButton = popupView.findViewById(R.id.reset_button);
+
+        // Update filter state and apply filters when the apply button is clicked
+        applyButton.setOnClickListener(v -> {
+            boolean showOnlyFollowedMoods = showFollowedMoods.isChecked();
+            int days = filterWeek.isChecked() ? 7 : filterMonth.isChecked() ? 30 : 0;
+            String selectedMood = moodSpinner.getSelectedItem().toString();
+            String searchQuery = searchBox.getText().toString().trim();
+
+            // Update current filter state variables
+            currentShowOnlyFollowedMoods = showOnlyFollowedMoods;
+            currentDays = days;
+            currentMoodFilter = selectedMood;
+            currentSearchFilter = searchQuery;
+
+            applyFilters(showOnlyFollowedMoods, days, selectedMood, searchQuery);
+            // Show Snackbar message to indicate filter has been applied
+            showSnackbar("Filter applied", false);
+            if (currentShowOnlyFollowedMoods) {
+                moodsType.setText("Followed Moods");
+            } else {
+                moodsType.setText("All Moods");
+            }
+            filterDialog.dismiss();
+        });
+
+        // Reset filters to default when the reset button is clicked
+        resetButton.setOnClickListener(v -> {
+            currentShowOnlyFollowedMoods = false;
+            currentDays = 0;
+            currentMoodFilter = "Select Mood";
+            currentSearchFilter = "";
+            FirebaseUser user = mAuth.getCurrentUser();
+            if (user != null) {
+                loadFollowedUsersAndMoods(user.getUid());
+            }
+            // Show Snackbar message to indicate filters have been reset
+            showSnackbar("Filters reset", false);
+            filterDialog.dismiss();
+        });
+
+        // Close the popup when the close icon is clicked
+        popupView.findViewById(R.id.close_popup).setOnClickListener(v -> filterDialog.dismiss());
+    }
+
+    /**
+     * Applies the selected filters by either loading followed moods or moods from all followed users.
+     *
+     * @param showOnlyFollowedMoods Whether to show only explicitly followed moods.
+     * @param days                  The number of days for time filtering.
+     * @param moodFilter            The selected mood filter.
+     * @param searchFilter          The search query filter.
+     */
+    private void applyFilters(boolean showOnlyFollowedMoods, int days, String moodFilter, String searchFilter) {
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user == null) return;
+        String userId = user.getUid();
+
+        if (showOnlyFollowedMoods) {
+            loadFollowedMoodsFiltered(days, moodFilter, searchFilter);
+        } else {
+            db.collection("users").document(userId).collection("following")
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        List<String> followedUserIds = new ArrayList<>();
+                        for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
+                            followedUserIds.add(doc.getId());
+                        }
+                        loadMoodsFromFollowedUsers(followedUserIds, days, moodFilter, searchFilter);
+                    });
+        }
+    }
+
+    /**
+     * Calculates the cutoff timestamp for filtering moods based on the given number of days.
+     *
+     * @param days The number of days in the past.
+     * @return The cutoff timestamp in milliseconds.
+     */
+    private long calculateCutoffTimestamp(int days) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -days);
+        return calendar.getTimeInMillis();
+    }
+
+    /**
+     * Converts a timestamp string to milliseconds.
+     *
+     * @param timestampStr The timestamp string in the format "hh:mm a - MMMM dd, yyyy".
+     * @return The timestamp in milliseconds.
+     */
+    private long convertTimestampToMillis(String timestampStr) {
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a - MMMM dd, yyyy", Locale.ENGLISH);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            Date date = sdf.parse(timestampStr);
+            return date != null ? date.getTime() : 0;
+        } catch (ParseException e) {
+            Log.e(TAG, "Error parsing timestamp: " + timestampStr, e);
+            return 0;
         }
     }
 }

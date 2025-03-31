@@ -1,10 +1,8 @@
 /**
  * SearchResultAdapter is a custom RecyclerView adapter
  * for displaying search results with user information.
- *
  * This adapter binds user data, including usernames and profile pictures,
  * to the RecyclerView items and handles item click events to open user profiles.
- *
  * Outstanding Issues:
  * - Currently does not handle error scenarios for Glide image loading failures.
  * - Does not include a placeholder image while loading the profile picture.
@@ -24,6 +22,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.List;
@@ -124,9 +124,16 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
 
         // Set an OnClickListener to navigate to the OtherProfileActivity
         holder.itemView.setOnClickListener(v -> {
-            Intent intent = new Intent(context, OtherProfileActivity.class);  // Start OtherProfileActivity
-            intent.putExtra("USER_ID", user.getId());  // Pass the user's ID to the activity
-            context.startActivity(intent);  // Start the activity
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (user.getId().equals(currentUser.getUid())) {
+                Intent intent = new Intent(context, ProfileActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                context.startActivity(intent);
+            } else {
+                Intent intent = new Intent(context, OtherProfileActivity.class);  // Start OtherProfileActivity
+                intent.putExtra("USER_ID", user.getId());  // Pass the user's ID to the activity
+                context.startActivity(intent);  // Start the activity
+            }
         });
     }
 

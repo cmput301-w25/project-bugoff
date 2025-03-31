@@ -2,9 +2,7 @@
  * SearchActivity allows the user to search for other users by name and view the results in a RecyclerView.
  * It uses Firebase Firestore to fetch user data based on the search query and displays the results in real-time
  * as the user types in the search box.
- *
  * This activity includes functionality to handle user input, query the database, and display search results.
- *
  * Outstanding Issues:
  * - The search results might be delayed due to network latency; consider adding a loading indicator.
  * - No error handling for situations when the user is offline or the database query fails.
@@ -121,9 +119,7 @@ public class SearchActivity extends ActivityBase {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     userList.clear();
-                    if (queryDocumentSnapshots.isEmpty()) {
-                        Toast.makeText(SearchActivity.this, "No users found.", Toast.LENGTH_SHORT).show();
-                    } else {
+                    if (!queryDocumentSnapshots.isEmpty()) {
                         for (DocumentSnapshot doc : queryDocumentSnapshots) {
                             String id = doc.getId();
                             String username = doc.getString("username");
@@ -138,7 +134,7 @@ public class SearchActivity extends ActivityBase {
                 })
                 .addOnFailureListener(e -> {
                     Log.e("SearchActivity", "Error performing search", e);
-                    Toast.makeText(SearchActivity.this, "Error performing search", Toast.LENGTH_SHORT).show();
+                    showSnackbar("Error performing search");
                 });
     }
 }

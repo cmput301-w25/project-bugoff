@@ -1,210 +1,234 @@
-<merge xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:background="@color/white"
+    android:layout_height="match_parent"
+    tools:context=".ProfileActivity">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- Collapsible header area -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appbar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".ProfileActivity">
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:fitsSystemWindows="true">
 
-        <!-- Header Layout -->
-        <!-- (unchanged, keeping your header exactly as you designed) -->
-        <LinearLayout
-            android:id="@+id/header_layout"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <!-- Profile Picture -->
-            <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/other_profile_image"
-                android:layout_width="90dp"
-                android:layout_height="90dp"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_profile"
-                app:shapeAppearanceOverlay="@style/CircularImageView"
-                app:strokeColor="#EEEEEE"
-                app:strokeWidth="2dp" />
-
-            <!-- User Info -->
-            <LinearLayout
-                android:id="@+id/other_info_container"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:orientation="vertical"
-                android:layout_weight="1">
-
-                <TextView
-                    android:id="@+id/other_profile_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="User Name"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/other_profile_email"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="username"
-                    android:textSize="16sp"
-                    android:textColor="#B0B0B0"
-                    android:textStyle="italic" />
-
-                <TextView
-                    android:id="@+id/other_profile_bio"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Every emotion tells a story—write yours here. 📜💫"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Barrier -->
-        <androidx.constraintlayout.widget.Barrier
-            android:id="@+id/bottom_barrier"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:barrierDirection="bottom"
-            app:constraint_referenced_ids="header_layout" />
-
-        <!-- Stats Section -->
-        <LinearLayout
-            android:id="@+id/other_profile_stats"
+        <!-- Header container: contains header, stats, follow button and suggestions -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/headerContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal"
-            android:weightSum="3"
-            app:layout_constraintTop_toBottomOf="@id/bottom_barrier"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_scrollFlags="scroll|enterAlways">
 
-            <!-- Moods -->
+            <!-- Header Layout -->
             <LinearLayout
+                android:id="@+id/header_layout"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/other_moods_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Moods"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <!-- Followers -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/other_followers_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Followers"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <!-- Following -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/other_following_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Following"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Follow Button -->
-        <Button
-            android:id="@+id/follow_btn"
-            android:layout_width="124dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="#439DEB"
-            android:text="Follow"
-            app:layout_constraintTop_toBottomOf="@id/other_profile_stats"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
-        <!-- Suggested Users Title -->
-        <TextView
-            android:id="@+id/suggestions_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Suggested Users"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginTop="12dp"
-            app:layout_constraintTop_toBottomOf="@id/follow_btn"
-            app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="16dp"
-            android:visibility="gone"/>
-
-        <!-- Suggested Users ScrollView -->
-        <HorizontalScrollView
-            android:id="@+id/suggestions_scroll"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:scrollbars="none"
-            app:layout_constraintTop_toBottomOf="@id/suggestions_title"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layoutDirection="ltr"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/suggestions_container"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layoutDirection="ltr"/>
-        </HorizontalScrollView>
+                android:padding="16dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Empty Mood Text -->
+                <!-- Profile Picture -->
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/other_profile_image"
+                    android:layout_width="90dp"
+                    android:layout_height="90dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_profile"
+                    app:shapeAppearanceOverlay="@style/CircularImageView"
+                    app:strokeColor="#EEEEEE"
+                    app:strokeWidth="2dp"/>
+
+                <!-- User Info -->
+                <LinearLayout
+                    android:id="@+id/other_info_container"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:orientation="vertical"
+                    android:layout_weight="1">
+
+                    <TextView
+                        android:id="@+id/other_profile_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="User Name"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/other_profile_email"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="username"
+                        android:textSize="16sp"
+                        android:textColor="#B0B0B0"
+                        android:textStyle="italic" />
+
+                    <TextView
+                        android:id="@+id/other_profile_bio"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Every emotion tells a story—write yours here. 📜💫"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Barrier below header_layout -->
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/bottom_barrier"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="bottom"
+                app:constraint_referenced_ids="header_layout" />
+
+            <!-- Stats Section -->
+            <LinearLayout
+                android:id="@+id/other_profile_stats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal"
+                android:weightSum="3"
+                app:layout_constraintTop_toBottomOf="@id/bottom_barrier"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <!-- Moods Count -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/other_moods_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Moods"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <!-- Followers Count -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/other_followers_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Followers"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <!-- Following Count -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/other_following_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Following"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Follow Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/follow_btn"
+                android:layout_width="124dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="#439DEB"
+                android:text="Follow"
+                app:cornerRadius="14dp"
+                app:layout_constraintTop_toBottomOf="@id/other_profile_stats"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- Suggested Users Title -->
+            <TextView
+                android:id="@+id/suggestions_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Suggested Users"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="12dp"
+                app:layout_constraintTop_toBottomOf="@id/follow_btn"
+                app:layout_constraintStart_toStartOf="parent"
+                android:layout_marginStart="16dp"
+                android:visibility="gone" />
+
+            <!-- Suggested Users ScrollView -->
+            <HorizontalScrollView
+                android:id="@+id/suggestions_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:scrollbars="none"
+                app:layout_constraintTop_toBottomOf="@id/suggestions_title"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layoutDirection="ltr"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/suggestions_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layoutDirection="ltr" />
+            </HorizontalScrollView>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Content container: Empty Mood Text and Mood List -->
+    <FrameLayout
+        android:id="@+id/content_frame"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <!-- Empty Mood Text (appears when there are no moods) -->
         <TextView
             android:id="@+id/emptyMoodText"
             android:layout_width="wrap_content"
@@ -212,25 +236,19 @@
             android:text="Oops! Nothing to see here..."
             android:textSize="18sp"
             android:textStyle="italic"
+            android:layout_marginTop="10dp"
             android:textColor="@android:color/darker_gray"
-            android:layout_marginTop="12dp"
-            app:layout_constraintTop_toBottomOf="@id/suggestions_scroll"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_gravity="top|center"
             android:visibility="gone" />
 
         <!-- Mood List -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/other_moods_recycler_view"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="match_parent"
             android:layout_marginTop="8dp"
             android:overScrollMode="never"
-            android:scrollbars="vertical"
-            app:layout_constraintTop_toBottomOf="@id/emptyMoodText"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            android:scrollbars="vertical" />
+    </FrameLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</merge>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

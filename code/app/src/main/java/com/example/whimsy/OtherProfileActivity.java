@@ -1,11 +1,9 @@
 /**
  * OtherProfileActivity handles the display of another user's profile and allows
  * the current user to follow or unfollow that user.
- *
  * This activity loads the profile information of the searched user, including
  * their name, email, bio, and profile picture, and shows the follow button's
  * state based on whether the current user is already following the searched user.
- *
  * Outstanding Issues:
  * - There is no handling for network or Firebase connection issues during the follow/unfollow process.
  * - The current user may accidentally try to follow themselves, which is blocked but needs clearer messaging.
@@ -16,23 +14,24 @@ package com.example.whimsy;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.FrameLayout;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.appcompat.app.AlertDialog;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -45,15 +44,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import com.google.firebase.firestore.DocumentReference;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 public class OtherProfileActivity extends ActivityBase {
 
@@ -70,6 +68,7 @@ public class OtherProfileActivity extends ActivityBase {
     private List<Mood> moodList = new ArrayList<>();
     private List<String> moodDocIds = new ArrayList<>();
     private TextView moodCountText;
+    private ImageView backBtn;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -87,6 +86,10 @@ public class OtherProfileActivity extends ActivityBase {
         followingCount = findViewById(R.id.other_following_count);
         moodCountText = findViewById(R.id.other_moods_count);
         moodsRecyclerView = findViewById(R.id.other_moods_recycler_view);
+        backBtn = findViewById(R.id.tool_back_button);
+        backBtn.setVisibility(View.VISIBLE);
+
+        backBtn.setOnClickListener(v -> finish());
 
         // Set up RecyclerView
         moodsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -101,6 +104,23 @@ public class OtherProfileActivity extends ActivityBase {
         auth = FirebaseAuth.getInstance();
         currentUserId = auth.getCurrentUser().getUid();
 
+        db.collection("users").document(currentUserId).collection("followedMoods")
+                .addSnapshotListener((snapshots, e) -> {
+                    if (e != null) {
+                        Log.e("OtherProfileActivity", "Error listening to followed moods", e);
+                        return;
+                    }
+                    Set<String> followedMoodsSet = new HashSet<>();
+                    if (snapshots != null) {
+                        for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                            String ownerUid = doc.getString("ownerUid");
+                            String moodId = doc.getString("moodId");
+                            followedMoodsSet.add(ownerUid + "_" + moodId);
+                        }
+                    }
+                    moodAdapter.setFollowedMoodsSet(followedMoodsSet);
+                });
+
         // Get the searched user ID from Intent
         searchedUserId = getIntent().getStringExtra("USER_ID");
 
@@ -111,8 +131,35 @@ public class OtherProfileActivity extends ActivityBase {
             Toast.makeText(this, "Error: User ID is missing.", Toast.LENGTH_SHORT).show();
             finish();
         }
-    }
 
+
+        // Add touch listener to RecyclerView for mood item selection
+        final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return true;
+            }
+        });
+        moodsRecyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                View child = rv.findChildViewUnder(e.getX(), e.getY());
+                if (child != null && gestureDetector.onTouchEvent(e)) {
+                    int position = rv.getChildAdapterPosition(child);
+                    if (position != RecyclerView.NO_POSITION) {
+                        navigateToMoodPage(position);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+    }
+    /**
+     * Loads the user data for the specified user ID and updates the UI components.
+     *
+     * @param userId The ID of the user whose data is to be loaded.
+     */
     private void loadUserData(String userId) {
         db.collection("users").document(userId)
                 .get()
@@ -151,7 +198,7 @@ public class OtherProfileActivity extends ActivityBase {
                                         // NEW: If account is private and not followed, do not load moods
                                         if (isPrivate) {
                                             TextView emptyMoodText = findViewById(R.id.emptyMoodText);
-                                            emptyMoodText.setText("This account is private. Follow to view their moods"); // NEW: Changed text
+                                            emptyMoodText.setText(Html.fromHtml("<b>This account is private.</b><br>Follow to view their moods"));
                                             emptyMoodText.setVisibility(View.VISIBLE);
                                         } else {
                                             loadMoods(searchedUserId); // Load moods for public accounts
@@ -170,6 +217,11 @@ public class OtherProfileActivity extends ActivityBase {
                 });
     }
 
+    /**
+     * Sets up the follow counts for the specified user ID and updates the UI components.
+     *
+     * @param userId The ID of the user whose follow counts are to be set up.
+     */
     private void setupFollowCounts(String userId) {
         followersCount.setOnClickListener(v -> {
             Intent intent = new Intent(this, FollowingActivity.class);
@@ -203,7 +255,11 @@ public class OtherProfileActivity extends ActivityBase {
                     followingCount.setText("0");
                 });
     }
-
+    /**
+     * Loads the moods for the specified user ID and updates the UI components.
+     *
+     * @param userId The ID of the user whose moods are to be loaded.
+     */
     private void loadMoods(String userId) {
         db.collection("users").document(userId)
                 .get()
@@ -211,12 +267,12 @@ public class OtherProfileActivity extends ActivityBase {
                     String profileImageUrl = userDoc.getString("profilePictureUrl");
                     String name = userDoc.getString("name");
                     String username = userDoc.getString("username");
-                    moodList.clear();
-                    moodDocIds.clear();
+
+                    moodList.clear(); // Always clear the list before loading new data
 
                     db.collection("users").document(userId).collection("moods")
                             .orderBy("timestamp", Query.Direction.DESCENDING)
-                            .limit(10) // Fetch more than 3 to account for private moods
+                            .limit(10)
                             .get()
                             .addOnSuccessListener(querySnapshot -> {
                                 if (!querySnapshot.isEmpty()) {
@@ -224,14 +280,14 @@ public class OtherProfileActivity extends ActivityBase {
                                     for (DocumentSnapshot document : querySnapshot.getDocuments()) {
                                         Boolean isPrivate = document.getBoolean("isPrivate");
                                         if (isPrivate == null || !isPrivate) {
-                                            Mood moodObj = createMoodObject(document, name, username, profileImageUrl);
+                                            Mood moodObj = createMoodObject(document, name, username, profileImageUrl, userDoc.getId());
+                                            moodObj.setMoodId(document.getId()); // Store ID in the Mood object
                                             moodList.add(moodObj);
-                                            moodDocIds.add(document.getId());
                                             count++;
-                                            if (count == 3) break; // Stop after adding 3 non-private moods
+                                            if (count == 3) break; // Stop after 3 non-private moods
                                         }
                                     }
-                                    sortAndUpdateMoods();
+                                    sortAndUpdateMoods(); // Update UI with sorted moods
                                 } else {
                                     updateMoodCount();
                                 }
@@ -240,8 +296,19 @@ public class OtherProfileActivity extends ActivityBase {
                 });
     }
 
+    /**
+     * Creates a Mood object from the given DocumentSnapshot and user details.
+     *
+     * @param document The DocumentSnapshot containing mood data.
+     * @param name The name of the user.
+     * @param username The username of the user.
+     * @param profileImageUrl The profile image URL of the user.
+     * @param ownerUid The UID of the mood owner.
+     * @return A Mood object with the provided data.
+     */
+
     // Updated createMoodObject: uses name and username strings
-    private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl) {
+    private Mood createMoodObject(DocumentSnapshot document, String name, String username, String profileImageUrl, String ownerUid) {
         String mood = document.getString("mood");
         String locationName = document.getString("locationName");
         String timestampStr = document.getString("timestamp");
@@ -257,7 +324,7 @@ public class OtherProfileActivity extends ActivityBase {
         List<String> taggedUserNames = extractTaggedUserNames(tags);
         String gatheringStatus = calculateGatheringStatus(tags);
 
-        return new Mood(
+        Mood moodObj = new Mood(
                 name,
                 username,
                 locationName != null ? locationName : "No location",
@@ -272,6 +339,8 @@ public class OtherProfileActivity extends ActivityBase {
                 taggedUserNames,
                 isPrivate
         );
+        moodObj.setOwnerUid(ownerUid); // Set ownerUid to user document ID
+        return moodObj;
     }
     /**
      * Calculates gathering status based on number of tagged users.
@@ -286,6 +355,13 @@ public class OtherProfileActivity extends ActivityBase {
         if (tagCount <= 5) return "With " + tagCount + " others";
         return "With a crowd";
     }
+
+    /**
+     * Extracts tagged user names from the given list of tag maps.
+     *
+     * @param tags List of tag maps from Firestore.
+     * @return A list of tagged user names.
+     */
     private List<String> extractTaggedUserNames(List<Map<String, Object>> tags) {
         List<String> taggedUserNames = new ArrayList<>();
         if (tags != null) {
@@ -298,7 +374,12 @@ public class OtherProfileActivity extends ActivityBase {
         }
         return taggedUserNames;
     }
-
+    /**
+     * Converts a timestamp string to milliseconds.
+     *
+     * @param timestampStr The timestamp string to convert.
+     * @return The timestamp in milliseconds.
+     */
     private long convertTimestampToMillis(String timestampStr) {
         SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a - MMMM dd, yyyy", Locale.ENGLISH);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -311,13 +392,32 @@ public class OtherProfileActivity extends ActivityBase {
         }
     }
 
+    /**
+     * Navigates to the MoodPageActivity for the selected mood.
+     *
+     * @param position The position of the selected mood in the list.
+     */
+
+    private void navigateToMoodPage(int position) {
+        Mood selectedMood = moodList.get(position);
+        Intent intent = new Intent(this, MoodPageActivity.class);
+        intent.putExtra("SELECTED_MOOD", selectedMood);
+        intent.putExtra("MOOD_ID", selectedMood.getMoodId()); // Pass the moodId from the Mood object
+        intent.putExtra("OWNER_UID", selectedMood.getOwnerUid()); // Assuming Mood has this field
+        startActivity(intent);
+    }
+    /**
+     * Sorts the mood list by timestamp and updates the UI.
+     */
     private void sortAndUpdateMoods() {
         Collections.sort(moodList, (m1, m2) ->
                 Long.compare(convertTimestampToMillis(m2.getTimestamp()), convertTimestampToMillis(m1.getTimestamp())));
         moodAdapter.notifyDataSetChanged();
         updateMoodCount();
     }
-
+    /**
+     * Updates the mood count text and visibility of the empty mood text.
+     */
     private void updateMoodCount() {
         moodCountText.setText(String.valueOf(moodList.size()));
         TextView emptyMoodText = findViewById(R.id.emptyMoodText);
@@ -327,12 +427,19 @@ public class OtherProfileActivity extends ActivityBase {
             emptyMoodText.setVisibility(View.GONE);
         }
     }
+    /**
+     * Handles the failure of loading moods and updates the UI.
+     *
+     * @param e The exception that occurred during mood loading.
+     */
     private void handleMoodLoadFailure(Exception e) {
         Log.e("OtherProfileActivity", "Error loading moods", e);
         Toast.makeText(this, "Error loading moods", Toast.LENGTH_SHORT).show();
         updateMoodCount();
     }
-
+    /**
+     * Follows the searched user and updates the follow button state.
+     */
     private void followUser() {
         // Prevent self-following with a clear message
         if (currentUserId == null || searchedUserId == null || currentUserId.equals(searchedUserId)) {
@@ -419,6 +526,11 @@ public class OtherProfileActivity extends ActivityBase {
                     Log.e("FollowUser", "Error fetching user doc", e);
                 });
     }
+
+    /**
+     * Fetches a list of suggested users for the current user to follow.
+     * The suggestions exclude the current user, the searched user, and users already followed by the current user.
+     */
     private void showSuggestedUsers() {
         db.collection("users")
                 .limit(10) // Increased limit to get more users before filtering
@@ -462,6 +574,11 @@ public class OtherProfileActivity extends ActivityBase {
                 })
                 .addOnFailureListener(e -> Log.e("Suggestions", "Error fetching users", e));
     }
+    /**
+     * Displays the list of suggested users in the UI.
+     *
+     * @param users The list of suggested users to display.
+     */
 
     private void displaySuggestions(ArrayList<User> users) {
         LinearLayout suggestionsContainer = findViewById(R.id.suggestions_container);
@@ -498,7 +615,12 @@ public class OtherProfileActivity extends ActivityBase {
             suggestionsContainer.addView(userView);
         }
     }
-
+    /**
+     * Follows a suggested user and updates the follow button state.
+     *
+     * @param userId The ID of the user to follow.
+     * @param button The follow button to update.
+     */
     private void followSuggestedUser(String userId, Button button) {
         WriteBatch batch = db.batch();
 
