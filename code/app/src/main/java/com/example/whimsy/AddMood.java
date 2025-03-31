@@ -323,23 +323,31 @@ public class AddMood extends ActivityBase {
                 String text = s.toString();
                 int remaining = 200 - s.length();
                 reasonCharCountText.setText(String.valueOf(remaining));
-                // EDIT: Check if text starts with "#generate-reason"
-                if (text.startsWith("#generate")) {
-                    // Change the addMoodButton text to "Generate"
+                if (text.startsWith("#generate-reason")) {
                     addMoodButton.setText("Generate");
-                    // Optional: Apply a blue color to the "#generate-reason" prefix.
                     SpannableString spannable = new SpannableString(text);
-                    ForegroundColorSpan blueSpan = new ForegroundColorSpan(0xFF2196F3); // Blue color
-                    spannable.setSpan(blueSpan, 0, "#generate".length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    ForegroundColorSpan blueSpan = new ForegroundColorSpan(0xFF2196F3);
+                    spannable.setSpan(blueSpan, 0, "#generate-reason".length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     reasonInput.removeTextChangedListener(this);
                     reasonInput.setText(spannable);
                     reasonInput.setSelection(spannable.length());
                     reasonInput.addTextChangedListener(this);
-                } else {
-                    // Otherwise, ensure the button shows "Add Mood"
+                }
+                else if (text.startsWith("#generate-image")) {
+                    addMoodButton.setText("Generate");
+                    SpannableString spannable = new SpannableString(text);
+                    ForegroundColorSpan blueSpan = new ForegroundColorSpan(0xFF2196F3);
+                    spannable.setSpan(blueSpan, 0, "#generate-image".length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    reasonInput.removeTextChangedListener(this);
+                    reasonInput.setText(spannable);
+                    reasonInput.setSelection(spannable.length());
+                    reasonInput.addTextChangedListener(this);
+                }
+                else {
                     addMoodButton.setText("Add Mood");
                 }
             }
+
             @Override
             public void afterTextChanged(Editable s) { }
         });
