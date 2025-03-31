@@ -210,6 +210,9 @@ public class Mood implements Serializable {
         this.userTime = userTime;
     }
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
     /**
