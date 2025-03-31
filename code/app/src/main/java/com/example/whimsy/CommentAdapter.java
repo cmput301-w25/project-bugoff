@@ -6,17 +6,19 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import java.util.List;
 
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentViewHolder> {
     private List<Comment> comments;
-    private int textColor;
+    private int textColor, cardBg;
 
     public CommentAdapter(List<Comment> comments, int textColor, int cardBg) {
         this.comments = comments;
         this.textColor = textColor;
+        this.cardBg = cardBg;
     }
     @Override
     public CommentViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -32,7 +34,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
 
         // Apply text color only
         holder.commenterName.setTextColor(textColor);
-        holder.commentContent.setTextColor(textColor);
+        holder.cardView.setCardBackgroundColor(cardBg);
 
         // Load profile image (unchanged)
         String profileImageUrl = comment.getProfileImageUrl();
@@ -53,12 +55,14 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     static class CommentViewHolder extends RecyclerView.ViewHolder {
         TextView commenterName, commentContent;
         ImageView profileImage;
+        CardView cardView;
 
         CommentViewHolder(@NonNull View itemView) {
             super(itemView);
             commenterName = itemView.findViewById(R.id.commenter_name);
             commentContent = itemView.findViewById(R.id.comment_content);
             profileImage = itemView.findViewById(R.id.image_profile);
+            cardView = itemView.findViewById(R.id.card_view);
         }
     }
 }
