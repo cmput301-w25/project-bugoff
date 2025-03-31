@@ -194,7 +194,7 @@
             android:gravity="center"
             android:layout_marginTop="8dp">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/track_mood_button"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -202,16 +202,18 @@
                 android:backgroundTint="?attr/buttonBackgroundColor"
                 android:drawableLeft="@drawable/mood_heart_icon_tinted"
                 android:text="Follow"
+                app:cornerRadius="14dp"
                 android:textColor="?attr/textColor"
                 android:textSize="13dp" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/comment_button"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:textSize="13dp"
                 android:layout_height="wrap_content"
                 android:text="Comment"
+                app:cornerRadius="14dp"
                 android:drawableLeft="@drawable/mood_comment_tinted"
                 android:textColor="?attr/textColor"
                 android:backgroundTint="?attr/buttonBackgroundColor"

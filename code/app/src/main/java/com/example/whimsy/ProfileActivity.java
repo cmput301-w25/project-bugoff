@@ -209,7 +209,7 @@ public class ProfileActivity extends ActivityBase {
                 });
 
         // Setup filter button
-        ImageButton filterButton = findViewById(R.id.filter_button);
+        Button filterButton = findViewById(R.id.filter_button);
         filterButton.setOnClickListener(v -> showFilterPopup());
 
         // Load user data
