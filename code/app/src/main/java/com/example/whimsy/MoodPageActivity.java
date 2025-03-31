@@ -192,7 +192,7 @@ public class MoodPageActivity extends ActivityBase {
 // Set up comments RecyclerView
         RecyclerView commentsRecyclerView = findViewById(R.id.mood_comments_recycler_view);
         commentsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        commentAdapter = new CommentAdapter(comments, colorFg);
+        commentAdapter = new CommentAdapter(comments, colorFg, colorBg);
         commentsRecyclerView.setAdapter(commentAdapter);
 
 // Initialize comment input components

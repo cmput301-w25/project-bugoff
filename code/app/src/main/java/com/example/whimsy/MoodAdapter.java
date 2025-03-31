@@ -306,6 +306,11 @@ public class MoodAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             moodTrigger.setText(mood.getMoodTrigger());
             moodReason.setText(mood.getMoodReason());
 
+            if (mood.getUserLocation().equals("No location")) {
+                userLocation.setVisibility(GONE);
+            } else {
+                userLocation.setText(mood.getUserLocation());
+            }
 
             if (mood.isPrivateMood()) {
                 moodVisibilityBg.setVisibility(View.VISIBLE);
