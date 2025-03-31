@@ -1,0 +1,191 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent"
+    android:gravity="center">
+
+    <RelativeLayout
+        android:id="@+id/filter_popup_container"
+        android:layout_width="321dp"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="@drawable/input_field"
+        android:elevation="10dp"
+        android:padding="20dp">
+
+        <!-- Filter Icon and Heading -->
+        <LinearLayout
+            android:id="@+id/filter_header"
+            android:layout_width="229dp"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/filter_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/filter_icon" />
+
+            <TextView
+                android:id="@+id/filter_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply Filter"
+                android:textColor="#000000"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Close Button -->
+        <ImageView
+            android:id="@+id/close_popup"
+            android:layout_width="24dp"
+            android:layout_height="27dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="1dp"
+            android:src="@drawable/close_button" />
+
+        <!-- Search Box -->
+        <FrameLayout
+            android:id="@+id/search_box_wrapper"
+            android:layout_width="264dp"
+            android:layout_height="46dp"
+            android:layout_below="@id/filter_header"
+            android:layout_marginTop="7dp"
+            android:elevation="6dp">
+
+            <LinearLayout
+                android:id="@+id/search_layout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/box_shadow"
+                android:orientation="horizontal"
+                android:padding="4dp">
+
+                <EditText
+                    android:id="@+id/search_reason_box"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:hint="Search: Reason Why"
+                    android:padding="8dp"
+                    android:textColorHint="#888888"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:id="@+id/search_button"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center_vertical"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_search" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Filter Options Label -->
+        <TextView
+            android:id="@+id/filter_by_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/search_box_wrapper"
+            android:layout_marginTop="10dp"
+            android:text="Filter by:"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- RadioGroup for Time Filters -->
+        <RadioGroup
+            android:id="@+id/filter_options"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/filter_by_text"
+            android:layout_marginTop="1dp"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/filter_week"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="This Week"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+            <RadioButton
+                android:id="@+id/filter_month"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="This Month"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+        </RadioGroup>
+
+        <!-- Spinner for Emotional State -->
+        <FrameLayout
+            android:id="@+id/spinner_wrapper"
+            android:layout_width="264dp"
+            android:layout_height="40dp"
+            android:layout_below="@id/filter_options"
+            android:layout_marginTop="12dp"
+            android:elevation="6dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/box_shadow">
+
+                <Spinner
+                    android:id="@+id/spinner_emotional_state"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:gravity="center"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="36dp" />
+
+                <ImageView
+                    android:id="@+id/spinner_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="12dp"
+                    android:src="@drawable/ic_dropdown" />
+            </RelativeLayout>
+        </FrameLayout>
+
+        <!-- Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/spinner_wrapper"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/reset_button"
+                android:layout_width="112dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="10dp"
+                android:backgroundTint="#EF7B7B"
+                android:text="Reset"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/apply_button"
+                android:layout_width="112dp"
+                android:layout_height="48dp"
+                android:backgroundTint="#68B1EB"
+                android:text="Apply"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </RelativeLayout>
+</RelativeLayout>

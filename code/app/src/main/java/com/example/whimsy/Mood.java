@@ -83,6 +83,17 @@ public class Mood implements Serializable {
         this.profileImageUrl = profileImageUrl;
     }
 
+    private double locationLat;
+    private double locationLng;
+
+    // Getters
+    public double getLocationLat() { return locationLat; }
+    public double getLocationLng() { return locationLng; }
+
+    // Setters (if needed)
+    public void setLocationLat(double locationLat) { this.locationLat = locationLat; }
+    public void setLocationLng(double locationLng) { this.locationLng = locationLng; }
+
     /**
      * Returns the name of the user.
      *
