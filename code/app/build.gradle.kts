@@ -42,6 +42,9 @@ dependencies {
     implementation("com.google.firebase:firebase-storage:21.0.1")
     // FileProvider for camera
     implementation("androidx.core:core:1.9.0")
+
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
