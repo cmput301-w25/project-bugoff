@@ -344,13 +344,24 @@ public class AddMood extends ActivityBase {
         selectedLocationText = findViewById(R.id.selectedLocationText);
         progressBar = findViewById(R.id.progress_bar);
 
-        // Load the logged-in user's profile image using Glide. If not available, use a default image.
+// Load the logged-in user's profile image using Glide. If not available, use a default image.
         FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser != null && currentUser.getPhotoUrl() != null) {
-            Glide.with(this)
-                    .load(currentUser.getPhotoUrl())
-                    .placeholder(R.drawable.ic_profile)
-                    .into(profileImage);
+        if (currentUser != null) {
+            db.collection("users").document(currentUser.getUid()).get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        String profilePictureUrl = documentSnapshot.getString("profilePictureUrl");
+                        if (profilePictureUrl != null && !profilePictureUrl.isEmpty()) {
+                            Glide.with(this)
+                                    .load(profilePictureUrl)
+                                    .placeholder(R.drawable.ic_profile)
+                                    .into(profileImage);
+                        } else {
+                            profileImage.setImageResource(R.drawable.ic_profile);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        profileImage.setImageResource(R.drawable.ic_profile);
+                    });
         } else {
             profileImage.setImageResource(R.drawable.ic_profile);
         }

@@ -31,6 +31,7 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class ActivityBase extends AppCompatActivity {
     private ImageView profileButton, homeButton, settings, addMoodButton, searchButton, mapButton;
@@ -51,17 +52,33 @@ public class ActivityBase extends AppCompatActivity {
         // Finding views by their IDs
         homeButton = findViewById(R.id.home);
         profileButton = findViewById(R.id.profile_button);
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null && user.getPhotoUrl() != null) {
-            Glide.with(this)
-                    .load(user.getPhotoUrl())
-                    .placeholder(R.drawable.ic_profile) // fallback image
-                    .into(profileButton);
-        }
         settings = findViewById(R.id.iconSettings);
         searchButton = findViewById(R.id.search);
         addMoodButton = findViewById(R.id.add);
         mapButton = findViewById(R.id.iconGlobe);
+
+        // Get the current user and set the profile image
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            FirebaseFirestore.getInstance().collection("users").document(user.getUid())
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        String profilePictureUrl = documentSnapshot.getString("profilePictureUrl");
+                        if (profilePictureUrl != null && !profilePictureUrl.isEmpty()) {
+                            Glide.with(this)
+                                    .load(profilePictureUrl)
+                                    .placeholder(R.drawable.ic_profile) // fallback image
+                                    .into(profileButton);
+                        } else {
+                            profileButton.setImageResource(R.drawable.ic_profile);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        profileButton.setImageResource(R.drawable.ic_profile);
+                    });
+        } else {
+            profileButton.setImageResource(R.drawable.ic_profile);
+        }
 
         ImageView heartButton = findViewById(R.id.heart);
         heartButton.setOnClickListener(v -> {

@@ -44,7 +44,6 @@ public class SearchActivity extends ActivityBase {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base);
         initializeNavigation();
-
         // Inflate the layout for the search box into the content frame
         FrameLayout contentFrame = findViewById(R.id.content_frame);
         getLayoutInflater().inflate(R.layout.search_box, contentFrame, true);
